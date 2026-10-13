@@ -47,8 +47,18 @@ export function uraiTanzil(isi) {
   return { ayat, lisensi: lisensi.join('\n') };
 }
 
-const AWAL_BASMALAH = 'بِسْمِ';
 const KATA_BASMALAH = 4;
+const KERANGKA_BASMALAH = ['بسم', 'الله', 'الرحمن', 'الرحيم'];
+
+// Kerangka huruf tanpa harakat dan tanda; alif wasla (ٱ) disamakan dengan alif.
+// Dipakai hanya untuk mengenali basmalah, misalnya بِسْمِ dan بِّسْمِ sama-sama "بسم".
+export function kerangkaHuruf(token) {
+  return token.replace(/ٱ/g, 'ا').replace(/[^ء-ي]/g, '');
+}
+
+function diawaliBasmalah(tokenKata) {
+  return KERANGKA_BASMALAH.every((k, i) => tokenKata[i] && kerangkaHuruf(tokenKata[i]) === k);
+}
 
 // Memasangkan kata Tanzil dengan arti Quran.com untuk satu ayat.
 // Pada Tanzil, ayat pertama tiap surah (kecuali Al-Fatihah dan At-Taubah)
@@ -69,7 +79,7 @@ export function pasangkanKata({ surah, ayat, teksTanzil, kataQuranCom }) {
     surah !== 1 &&
     surah !== 9 &&
     selisih === KATA_BASMALAH &&
-    indeksKata[0]?.t === AWAL_BASMALAH
+    diawaliBasmalah(indeksKata.map(({ t }) => t))
   ) {
     basmalah = true;
     mulai = KATA_BASMALAH;

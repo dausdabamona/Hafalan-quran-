@@ -84,7 +84,7 @@ Rincian pengolahan data ada di [data/SUMBER.md](../data/SUMBER.md).
 ## Status Fase 0 (14 Okt 2026)
 
 - Alat penyiapan data selesai: `scripts/siapkan-data.mjs` dan workflow **Siapkan data Juz 30**. Logika pencocokan kata sudah diuji dengan data contoh.
-- Data belum diunduh. Workflow dijalankan setelah repositori dijadikan privat (P-12), karena lisensi arti per kata Quran.com belum jelas.
+- Repositori tetap publik (P-12). Workflow berjalan otomatis bila skripnya berubah.
 - Gerbang Fase 0 terpenuhi bila workflow berhasil (564 ayat, semua jumlah kata cocok) dan sampel teks dicocokkan dengan mushaf cetak.
 - Pertanyaan yang belum dijawab memakai usulan bawaan (P-01 s.d. P-11, P-15, P-21, P-22); P-18 pengingat ditunda dan memakai alarm HP. P-19 nama aplikasi masih terbuka.
 
@@ -136,7 +136,7 @@ Terjawab: P-13 (arti per kata + keterangan pribadi), P-14 (Madinah), P-16 (OPPO 
 - [ ] P-09 Arah jalur urutan di dalam Juz 30 (An-Nas → An-Naba' atau sebaliknya).
 - [ ] P-10 Satu jalur aktif — usulan: ya, potongan hafal tetap terhitung bila pindah jalur.
 - [ ] P-11 Pembagian potongan — usulan: otomatis, bisa diubah manual.
-- [ ] P-12 Visibilitas repositori — saat ini publik; usulan: jadikan privat sebelum data diunduh.
+- [x] P-12 Visibilitas repositori — dijawab 14 Okt 2026: tetap publik; data gabungan ikut dikomit (keputusan Firdaus, risiko lisensi Quran.com diterima).
 - [ ] P-15 Ukuran huruf — usulan: besar dan bisa diperbesar.
 - [x] P-18 Pengingat — ditunda; versi pertama memakai alarm HP (ColorOS agresif mematikan aplikasi latar belakang).
 - [ ] P-19 Nama aplikasi — usulan: Rabth, Sabaq, Murojaah, Hifzhi.

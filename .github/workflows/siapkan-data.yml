@@ -1,9 +1,15 @@
 name: Siapkan data Juz 30
 
-# Dijalankan manual dari tab Actions. Mengunduh teks Tanzil dan arti per kata
-# Quran.com, memvalidasi 564 ayat, lalu mengomit data/juz30.json.
+# Berjalan otomatis bila skrip/workflow ini berubah, atau manual dari tab Actions.
+# Mengunduh teks Tanzil dan arti per kata Quran.com, memvalidasi 564 ayat,
+# lalu mengomit data/juz30.json.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/siapkan-data.mjs
+      - .github/workflows/siapkan-data.yml
 
 permissions:
   contents: write

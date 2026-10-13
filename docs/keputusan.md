@@ -35,7 +35,7 @@ Di luar cakupan versi pertama: banyak pengguna, audio qari, pengenalan suara oto
 | K-17 | Mode "Sambung ayat" | Aplikasi menampilkan satu ayat, pengguna membaca ayat sesudahnya, ketuk untuk membuka jawaban; sambungan yang pernah tertukar didahulukan. Panel ayat mirip (mutasyabihat) ditunda sampai setelah uji pakai dan cek lisensi |
 | K-18 | Bentuk tulisan | Rasm Utsmani Mushaf Madinah (teks Tanzil) |
 | K-19 | Makna | Arti per kata saja, tanpa terjemahan per ayat; ditambah keterangan pribadi yang bisa diisi sendiri |
-| K-20 | Perangkat | HP yang dipakai Firdaus saat ini; versi Android persis dicek di Fase 1 |
+| K-20 | Perangkat | OPPO A7 Pro (ColorOS). APK memakai batas minimum Capacitor, Android 7 (API 24); versi Android persis dicek saat APK pertama dipasang |
 
 ## Metode dan alur harian
 
@@ -114,7 +114,7 @@ Setiap fase ditutup gerbang "LANJUT".
 
 ## Pertanyaan terbuka
 
-Terjawab: P-13 (arti per kata + keterangan pribadi), P-14 (Madinah), P-16 (HP saat ini), P-17, P-20, P-23, P-24. Masih terbuka:
+Terjawab: P-13 (arti per kata + keterangan pribadi), P-14 (Madinah), P-16 (OPPO A7 Pro), P-17, P-20, P-23, P-24. Masih terbuka:
 
 - [ ] P-01 Definisi "lancar" — usulan: tidak ada kesalahan baru pada sesi itu; tanda lama tetap tersorot.
 - [ ] P-02 Setelah jarak 30 hari — usulan: tetap tiap 30 hari.

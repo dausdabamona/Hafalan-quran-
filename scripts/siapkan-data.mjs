@@ -179,7 +179,9 @@ async function utama() {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   utama().catch((err) => {
-    console.error(err.message);
+    // Format ::error:: membuat pesan tampil sebagai anotasi di halaman Actions.
+    const sebab = err.cause ? ` — ${err.cause.code ?? ''} ${err.cause.message ?? ''}` : '';
+    console.log(`::error::${err.message}${sebab}`);
     process.exit(1);
   });
 }

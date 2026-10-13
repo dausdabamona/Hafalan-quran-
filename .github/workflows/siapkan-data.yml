@@ -1,0 +1,34 @@
+name: Siapkan data Juz 30
+
+# Dijalankan manual dari tab Actions. Mengunduh teks Tanzil dan arti per kata
+# Quran.com, memvalidasi 564 ayat, lalu mengomit data/juz30.json.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  siapkan-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Unduh dan gabungkan data
+        run: node scripts/siapkan-data.mjs
+
+      - name: Komit hasil
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/juz30.json
+          if git diff --cached --quiet; then
+            echo "Data tidak berubah."
+          else
+            git commit -m "Data Juz 30: teks Tanzil + arti per kata Quran.com"
+            git push
+          fi

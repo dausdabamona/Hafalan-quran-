@@ -77,7 +77,16 @@ Di luar cakupan versi pertama: banyak pengguna, audio qari, pengenalan suara oto
 | Data | Sumber kandidat | Temuan lisensi | Status |
 | --- | --- | --- | --- |
 | Teks Utsmani | [Tanzil](https://tanzil.net/pub/download/v1.0/) | CC BY 3.0; sumber disebut dan ditautkan ke tanzil.net; teks tidak boleh diubah | Aman |
-| Arti per kata | [QUL (Tarteel)](https://qul.tarteel.ai/resources) | Lisensi per berkas belum terbaca | Perlu dicek |
+| Arti per kata | [Quran.com](https://quran.com), API v4 lama | Ketentuan lisensi tidak tercantum; dipakai pribadi non-komersial dengan atribusi | Belum jelas — repositori sebaiknya privat |
+
+Rincian pengolahan data ada di [data/SUMBER.md](../data/SUMBER.md).
+
+## Status Fase 0 (14 Okt 2026)
+
+- Alat penyiapan data selesai: `scripts/siapkan-data.mjs` dan workflow **Siapkan data Juz 30**. Logika pencocokan kata sudah diuji dengan data contoh.
+- Data belum diunduh. Workflow dijalankan setelah repositori dijadikan privat (P-12), karena lisensi arti per kata Quran.com belum jelas.
+- Gerbang Fase 0 terpenuhi bila workflow berhasil (564 ayat, semua jumlah kata cocok) dan sampel teks dicocokkan dengan mushaf cetak.
+- Pertanyaan yang belum dijawab memakai usulan bawaan (P-01 s.d. P-11, P-15, P-21, P-22); P-18 pengingat ditunda dan memakai alarm HP. P-19 nama aplikasi masih terbuka.
 
 ## Usulan arsitektur (belum dikunci)
 
@@ -105,7 +114,7 @@ Di luar cakupan versi pertama: banyak pengguna, audio qari, pengenalan suara oto
 
 Setiap fase ditutup gerbang "LANJUT".
 
-1. **Fase 0 — Data dan lisensi.** Pilih sumber arti per kata, catat lisensinya, susun data Juz 30 (564 ayat) ke JSON. *Gerbang:* lisensi tercatat, data lengkap.
+1. **Fase 0 — Data dan lisensi.** Teks Tanzil + arti per kata Quran.com digabung oleh GitHub Actions menjadi `data/juz30.json` (564 ayat). *Gerbang:* lisensi tercatat, data lengkap.
 2. **Fase 1 — Kerangka aplikasi dan APK pertama (F-01).** *Gerbang:* APK berjalan dalam mode pesawat.
 3. **Fase 2 — Rekam dan koreksi (F-02, F-03, F-06, F-07).** *Gerbang:* rekaman dan tanda tetap ada setelah HP dinyalakan ulang.
 4. **Fase 3 — Jadwal dan mode Sambung ayat (F-04, F-08).** *Gerbang:* simulasi 30 hari menghasilkan jadwal yang benar.
@@ -127,9 +136,9 @@ Terjawab: P-13 (arti per kata + keterangan pribadi), P-14 (Madinah), P-16 (OPPO 
 - [ ] P-09 Arah jalur urutan di dalam Juz 30 (An-Nas → An-Naba' atau sebaliknya).
 - [ ] P-10 Satu jalur aktif — usulan: ya, potongan hafal tetap terhitung bila pindah jalur.
 - [ ] P-11 Pembagian potongan — usulan: otomatis, bisa diubah manual.
-- [ ] P-12 Visibilitas repositori — usulan: privat.
+- [ ] P-12 Visibilitas repositori — saat ini publik; usulan: jadikan privat sebelum data diunduh.
 - [ ] P-15 Ukuran huruf — usulan: besar dan bisa diperbesar.
-- [ ] P-18 Notifikasi pengingat masuk versi pertama atau menyusul.
+- [x] P-18 Pengingat — ditunda; versi pertama memakai alarm HP (ColorOS agresif mematikan aplikasi latar belakang).
 - [ ] P-19 Nama aplikasi — usulan: Rabth, Sabaq, Murojaah, Hifzhi.
 - [ ] P-21 Kunci tanda tangan APK — usulan: secret di GitHub + salinan di Drive pribadi.
 - [ ] P-22 Kebiasaan cadangan — usulan: pengingat ekspor tiap pekan.

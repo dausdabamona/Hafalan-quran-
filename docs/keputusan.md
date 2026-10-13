@@ -83,9 +83,9 @@ Rincian pengolahan data ada di [data/SUMBER.md](../data/SUMBER.md).
 
 ## Status Fase 0 (14 Okt 2026)
 
-- Alat penyiapan data selesai: `scripts/siapkan-data.mjs` dan workflow **Siapkan data Juz 30**. Logika pencocokan kata sudah diuji dengan data contoh.
-- Repositori tetap publik (P-12). Workflow berjalan otomatis bila skripnya berubah.
-- Gerbang Fase 0 terpenuhi bila workflow berhasil (564 ayat, semua jumlah kata cocok) dan sampel teks dicocokkan dengan mushaf cetak.
+- Selesai: `data/juz30.json` dibuat oleh GitHub Actions — 37 surah (78–114), 564 ayat, 2.308 kata, semua kata punya arti, basmalah 37 surah dikenali, catatan lisensi Tanzil disertakan.
+- Repositori tetap publik (P-12).
+- Sisa gerbang: pencocokan sampel dengan mushaf cetak, dipindah ke gerbang Fase 1 agar dicek langsung di HP.
 - Pertanyaan yang belum dijawab memakai usulan bawaan (P-01 s.d. P-11, P-15, P-21, P-22); P-18 pengingat ditunda dan memakai alarm HP. P-19 nama aplikasi masih terbuka.
 
 ## Usulan arsitektur (belum dikunci)

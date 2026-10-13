@@ -1,0 +1,71 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace = "id.dabamona.rabth"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "id.dabamona.rabth"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        // Diisi workflow dari nomor build, agar setiap APK baru bisa dipasang menimpa yang lama.
+        versionCode((project.findProperty('versionCode') ?: '1') as Integer)
+        versionName(project.findProperty('versionName') ?: '0.1.0')
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    // Kunci tanda tangan dibaca dari variabel lingkungan yang disiapkan workflow (P-21).
+    // Kunci yang sama di setiap build membuat APK baru bisa menimpa versi lama tanpa kehilangan data.
+    signingConfigs {
+        release {
+            def berkasKunci = System.getenv('RABTH_KEYSTORE_PATH')
+            if (berkasKunci) {
+                storeFile file(berkasKunci)
+                storePassword System.getenv('RABTH_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('RABTH_KEY_ALIAS')
+                keyPassword System.getenv('RABTH_KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            if (System.getenv('RABTH_KEYSTORE_PATH')) {
+                signingConfig signingConfigs.release
+            }
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

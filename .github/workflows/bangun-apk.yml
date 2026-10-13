@@ -1,0 +1,97 @@
+name: Bangun APK
+
+# Membangun APK setiap kali kode aplikasi berubah, lalu menaruhnya di
+# GitHub Releases dengan tag "terbaru" agar bisa diunduh langsung dari HP.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - src/**
+      - data/juz30.json
+      - android/**
+      - index.html
+      - package.json
+      - package-lock.json
+      - capacitor.config.json
+      - vite.config.ts
+      - .github/workflows/bangun-apk.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bangun-apk
+  cancel-in-progress: true
+
+jobs:
+  bangun:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Pasang dependensi
+        run: npm ci
+
+      - name: Uji
+        run: npm test
+
+      - name: Bangun web
+        run: npm run build
+
+      - name: Salin ke proyek Android
+        run: npx cap sync android
+
+      # Kunci permanen dari secret RABTH_KEYSTORE_BASE64 bila sudah diisi (P-21);
+      # bila belum, memakai kunci sementara yang ada di repositori.
+      - name: Siapkan kunci tanda tangan
+        env:
+          KUNCI_BASE64: ${{ secrets.RABTH_KEYSTORE_BASE64 }}
+          KUNCI_SANDI: ${{ secrets.RABTH_KEYSTORE_PASSWORD }}
+          KUNCI_ALIAS: ${{ secrets.RABTH_KEY_ALIAS }}
+        run: |
+          if [ -n "$KUNCI_BASE64" ]; then
+            echo "$KUNCI_BASE64" | base64 -d > "$RUNNER_TEMP/rabth.jks"
+            {
+              echo "RABTH_KEYSTORE_PATH=$RUNNER_TEMP/rabth.jks"
+              echo "RABTH_KEYSTORE_PASSWORD=$KUNCI_SANDI"
+              echo "RABTH_KEY_PASSWORD=$KUNCI_SANDI"
+              echo "RABTH_KEY_ALIAS=$KUNCI_ALIAS"
+            } >> "$GITHUB_ENV"
+            echo "Memakai kunci permanen."
+          else
+            {
+              echo "RABTH_KEYSTORE_PATH=$GITHUB_WORKSPACE/android/kunci-sementara.jks"
+              echo "RABTH_KEYSTORE_PASSWORD=rabthsementara"
+              echo "RABTH_KEY_PASSWORD=rabthsementara"
+              echo "RABTH_KEY_ALIAS=rabth"
+            } >> "$GITHUB_ENV"
+            echo "::warning::Memakai kunci sementara (P-21 belum diisi)."
+          fi
+
+      - name: Bangun APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon -PversionCode=${{ github.run_number }} -PversionName=0.1.${{ github.run_number }}
+
+      - name: Terbitkan ke GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk rabth.apk
+          gh release delete terbaru --yes --cleanup-tag || true
+          gh release create terbaru rabth.apk \
+            --target "$GITHUB_SHA" \
+            --title "Rabth 0.1.${{ github.run_number }}" \
+            --notes "APK terbaru dari commit ${GITHUB_SHA::7}. Unduh rabth.apk lalu pasang di HP." \
+            --latest

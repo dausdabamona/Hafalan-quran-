@@ -1,0 +1,8 @@
+{
+  "appId": "id.dabamona.rabth",
+  "appName": "Rabth",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#fbf8f1"
+  }
+}

@@ -33,12 +33,15 @@ Di luar cakupan versi pertama: banyak pengguna, audio qari, pengenalan suara oto
 | K-15 | Tanda urutan tertukar | Jenis tanda kedua, dipasang pada sambungan antar-ayat (mis. "setelah ayat 5 lompat ke ayat 8"); permanen seperti K-13 dan ikut menurunkan jarak jadwal |
 | K-16 | Teks tertutup saat murojaah | Teks ayat berikutnya tersembunyi sampai "Selesai ayat ini" ditekan |
 | K-17 | Mode "Sambung ayat" | Aplikasi menampilkan satu ayat, pengguna membaca ayat sesudahnya, ketuk untuk membuka jawaban; sambungan yang pernah tertukar didahulukan. Panel ayat mirip (mutasyabihat) ditunda sampai setelah uji pakai dan cek lisensi |
+| K-18 | Bentuk tulisan | Rasm Utsmani Mushaf Madinah (teks Tanzil) |
+| K-19 | Makna | Arti per kata saja, tanpa terjemahan per ayat; ditambah keterangan pribadi yang bisa diisi sendiri |
+| K-20 | Perangkat | HP yang dipakai Firdaus saat ini; versi Android persis dicek di Fase 1 |
 
 ## Metode dan alur harian
 
 **Sesi pagi (setelah Subuh) — Sabaq**
 
-1. Baca makna potongan: arti per kata dan terjemahan ayat.
+1. Baca makna potongan: arti per kata dan keterangan pribadi.
 2. Baca sambil melihat, lalu coba tanpa melihat.
 3. Rekam bacaan hafalan per ayat; rekaman baru menimpa rekaman lama ayat itu.
 4. Koreksi mandiri: putar rekaman sambil melihat ayat, ketuk kata yang salah dan sambungan yang tertukar.
@@ -60,7 +63,7 @@ Di luar cakupan versi pertama: banyak pengguna, audio qari, pengenalan suara oto
 
 | Kode | Fitur | Perilaku | Batasan versi pertama |
 | --- | --- | --- | --- |
-| F-01 | Tampilan ayat | Teks Utsmani; ketuk kata → muncul arti bahasa Indonesia | Satu jenis huruf; arti per kata hanya bahasa Indonesia |
+| F-01 | Tampilan ayat | Teks Utsmani Madinah; ketuk kata → muncul arti bahasa Indonesia dan keterangan pribadi yang bisa diisi sendiri | Satu jenis huruf; arti per kata hanya bahasa Indonesia |
 | F-02 | Rekam murojaah | Rekam per ayat; putar ulang sambil melihat ayat; ayat dalam satu potongan diputar berurutan | Hanya rekaman terbaru per ayat |
 | F-03 | Koreksi mandiri | Ketuk kata yang salah pada ayat; tanda tersimpan permanen | Penilaian sendiri; tanpa pengenalan suara |
 | F-04 | Jadwal murojaah | Daftar jatuh tempo hari ini dari jarak 1–3–7–14–30 | Notifikasi menyusul (P-18) |
@@ -74,7 +77,6 @@ Di luar cakupan versi pertama: banyak pengguna, audio qari, pengenalan suara oto
 | Data | Sumber kandidat | Temuan lisensi | Status |
 | --- | --- | --- | --- |
 | Teks Utsmani | [Tanzil](https://tanzil.net/pub/download/v1.0/) | CC BY 3.0; sumber disebut dan ditautkan ke tanzil.net; teks tidak boleh diubah | Aman |
-| Terjemahan ayat | [Koleksi terjemahan Tanzil](https://opus.nlpl.eu/Tanzil/corpus/version/Tanzil) | Hanya non-komersial | Aman untuk pribadi; penerjemah dipilih di Fase 0 |
 | Arti per kata | [QUL (Tarteel)](https://qul.tarteel.ai/resources) | Lisensi per berkas belum terbaca | Perlu dicek |
 
 ## Usulan arsitektur (belum dikunci)
@@ -90,8 +92,9 @@ Di luar cakupan versi pertama: banyak pengguna, audio qari, pengenalan suara oto
 
 **Model data inti (usulan)**
 
-- `ayat`: surah, ayat, teks Utsmani, terjemahan.
+- `ayat`: surah, ayat, teks Utsmani.
 - `kata`: surah, ayat, urutan kata, teks, arti.
+- `keterangan`: surah, ayat, urutan kata (kosong bila untuk satu ayat), isi catatan, tanggal diubah.
 - `potongan`: id, surah, ayat awal–akhir, jalur (tema/urutan), urutan dalam jalur.
 - `jadwal`: id potongan, jarak saat ini, tanggal jatuh tempo, riwayat.
 - `tanda_salah`: surah, ayat, urutan kata, tanggal ditandai, tanggal terakhir salah, jumlah kali salah.
@@ -102,7 +105,7 @@ Di luar cakupan versi pertama: banyak pengguna, audio qari, pengenalan suara oto
 
 Setiap fase ditutup gerbang "LANJUT".
 
-1. **Fase 0 — Data dan lisensi.** Pilih penerjemah dan sumber arti per kata, catat lisensinya, susun data Juz 30 (564 ayat) ke JSON. *Gerbang:* lisensi tercatat, data lengkap.
+1. **Fase 0 — Data dan lisensi.** Pilih sumber arti per kata, catat lisensinya, susun data Juz 30 (564 ayat) ke JSON. *Gerbang:* lisensi tercatat, data lengkap.
 2. **Fase 1 — Kerangka aplikasi dan APK pertama (F-01).** *Gerbang:* APK berjalan dalam mode pesawat.
 3. **Fase 2 — Rekam dan koreksi (F-02, F-03, F-06, F-07).** *Gerbang:* rekaman dan tanda tetap ada setelah HP dinyalakan ulang.
 4. **Fase 3 — Jadwal dan mode Sambung ayat (F-04, F-08).** *Gerbang:* simulasi 30 hari menghasilkan jadwal yang benar.
@@ -111,7 +114,7 @@ Setiap fase ditutup gerbang "LANJUT".
 
 ## Pertanyaan terbuka
 
-Terjawab: P-17, P-20, P-23, P-24. Masih terbuka:
+Terjawab: P-13 (arti per kata + keterangan pribadi), P-14 (Madinah), P-16 (HP saat ini), P-17, P-20, P-23, P-24. Masih terbuka:
 
 - [ ] P-01 Definisi "lancar" — usulan: tidak ada kesalahan baru pada sesi itu; tanda lama tetap tersorot.
 - [ ] P-02 Setelah jarak 30 hari — usulan: tetap tiap 30 hari.
@@ -125,12 +128,9 @@ Terjawab: P-17, P-20, P-23, P-24. Masih terbuka:
 - [ ] P-10 Satu jalur aktif — usulan: ya, potongan hafal tetap terhitung bila pindah jalur.
 - [ ] P-11 Pembagian potongan — usulan: otomatis, bisa diubah manual.
 - [ ] P-12 Visibilitas repositori — usulan: privat.
-- [ ] P-13 Terjemahan per ayat perlu atau cukup arti per kata.
-- [ ] P-14 Rasm Utsmani Madinah atau Mushaf Standar Indonesia.
 - [ ] P-15 Ukuran huruf — usulan: besar dan bisa diperbesar.
-- [ ] P-16 Merek HP dan versi Android.
 - [ ] P-18 Notifikasi pengingat masuk versi pertama atau menyusul.
-- [ ] P-19 Nama aplikasi.
+- [ ] P-19 Nama aplikasi — usulan: Rabth, Sabaq, Murojaah, Hifzhi.
 - [ ] P-21 Kunci tanda tangan APK — usulan: secret di GitHub + salinan di Drive pribadi.
 - [ ] P-22 Kebiasaan cadangan — usulan: pengingat ekspor tiap pekan.
 

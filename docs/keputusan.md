@@ -88,6 +88,14 @@ Rincian pengolahan data ada di [data/SUMBER.md](../data/SUMBER.md).
 - Sisa gerbang: pencocokan sampel dengan mushaf cetak, dipindah ke gerbang Fase 1 agar dicek langsung di HP.
 - Pertanyaan yang belum dijawab memakai usulan bawaan (P-01 s.d. P-11, P-15, P-21, P-22); P-18 pengingat ditunda dan memakai alarm HP. P-19 nama aplikasi masih terbuka.
 
+## Status Fase 1 (14 Okt 2026)
+
+- Aplikasi bernama kerja **Rabth** (ID paket `id.dabamona.rabth`); nama masih bisa diganti (P-19).
+- Selesai: daftar 37 surah, ayat per kata dari teks Tanzil, ketuk kata untuk arti dan keterangan pribadi, keterangan per ayat, ukuran huruf A−/A+, halaman Tentang berisi atribusi.
+- APK dibangun otomatis oleh workflow **Bangun APK** dan diterbitkan di [Releases → terbaru](https://github.com/dausdabamona/Hafalan-quran-/releases/tag/terbaru).
+- Kunci tanda tangan: sementara memakai `android/kunci-sementara.jks` yang ada di repositori publik (P-21). Kunci permanen disiapkan sebelum Fase 4; mengganti kunci mengharuskan aplikasi dicopot dan dipasang ulang, jadi dilakukan sebelum ada data hafalan penting.
+- Gerbang Fase 1 (menunggu Firdaus): APK terpasang di OPPO A7 Pro, berjalan dalam mode pesawat, dan beberapa ayat dicocokkan dengan mushaf cetak.
+
 ## Usulan arsitektur (belum dikunci)
 
 | Lapisan | Usulan | Alasan |
@@ -139,7 +147,7 @@ Terjawab: P-13 (arti per kata + keterangan pribadi), P-14 (Madinah), P-16 (OPPO 
 - [x] P-12 Visibilitas repositori — dijawab 14 Okt 2026: tetap publik; data gabungan ikut dikomit (keputusan Firdaus, risiko lisensi Quran.com diterima).
 - [ ] P-15 Ukuran huruf — usulan: besar dan bisa diperbesar.
 - [x] P-18 Pengingat — ditunda; versi pertama memakai alarm HP (ColorOS agresif mematikan aplikasi latar belakang).
-- [ ] P-19 Nama aplikasi — usulan: Rabth, Sabaq, Murojaah, Hifzhi.
+- [ ] P-19 Nama aplikasi — nama kerja Rabth; usulan lain: Sabaq, Murojaah, Hifzhi.
 - [ ] P-21 Kunci tanda tangan APK — usulan: secret di GitHub + salinan di Drive pribadi.
 - [ ] P-22 Kebiasaan cadangan — usulan: pengingat ekspor tiap pekan.
 

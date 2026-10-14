@@ -12,6 +12,9 @@ import {
   pilihHafalanBaru,
   selesaiHariIni,
   selisihHari,
+  kelompokTema,
+  statusTema,
+  temaSurah,
   type ArahJalur,
   type EntriJadwal,
 } from '../jadwal';
@@ -44,7 +47,7 @@ export default function LayarHariIni() {
   const hari = hariIni();
   const [jadwal, setJadwal] = useState<Map<string, EntriJadwal> | null>(null);
   const [arah, setArah] = useState<ArahJalur>(() =>
-    baca('arahJalur') === 'dari-an-naba' ? 'dari-an-naba' : 'dari-an-nas',
+    (['dari-an-naba', 'tema'] as const).find((a) => a === baca('arahJalur')) ?? 'dari-an-nas',
   );
   const [lihatSemua, setLihatSemua] = useState(false);
   const [catatanDeres, setCatatanDeres] = useState<Map<number, CatatanDeres>>(new Map());
@@ -85,7 +88,7 @@ export default function LayarHariIni() {
         {tanggal} · {hafal} dari {jalur.length} potongan Juz 30 sudah dihafal
       </p>
 
-      <KartuHafalanBaru baru={baru} hari={hari} />
+      <KartuHafalanBaru baru={baru} hari={hari} tampilkanTema={arah === 'tema'} />
 
       <section className="kartu">
         <h2>
@@ -149,8 +152,21 @@ export default function LayarHariIni() {
             <input type="radio" checked={arah === 'dari-an-naba'} onChange={() => ubahArah('dari-an-naba')} />
             Urutan, mulai An-Naba'
           </label>
+          <label>
+            <input type="radio" checked={arah === 'tema'} onChange={() => ubahArah('tema')} />
+            Sesuai tema{statusTema === 'draf' ? ' (draf)' : ''}
+          </label>
         </div>
-        <p className="kosong">Jalur sesuai tema menyusul setelah pengelompokan temanya disepakati.</p>
+        {arah === 'tema' && (
+          <ol className="daftar-tema">
+            {kelompokTema.map((k) => (
+              <li key={k.nama}>
+                <span className="nama">{k.nama}</span>
+                <span className="redup">{k.surah.map((n) => cariSurah(n)?.nama ?? n).join(', ')}</span>
+              </li>
+            ))}
+          </ol>
+        )}
         <button className="tombol sekunder lebar" onClick={() => pergi('#/semua')}>
           Semua surah Juz 30
         </button>
@@ -159,7 +175,15 @@ export default function LayarHariIni() {
   );
 }
 
-function KartuHafalanBaru({ baru, hari }: { baru: ReturnType<typeof pilihHafalanBaru>; hari: string }) {
+function KartuHafalanBaru({
+  baru,
+  hari,
+  tampilkanTema,
+}: {
+  baru: ReturnType<typeof pilihHafalanBaru>;
+  hari: string;
+  tampilkanTema: boolean;
+}) {
   const kunciSimai = baru.status === 'tamat' ? '' : `simai:${hari}:${baru.potongan.surah}:${baru.potongan.ayatAwal}`;
   const [simai, setSimai] = useState(() => (kunciSimai ? baca(kunciSimai) === '1' : false));
 
@@ -177,6 +201,9 @@ function KartuHafalanBaru({ baru, hari }: { baru: ReturnType<typeof pilihHafalan
       {(baru.status === 'baru' || baru.status === 'ulang') && (
         <>
           <p className="potongan-hari-ini">{namaPotongan(baru.potongan)}</p>
+          {tampilkanTema && temaSurah(baru.potongan.surah) && (
+            <p className="kosong">Tema: {temaSurah(baru.potongan.surah)!.nama}</p>
+          )}
           {baru.status === 'ulang' && (
             <p className="kosong">Potongan ini diulang dulu sampai lancar sebelum menambah yang baru.</p>
           )}

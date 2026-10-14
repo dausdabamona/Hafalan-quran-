@@ -120,3 +120,19 @@ describe('kesalahan dan hari terlewat', () => {
     expect(perbaruiJadwal(e, e, true, tambahHari(AWAL, 2))).toBeNull();
   });
 });
+
+describe('jalur sesuai tema', () => {
+  it('setiap surah Juz 30 muncul tepat sekali di kelompok tema', async () => {
+    const { kelompokTema } = await import('./jadwal');
+    const semua = kelompokTema.flatMap((k) => k.surah);
+    expect(semua).toHaveLength(37);
+    expect(new Set(semua).size).toBe(37);
+    for (let n = 78; n <= 114; n++) expect(semua).toContain(n);
+  });
+
+  it('jalur tema dimulai dari kelompok pertama dan menutup 564 ayat', () => {
+    const jalur = jalurUrutan('tema');
+    expect(jalur[0].surah).toBe(114);
+    expect(jalur.reduce((n, p) => n + p.ayatAkhir - p.ayatAwal + 1, 0)).toBe(564);
+  });
+});

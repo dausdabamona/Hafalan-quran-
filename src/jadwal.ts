@@ -1,4 +1,5 @@
 import { bagiPotongan, daftarSurah, type Potongan } from './data';
+import dataTema from '../data/tema-juz30.json';
 
 // Logika jadwal murni (tanpa database) agar bisa diuji dengan simulasi hari.
 //
@@ -53,12 +54,31 @@ export function kunciPotongan(p: Potongan): string {
   return `${p.surah}:${p.ayatAwal}-${p.ayatAkhir}`;
 }
 
-export type ArahJalur = 'dari-an-nas' | 'dari-an-naba';
+export type ArahJalur = 'dari-an-nas' | 'dari-an-naba' | 'tema';
 
-// Jalur (b) K-08: urutan surah Juz 30. Di dalam surah ayat selalu maju.
+export interface KelompokTema {
+  nama: string;
+  keterangan: string;
+  surah: number[];
+}
+
+export const kelompokTema: KelompokTema[] = (dataTema as { kelompok: KelompokTema[] }).kelompok;
+export const statusTema: string = (dataTema as { status: string }).status;
+
+export function temaSurah(nomor: number): KelompokTema | undefined {
+  return kelompokTema.find((k) => k.surah.includes(nomor));
+}
+
+// Jalur K-08: (a) sesuai tema (data/tema-juz30.json) atau (b) urutan surah.
+// Di dalam surah ayat selalu maju.
 export function jalurUrutan(arah: ArahJalur): Potongan[] {
-  const surah = arah === 'dari-an-nas' ? [...daftarSurah].reverse() : daftarSurah;
-  return surah.flatMap((s) => bagiPotongan(s));
+  const nomor =
+    arah === 'tema'
+      ? kelompokTema.flatMap((k) => k.surah)
+      : arah === 'dari-an-nas'
+        ? [...daftarSurah].reverse().map((s) => s.nomor)
+        : daftarSurah.map((s) => s.nomor);
+  return nomor.flatMap((n) => bagiPotongan(daftarSurah.find((s) => s.nomor === n)!));
 }
 
 // ---------- Perubahan jadwal setelah satu sesi koreksi ----------

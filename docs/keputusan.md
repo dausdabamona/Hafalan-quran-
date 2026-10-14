@@ -123,7 +123,7 @@ Rincian pengolahan data ada di [data/SUMBER.md](../data/SUMBER.md).
 - Sabqi (Dekat) = jarak 1, 3, 7 hari; Manzil (Lama) = jarak 14 dan 30 hari.
 - Mode **Sambung ayat** (F-08): sambungan yang kedua ayatnya sudah lancar; yang pernah tertukar didahulukan, sisanya acak, 10 soal per latihan. Tertukar → tanda permanen bertambah dan potongan kembali ke jarak 1 hari (K-15).
 - Catatan perilaku: koreksi potongan dari layar surah juga memasukkannya ke jadwal; mengulang sebelum jatuh tempo tidak mengubah jadwal.
-- Belum: **jalur sesuai tema** (P-08) menunggu pengelompokan tema Juz 30 disepakati.
+- **Jalur sesuai tema** (P-08, dijawab 14 Okt 2026: Claude menyusun draf, Firdaus mengoreksi): pilihan ketiga di kartu Jalur hafalan. Draf delapan kelompok tema ada di `data/tema-juz30.json` (status "draf"); urutan kelompok dari surah pendek ke panjang. Koreksi cukup dilakukan di berkas itu.
 - Uji: simulasi 120 hari otomatis (potongan pertama diulang hari ke-1, 4, 11, 25, 55) dan uji alur 4 hari di peramban.
 - Gerbang Fase 3 (menunggu Firdaus): pakai beberapa hari di HP; pastikan daftar Hari ini sesuai harapan.
 
@@ -178,7 +178,7 @@ Terjawab: P-13 (arti per kata + keterangan pribadi), P-14 (Madinah), P-16 (OPPO 
 - [ ] P-05 Hari terlewat — usulan: tanggungan menumpuk, urut dari yang paling terlambat.
 - [ ] P-06 Syarat menambah Sabaq — usulan: Sabaq kemarin harus lancar dulu.
 - [ ] P-07 Sima'i tanpa audio di aplikasi — tetap dilakukan di luar aplikasi (centang "sudah mendengar") atau dihapus?
-- [ ] P-08 Penyusun pengelompokan tema Juz 30.
+- [x] P-08 Penyusun pengelompokan tema Juz 30 — draf disusun Claude, menunggu koreksi Firdaus (`data/tema-juz30.json`).
 - [ ] P-09 Arah jalur urutan di dalam Juz 30 (An-Nas → An-Naba' atau sebaliknya).
 - [ ] P-10 Satu jalur aktif — usulan: ya, potongan hafal tetap terhitung bila pindah jalur.
 - [ ] P-11 Pembagian potongan — usulan: otomatis, bisa diubah manual.

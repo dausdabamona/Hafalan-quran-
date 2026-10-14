@@ -811,3 +811,18 @@ textarea:focus {
 .daftar-rukuk {
   padding: 4px 12px 24px;
 }
+
+.daftar-tema {
+  margin: 4px 0 8px;
+  padding-left: 22px;
+  line-height: 1.45;
+}
+
+.daftar-tema li {
+  margin: 6px 0;
+}
+
+.daftar-tema .nama {
+  display: block;
+  font-weight: 600;
+}

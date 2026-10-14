@@ -1,0 +1,46 @@
+{
+ "status": "draf",
+ "catatan": "Draf pengelompokan tema Juz 30 untuk jalur hafalan (K-08a, P-08). Disusun Claude 14 Okt 2026, menunggu koreksi Firdaus. Urutan kelompok dari surah pendek ke panjang; urutan surah di dalam kelompok adalah urutan hafalan.",
+ "kelompok": [
+  {
+   "nama": "Perlindungan dan tauhid",
+   "keterangan": "Memohon perlindungan kepada Allah dan memurnikan keesaan-Nya",
+   "surah": [114, 113, 112, 109]
+  },
+  {
+   "nama": "Nikmat dan penghiburan bagi Rasulullah saw.",
+   "keterangan": "Karunia, kelapangan, dan pertolongan Allah",
+   "surah": [108, 110, 94, 93]
+  },
+  {
+   "nama": "Akhlak dan peringatan sosial",
+   "keterangan": "Waktu, kepedulian, lisan, harta, dan jalan yang mendaki",
+   "surah": [103, 107, 104, 102, 90]
+  },
+  {
+   "nama": "Kisah umat dan pelajaran sejarah",
+   "keterangan": "Quraisy, pasukan bergajah, Abu Lahab, Ashabul Ukhdud, kaum 'Ad dan Tsamud",
+   "surah": [106, 105, 111, 85, 89]
+  },
+  {
+   "nama": "Wahyu, ilmu, dan Al-Qur'an",
+   "keterangan": "Turunnya Al-Qur'an, perintah membaca, bukti yang nyata, dan peringatan",
+   "surah": [97, 96, 98, 80, 87]
+  },
+  {
+   "nama": "Penciptaan manusia dan dua jalan",
+   "keterangan": "Manusia diciptakan sebaik-baiknya, jiwa yang disucikan atau dikotori",
+   "surah": [95, 91, 92, 86]
+  },
+  {
+   "nama": "Kiamat dan hari pembalasan",
+   "keterangan": "Guncangan bumi, hari yang menggetarkan, dan terbukanya catatan amal",
+   "surah": [99, 101, 100, 82, 81, 84, 88]
+  },
+  {
+   "nama": "Hari akhir: kebangkitan dan balasan",
+   "keterangan": "Kecurangan, kebangkitan, dan berita besar hari keputusan",
+   "surah": [83, 79, 78]
+  }
+ ]
+}

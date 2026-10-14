@@ -36,6 +36,7 @@ Di luar cakupan versi pertama: banyak pengguna, audio qari, pengenalan suara oto
 | K-18 | Bentuk tulisan | Rasm Utsmani Mushaf Madinah (teks Tanzil) |
 | K-19 | Makna | Arti per kata saja, tanpa terjemahan per ayat; ditambah keterangan pribadi yang bisa diisi sendiri |
 | K-20 | Perangkat | OPPO A7 Pro (ColorOS). APK memakai batas minimum Capacitor, Android 7 (API 24); versi Android persis dicek saat APK pertama dipasang |
+| K-21 | Istilah | Bahasa Indonesia sebagai istilah utama, istilah Arab kecil di bawahnya: Hafalan baru (Sabaq), Ulang hafalan — Dekat (Sabqi) dan Lama (Manzil); boleh ditinjau ulang kemudian |
 
 ## Metode dan alur harian
 
@@ -108,7 +109,7 @@ Rincian pengolahan data ada di [data/SUMBER.md](../data/SUMBER.md).
 ## Status Fase 3 (14 Okt 2026)
 
 - Beranda kini layar **Hari ini**: *Hafalan baru* (Sabaq, setelah Subuh) dengan langkah baca makna → centang sima'i → baca → rekam & koreksi; *Ulang hafalan* (Sabqi & Manzil, sebelum tidur) dengan label Dekat/Lama dan keterangan terlambat; *Latihan sambung ayat*; pilihan jalur.
-- Istilah tampil dalam bahasa Indonesia dengan istilah Arab kecil di bawahnya.
+- Istilah tampil dalam bahasa Indonesia dengan istilah Arab kecil di bawahnya (dikunci sebagai K-21).
 - Keputusan bawaan yang dipakai (bisa diubah kapan saja):
   - P-01 lancar = tidak ada kesalahan baru pada sesi itu.
   - P-02 setelah 30 hari tetap tiap 30 hari. P-03 kesalahan baru → kembali ke jarak 1 hari.

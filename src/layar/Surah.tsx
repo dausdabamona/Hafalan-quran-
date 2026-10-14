@@ -26,7 +26,9 @@ import {
   kunciKeterangan,
   simpanKeterangan,
   simpanMakna,
+  batalkanAyatHafalanLama,
   batalkanHafalanLama,
+  tandaiAyatHafalanLama,
   tandaiHafalanLama,
   type Keterangan,
   type Makna,
@@ -34,7 +36,7 @@ import {
   type TandaSurah,
   type TandaTertukar,
 } from '../db';
-import { adaTandaLama, rentangMurojaah, type EntriHafalan, type EntriJadwal } from '../jadwal';
+import { adaTandaLama, ayatHafal, rentangMurojaah, type EntriHafalan, type EntriJadwal } from '../jadwal';
 import { hashPotongan, pergi } from '../navigasi';
 import { hashMurotal } from '../murotal';
 import Kepala from '../komponen/Kepala';
@@ -75,6 +77,10 @@ export default function LayarSurah({
   const [jadwal, setJadwal] = useState<Map<number, EntriJadwal>>(new Map());
   const [lembar, setLembar] = useState<Lembar | null>(null);
   const [tampilMakna, setTampilMakna] = useState(bacaTampilMakna);
+  const [modeTandai, setModeTandai] = useState(false);
+  const [dari, setDari] = useState('');
+  const [sampai, setSampai] = useState('');
+  const [pesanTandai, setPesanTandai] = useState('');
 
   const semuaKata = useMemo(() => surah.ayat.flatMap((a) => a.kata.map((k) => ({ ayat: a, kata: k }))), [surah]);
 
@@ -123,6 +129,46 @@ export default function LayarSurah({
   };
 
   const basmalah = surah.ayat[0] ? teksBasmalah(surah.ayat[0]) : null;
+
+  // K-30: status hafal per ayat untuk mode Tandai hafal.
+  const hafalSet = useMemo(() => ayatHafal(hafalan), [hafalan]);
+  const lamaSet = useMemo(() => {
+    const hasil = new Set<number>();
+    for (const e of hafalan.values())
+      if (e.lama && e.surah === surah.nomor) for (let a = e.ayatAwal; a <= e.ayatAkhir; a++) hasil.add(a);
+    return hasil;
+  }, [hafalan, surah.nomor]);
+
+  const ubahAyat = async (ayat: number) => {
+    if (lamaSet.has(ayat)) {
+      await batalkanAyatHafalanLama(surah.nomor, [ayat]);
+      setPesanTandai(`Tanda ayat ${ayat} dibatalkan.`);
+    } else if (hafalSet.has(`${surah.nomor}:${ayat}`)) {
+      setPesanTandai(`Ayat ${ayat} dihafal lewat Hafalan baru, jadi tandanya tetap.`);
+      return;
+    } else {
+      await tandaiAyatHafalanLama(surah.nomor, [ayat]);
+      setPesanTandai(`Ayat ${ayat} ditandai sudah hafal.`);
+    }
+    await muat();
+  };
+
+  const tandaiRentang = async () => {
+    const a = Number(dari);
+    const b = Number(sampai || dari);
+    if (!a || !b || a > b || a < 1 || b > surah.jumlahAyat) {
+      setPesanTandai(`Isi nomor ayat 1–${surah.jumlahAyat}, dengan ayat awal tidak lebih besar dari ayat akhir.`);
+      return;
+    }
+    await tandaiAyatHafalanLama(
+      surah.nomor,
+      Array.from({ length: b - a + 1 }, (_, i) => a + i),
+    );
+    setPesanTandai(a === b ? `Ayat ${a} ditandai sudah hafal.` : `Ayat ${a}–${b} ditandai sudah hafal.`);
+    setDari('');
+    setSampai('');
+    await muat();
+  };
 
   const kelasKata = (a: Ayat) => (k: Kata) => {
     const kelas: string[] = [];
@@ -185,6 +231,35 @@ export default function LayarSurah({
           </div>
         }
       />
+
+      <div className={'bilah-tandai' + (modeTandai ? ' buka' : '')}>
+        {modeTandai ? (
+          <>
+            <p>
+              Ketuk <strong>kotak di atas ayat</strong> yang sudah Anda hafal, atau tandai sekaligus satu rentang.
+              Ayat yang ditandai masuk Ulang hafalan per rukuk; yang direkam hanya ayat yang hafal.
+            </p>
+            <div className="isi-rentang">
+              <span>Ayat</span>
+              <input inputMode="numeric" value={dari} onChange={(e) => setDari(e.target.value.replace(/\D/g, ''))} aria-label="Dari ayat" placeholder="dari" />
+              <span>–</span>
+              <input inputMode="numeric" value={sampai} onChange={(e) => setSampai(e.target.value.replace(/\D/g, ''))} aria-label="Sampai ayat" placeholder="sampai" />
+              <button className="tombol kecil utama" onClick={tandaiRentang}>
+                Tandai
+              </button>
+            </div>
+            {pesanTandai && <p className="pesan-tandai">{pesanTandai}</p>}
+            <button className="tombol sekunder lebar" onClick={() => { setModeTandai(false); setPesanTandai(''); }}>
+              Selesai menandai
+            </button>
+          </>
+        ) : (
+          <button className="tautan" onClick={() => setModeTandai(true)}>
+            ✓ Tandai ayat yang sudah hafal ({[...hafalSet].filter((k) => k.startsWith(`${surah.nomor}:`)).length} dari{' '}
+            {surah.jumlahAyat} hafal)
+          </button>
+        )}
+      </div>
 
       {basmalah && (
         <p className="basmalah" lang="ar" dir="rtl">
@@ -260,6 +335,25 @@ export default function LayarSurah({
                         const tertukar = tanda.tertukar.get(kunciAyat(surah.nomor, a.ayat));
                         return (
                           <li key={a.ayat} id={`ayat-${a.ayat}`}>
+                            {modeTandai && (
+                              <button
+                                className={
+                                  'tandai-ayat tandai ' +
+                                  (lamaSet.has(a.ayat) ? 'semua' : hafalSet.has(`${surah.nomor}:${a.ayat}`) ? 'semua baru' : 'belum')
+                                }
+                                onClick={() => ubahAyat(a.ayat)}
+                              >
+                                <span className="kotak" aria-hidden="true">
+                                  {hafalSet.has(`${surah.nomor}:${a.ayat}`) ? '✓' : ''}
+                                </span>
+                                Ayat {a.ayat}
+                                {lamaSet.has(a.ayat)
+                                  ? ' · hafalan lama'
+                                  : hafalSet.has(`${surah.nomor}:${a.ayat}`)
+                                    ? ' · dari Hafalan baru'
+                                    : ''}
+                              </button>
+                            )}
                             <div className="ayat">
                               <TeksAyat ayat={a} kelasKata={kelasKata(a)} ketukKata={(k) => bukaKata(a, k)} />
                               {tampilMakna && (

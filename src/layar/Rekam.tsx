@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ayatPotongan, cariSurah, labelPotongan, type Potongan } from '../data';
+import { cariSurah, labelPotongan, type Potongan } from '../data';
+import { labelDaftarAyat, useAyatMurojaah } from '../komponen/useAyatMurojaah';
 import { simpanRekaman } from '../db';
 import { ganti, hashPotongan } from '../navigasi';
 import { usePerekam } from '../perekam';
@@ -10,7 +11,8 @@ import TeksAyat from '../komponen/TeksAyat';
 // sampai "Selesai ayat ini" ditekan (K-16); bisa dibuka untuk hafalan baru.
 export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; rukuk?: number }) {
   const surah = cariSurah(potongan.surah)!;
-  const daftarAyat = ayatPotongan(surah, potongan);
+  const daftarMuat = useAyatMurojaah(potongan, rukuk);
+  const daftarAyat = daftarMuat ?? [];
   const { status, mulai, selesai, lepas } = usePerekam();
   const [indeks, setIndeks] = useState(0);
   const [tampilkanTeks, setTampilkanTeks] = useState(false);
@@ -48,11 +50,13 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
     await mulai();
   };
 
+  if (!daftarMuat || !ayatKini) return null;
+
   return (
     <>
       <Kepala
         judul={`${rukuk ? 'Murojaah' : 'Rekam'} · ${surah.nama}`}
-        sub={`${rukuk ? 'Rukuk' : 'Potongan'} ${labelPotongan(potongan)}`}
+        sub={`${rukuk ? 'Rukuk' : 'Potongan'} ${rukuk && daftarAyat.length ? labelDaftarAyat(daftarAyat) : labelPotongan(potongan)}`}
       />
 
       <div className="isi-rekam">

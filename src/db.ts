@@ -7,7 +7,9 @@ import {
   setelahKoreksiPotongan,
   setelahMurojaahRukuk,
   turunkanJadwal,
+  batalkanAyatLama,
   batalkanLama,
+  tandaiAyatLama,
   tandaiLama,
   type EntriHafalan,
   type EntriJadwal,
@@ -74,6 +76,7 @@ export interface Sesi {
   ayatAwal: number;
   ayatAkhir: number;
   rukuk?: number;
+  ayat?: number[]; // ayat yang benar-benar dikoreksi bila tidak berurutan (K-30)
   tanggal: string; // ISO
   kataSalah: number;
   sambunganTertukar: number;
@@ -286,6 +289,25 @@ export async function tandaiHafalanLama(nomor: number[], hari = hariIni()): Prom
   });
 }
 
+// K-30: tanda hafalan lama per ayat.
+export async function tandaiAyatHafalanLama(surah: number, ayat: number[], hari = hariIni()): Promise<void> {
+  await db.transaction('rw', db.hafalan, db.jadwalRukuk, async () => {
+    const t = tandaiAyatLama(ayat.map((a) => ({ surah, ayat: a })), await ambilHafalan(), await ambilJadwal(), hari);
+    await db.hafalan.bulkPut(t.hafalan);
+    await db.jadwalRukuk.bulkPut(t.jadwal);
+  });
+}
+
+export async function batalkanAyatHafalanLama(surah: number, ayat: number[]): Promise<void> {
+  await db.transaction('rw', db.hafalan, db.jadwalRukuk, async () => {
+    const b = batalkanAyatLama(surah, ayat, await ambilHafalan(), await ambilJadwal());
+    await db.hafalan.bulkDelete(b.hapusHafalan);
+    await db.hafalan.bulkPut(b.tambahHafalan);
+    await db.jadwalRukuk.bulkPut(b.jadwal);
+    await db.jadwalRukuk.bulkDelete(b.hapusJadwal);
+  });
+}
+
 export async function batalkanHafalanLama(nomor: number[], hari = hariIni()): Promise<void> {
   await db.transaction('rw', db.hafalan, db.jadwalRukuk, async () => {
     for (const n of nomor) {
@@ -302,6 +324,7 @@ export interface HasilKoreksi {
   ayatAwal: number;
   ayatAkhir: number;
   rukuk?: number; // terisi bila murojaah per rukuk
+  ayat?: number[]; // daftar ayat yang dikoreksi bila tidak berurutan (K-30)
   kataSalah: { ayat: number; urutan: number }[];
   tertukar: { ayatAsal: number; ayatKeliru: number }[];
   hari?: string; // untuk uji; bawaan hari ini
@@ -346,6 +369,7 @@ export async function simpanKoreksi(h: HasilKoreksi): Promise<Sesi> {
     ayatAwal: h.ayatAwal,
     ayatAkhir: h.ayatAkhir,
     rukuk: h.rukuk,
+    ...(h.ayat ? { ayat: h.ayat } : {}),
     tanggal: sekarang,
     kataSalah: h.kataSalah.length,
     sambunganTertukar: h.tertukar.length,

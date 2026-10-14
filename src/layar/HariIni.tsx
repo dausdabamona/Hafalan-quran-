@@ -7,6 +7,7 @@ import {
   daftarUlangHafalan,
   hariIni,
   kelompok,
+  labelAyatHafal,
   pilihHafalanBaru,
   rentangMurojaah,
   selesaiHariIni,
@@ -112,7 +113,7 @@ export default function LayarHariIni() {
                       <span className="info">
                         <span className="nama">{namaRukuk(r)}</span>
                         <span className="redup">
-                          {rentang && !j.lengkap ? `hafal ${labelPotongan(rentang)} dari ` : ''}
+                          {rentang && !j.lengkap ? `hafal ${labelAyatHafal(j.nomor, hafalan)} dari ` : ''}
                           ayat {r.ayatAwal}–{r.ayatAkhir} · Juz {juzAyat(r.surah, r.ayatAwal)}
                         </span>
                         {telat > 0 && <span className="telat">terlambat {telat} hari</span>}

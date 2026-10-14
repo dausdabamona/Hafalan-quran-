@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ayatPotongan, cariSurah, labelPotongan, type Potongan } from '../data';
+import { cariSurah, labelPotongan, type Potongan } from '../data';
+import { labelDaftarAyat, useAyatMurojaah } from '../komponen/useAyatMurojaah';
 import {
   ambilRekamanSurah,
   ambilTandaSurah,
@@ -19,7 +20,8 @@ import TombolPutar from '../komponen/TombolPutar';
 // kata yang salah, tandai sambungan yang tertukar, lalu simpan sebagai satu sesi.
 export default function LayarKoreksi({ potongan, rukuk }: { potongan: Potongan; rukuk?: number }) {
   const surah = cariSurah(potongan.surah)!;
-  const daftarAyat = ayatPotongan(surah, potongan);
+  const daftarMuat = useAyatMurojaah(potongan, rukuk);
+  const daftarAyat = daftarMuat ?? [];
   const [rekaman, setRekaman] = useState<Map<string, Rekaman>>(new Map());
   const [tanda, setTanda] = useState<TandaSurah>({ salah: new Map(), tertukar: new Map() });
   const [salahSesi, setSalahSesi] = useState<Set<string>>(new Set()); // "ayat:urutan"
@@ -53,8 +55,8 @@ export default function LayarKoreksi({ potongan, rukuk }: { potongan: Potongan; 
 
   const audioSemua = useMemo(
     () => daftarAyat.map((a) => rekaman.get(kunciAyat(surah.nomor, a.ayat))?.audio),
-    // daftarAyat ditentukan oleh potongan; cukup bergantung pada rekaman dan potongan
-    [rekaman, potongan.surah, potongan.ayatAwal, potongan.ayatAkhir],
+    // daftarAyat ditentukan oleh potongan dan ayat hafal yang dimuat
+    [rekaman, daftarMuat],
   );
 
   const simpan = async () => {
@@ -68,6 +70,8 @@ export default function LayarKoreksi({ potongan, rukuk }: { potongan: Potongan; 
         return { ayat, urutan };
       }),
       tertukar: [...tertukarSesi].map(([ayatAsal, ayatKeliru]) => ({ ayatAsal, ayatKeliru })),
+      // Ayat tidak berurutan (hafalan lama per ayat): catat ayat yang benar-benar dikoreksi.
+      ...(daftarAyat.length !== potongan.ayatAkhir - potongan.ayatAwal + 1 ? { ayat: daftarAyat.map((a) => a.ayat) } : {}),
     };
     // Murojaah rukuk memperbarui jadwal rukuk, bukan jadwal potongan (K-23).
     const sesi = await simpanKoreksi({ ...isi, rukuk });
@@ -79,7 +83,7 @@ export default function LayarKoreksi({ potongan, rukuk }: { potongan: Potongan; 
   if (hasil) {
     return (
       <>
-        <Kepala judul={`Koreksi · ${surah.nama}`} sub={`${rukuk ? 'Murojaah rukuk' : 'Potongan'} ${labelPotongan(potongan)}`} />
+        <Kepala judul={`Koreksi · ${surah.nama}`} sub={`${rukuk ? 'Murojaah rukuk' : 'Potongan'} ${rukuk && daftarAyat.length ? labelDaftarAyat(daftarAyat) : labelPotongan(potongan)}`} />
         <div className="hasil-koreksi">
           {hasil.lancar ? (
             <>
@@ -109,9 +113,11 @@ export default function LayarKoreksi({ potongan, rukuk }: { potongan: Potongan; 
     );
   }
 
+  if (!daftarMuat) return null;
+
   return (
     <>
-      <Kepala judul={`Koreksi · ${surah.nama}`} sub={`${rukuk ? 'Murojaah rukuk' : 'Potongan'} ${labelPotongan(potongan)}`} />
+      <Kepala judul={`Koreksi · ${surah.nama}`} sub={`${rukuk ? 'Murojaah rukuk' : 'Potongan'} ${rukuk && daftarAyat.length ? labelDaftarAyat(daftarAyat) : labelPotongan(potongan)}`} />
       <p className="petunjuk">
         Putar rekaman sambil melihat ayat. Ketuk kata yang salah; ketuk lagi untuk membatalkan. Bila urutan ayat
         tertukar, tandai pada sambungannya.
@@ -139,7 +145,7 @@ export default function LayarKoreksi({ potongan, rukuk }: { potongan: Potongan; 
                   }}
                 />
               </div>
-              {berikut && (
+              {berikut && berikut.ayat === a.ayat + 1 && (
                 <Sambungan
                   ayatAsal={a.ayat}
                   jumlahAyatSurah={surah.jumlahAyat}

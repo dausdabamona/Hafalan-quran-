@@ -22,7 +22,9 @@ export interface BahanStatus {
 export function statusRekaman(ayat: number, b: BahanStatus): StatusRekaman {
   const r = b.rekaman;
   if (!r) return 'belum-rekam';
-  const sesiSesudah = b.sesi.filter((s) => s.ayatAwal <= ayat && ayat <= s.ayatAkhir && s.tanggal >= r.direkam);
+  const sesiSesudah = b.sesi.filter(
+    (s) => (s.ayat ? s.ayat.includes(ayat) : s.ayatAwal <= ayat && ayat <= s.ayatAkhir) && s.tanggal >= r.direkam,
+  );
   if (sesiSesudah.length === 0) return 'belum-koreksi';
   // Kesalahan kata yang ditandai sesudah rekaman ini dibuat.
   if (b.tandaSalah.some((t) => t.terakhir >= r.direkam)) return 'perbaiki';

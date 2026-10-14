@@ -13,6 +13,8 @@ import { daftarSurah, potonganSurah, rukukAyat, cariRukuk, type Potongan, type R
 //  P-06  hafalan baru harus lancar dulu sebelum menambah yang baru
 //  K-27  hafalan lama (sudah hafal sebelum memakai aplikasi) langsung masuk murojaah;
 //        jadwal awalnya dicicil paling banyak BATAS_ULANG_MALAM rukuk per malam
+//  K-30  hafalan lama boleh ditandai per ayat; rukuk yang hafal sebagian dimurojaah
+//        berjarak pada ayat yang hafal saja, sampai Hafalan baru mulai mengisinya
 
 export const JARAK_HARI = [1, 3, 7, 14, 30];
 export const BATAS_ULANG_MALAM = 10;
@@ -33,6 +35,7 @@ export interface EntriHafalan {
 export interface EntriJadwal {
   nomor: number; // nomor rukuk
   lengkap: boolean; // seluruh ayat rukuk sudah lancar dihafal
+  sebagian?: boolean; // K-30: hafal sebagian karena ditandai hafalan lama; dijadwal berjarak
   tingkat: number; // indeks JARAK_HARI (hanya berarti bila lengkap)
   jatuhTempo: string;
   mulai: string;
@@ -179,14 +182,17 @@ export function setelahKoreksiPotongan(
       terakhir: hari,
     });
   } else if (!j.lengkap && lengkap) {
-    hasil.jadwal.push({ ...j, lengkap: true, tingkat: 0, jatuhTempo: tambahHari(hari, JARAK_HARI[0]) });
+    hasil.jadwal.push({ ...j, lengkap: true, sebagian: false, tingkat: 0, jatuhTempo: tambahHari(hari, JARAK_HARI[0]) });
+  } else if (j.sebagian) {
+    // Hafalan baru mulai mengisi rukuk yang hafal sebagian: kini diulang harian.
+    hasil.jadwal.push({ ...j, sebagian: false, tingkat: 0, jatuhTempo: tambahHari(hari, 1) });
   }
   return hasil;
 }
 
 // Sesudah murojaah satu rukuk. Null bila jadwal tidak berubah.
 export function setelahMurojaahRukuk(j: EntriJadwal, lancar: boolean, hari: string): EntriJadwal | null {
-  if (!j.lengkap) return { ...j, terakhir: hari, jatuhTempo: tambahHari(hari, 1) };
+  if (!j.lengkap && !j.sebagian) return { ...j, terakhir: hari, jatuhTempo: tambahHari(hari, 1) };
   if (!lancar) return turunkanJadwal(j, hari);
   if (j.jatuhTempo > hari) return null;
   const tingkat = Math.min(j.tingkat + 1, JARAK_HARI.length - 1);
@@ -199,7 +205,7 @@ export type Kelompok = 'berjalan' | 'dekat' | 'lama';
 
 // Berjalan: rukuk belum lengkap. Dekat (Sabqi): jarak 1, 3, 7. Lama (Manzil): 14, 30.
 export function kelompok(j: EntriJadwal): Kelompok {
-  if (!j.lengkap) return 'berjalan';
+  if (!j.lengkap && !j.sebagian) return 'berjalan';
   return JARAK_HARI[j.tingkat] >= 14 ? 'lama' : 'dekat';
 }
 
@@ -216,7 +222,16 @@ export function selesaiHariIni(jadwal: Map<number, EntriJadwal>, hari: string): 
 // Rentang ayat yang diulang untuk satu entri jadwal.
 export function rentangMurojaah(j: EntriJadwal, hafalan: Map<string, EntriHafalan>): Potongan | null {
   const r = cariRukuk(j.nomor);
-  return r ? rentangHafal(r, ayatHafal(hafalan)) : null;
+  if (!r) return null;
+  const ayat = ayatHafalRukuk(r, ayatHafal(hafalan));
+  return ayat.length ? { surah: r.surah, ayatAwal: ayat[0], ayatAkhir: ayat[ayat.length - 1] } : null;
+}
+
+// Ayat hafal di dalam rukuk (boleh tidak berurutan, K-30).
+export function ayatHafalRukuk(r: Rukuk, hafal: Set<string>): number[] {
+  const hasil: number[] = [];
+  for (let a = r.ayatAwal; a <= r.ayatAkhir; a++) if (hafal.has(`${r.surah}:${a}`)) hasil.push(a);
+  return hasil;
 }
 
 // ---------- Hafalan lama (K-27) ----------
@@ -244,35 +259,85 @@ export function tandaiLama(
   hari: string,
   batas = BATAS_ULANG_MALAM,
 ): { hafalan: EntriHafalan[]; jadwal: EntriJadwal[] } {
+  const daftar: { surah: number; ayat: number }[] = [];
+  for (const n of nomor) {
+    const r = cariRukuk(n);
+    if (r) for (let a = r.ayatAwal; a <= r.ayatAkhir; a++) daftar.push({ surah: r.surah, ayat: a });
+  }
+  return tandaiAyatLama(daftar, hafalan, jadwal, hari, batas);
+}
+
+// K-30: menandai ayat tertentu sebagai hafalan lama. Ayat berurutan digabung menjadi
+// satu entri hafalan. Rukuk yang menjadi lengkap → jadwal Lama; yang hafal sebagian →
+// jadwal berjarak "sebagian". Rukuk yang sedang dihafal (berjalan) tetap berjalan.
+export function tandaiAyatLama(
+  ayat: { surah: number; ayat: number }[],
+  hafalan: Map<string, EntriHafalan>,
+  jadwal: Map<number, EntriJadwal>,
+  hari: string,
+  batas = BATAS_ULANG_MALAM,
+): { hafalan: EntriHafalan[]; jadwal: EntriJadwal[] } {
   const hafal = ayatHafal(hafalan);
+  const baru = [...new Map(ayat.filter((x) => !hafal.has(`${x.surah}:${x.ayat}`)).map((x) => [`${x.surah}:${x.ayat}`, x])).values()]
+    .sort((a, b) => a.surah - b.surah || a.ayat - b.ayat);
+  const hasil = { hafalan: [] as EntriHafalan[], jadwal: [] as EntriJadwal[] };
+  // Entri hafalan per deretan ayat berurutan di dalam satu rukuk.
+  const rukukTersentuh = new Set<number>();
+  let deret: { surah: number; awal: number; akhir: number; rukuk: number } | null = null;
+  const tutup = () => {
+    if (!deret) return;
+    hasil.hafalan.push({
+      kunci: `${deret.surah}:${deret.awal}-${deret.akhir}`,
+      surah: deret.surah,
+      ayatAwal: deret.awal,
+      ayatAkhir: deret.akhir,
+      mulai: hari,
+      terakhir: hari,
+      sabaqLancar: true,
+      lama: true,
+    });
+  };
+  for (const x of baru) {
+    const r = rukukAyat(x.surah, x.ayat);
+    if (!r) continue;
+    rukukTersentuh.add(r.nomor);
+    if (deret && deret.surah === x.surah && deret.rukuk === r.nomor && deret.akhir === x.ayat - 1) deret.akhir = x.ayat;
+    else {
+      tutup();
+      deret = { surah: x.surah, awal: x.ayat, akhir: x.ayat, rukuk: r.nomor };
+    }
+  }
+  tutup();
+
+  for (const h of hasil.hafalan) for (let a = h.ayatAwal; a <= h.ayatAkhir; a++) hafal.add(`${h.surah}:${a}`);
   const beban = new Map<string, number>();
   for (const j of jadwal.values()) {
     const h = j.jatuhTempo < hari ? hari : j.jatuhTempo;
     beban.set(h, (beban.get(h) ?? 0) + 1);
   }
   let hariCicil = hari;
-  const hasil = { hafalan: [] as EntriHafalan[], jadwal: [] as EntriJadwal[] };
-  for (const n of [...new Set(nomor)].sort((a, b) => a - b)) {
-    const r = cariRukuk(n);
-    if (!r || rukukLengkap(r, hafal)) continue;
-    while ((beban.get(hariCicil) ?? 0) >= batas) hariCicil = tambahHari(hariCicil, 1);
-    beban.set(hariCicil, (beban.get(hariCicil) ?? 0) + 1);
-    hasil.hafalan.push({
-      kunci: kunciRukukLama(r),
-      surah: r.surah,
-      ayatAwal: r.ayatAwal,
-      ayatAkhir: r.ayatAkhir,
-      mulai: hari,
-      terakhir: hari,
-      sabaqLancar: true,
-      lama: true,
-    });
+  for (const n of [...rukukTersentuh].sort((a, b) => a - b)) {
+    const r = cariRukuk(n)!;
     const j = jadwal.get(n);
+    const lengkap = rukukLengkap(r, hafal);
+    if (j && !j.lengkap && !j.sebagian) {
+      // Rukuk yang sedang dihafal tetap diulang harian; bila kini lengkap, masuk jadwal berjarak.
+      if (lengkap) hasil.jadwal.push({ ...j, lengkap: true, sebagian: false, tingkat: 0, jatuhTempo: tambahHari(hari, 1) });
+      continue;
+    }
+    if (j && j.lengkap) continue;
+    let jatuhTempo = j?.jatuhTempo;
+    if (!j) {
+      while ((beban.get(hariCicil) ?? 0) >= batas) hariCicil = tambahHari(hariCicil, 1);
+      beban.set(hariCicil, (beban.get(hariCicil) ?? 0) + 1);
+      jatuhTempo = hariCicil;
+    }
     hasil.jadwal.push({
       nomor: n,
-      lengkap: true,
-      tingkat: TINGKAT_AWAL_LAMA,
-      jatuhTempo: hariCicil,
+      lengkap,
+      sebagian: !lengkap,
+      tingkat: j?.tingkat ?? TINGKAT_AWAL_LAMA,
+      jatuhTempo: jatuhTempo!,
       mulai: j?.mulai ?? hari,
       terakhir: j?.terakhir ?? hari,
     });
@@ -298,11 +363,60 @@ export function batalkanLama(
   if (!rentangHafal(r, hafal)) return { hapusHafalan, jadwal: null, hapusJadwal: !!j };
   const lengkap = rukukLengkap(r, hafal);
   if (!j) return { hapusHafalan, jadwal: null, hapusJadwal: false };
+  if (lengkap) return { hapusHafalan, jadwal: j, hapusJadwal: false };
+  const adaHafalanBaru = [...sisa.values()].some(
+    (e) => !e.lama && e.surah === r.surah && e.ayatAwal >= r.ayatAwal && e.ayatAkhir <= r.ayatAkhir,
+  );
   return {
     hapusHafalan,
-    jadwal: lengkap ? j : { ...j, lengkap: false, tingkat: 0, jatuhTempo: tambahHari(hari, 1) },
+    jadwal: adaHafalanBaru
+      ? { ...j, lengkap: false, sebagian: false, tingkat: 0, jatuhTempo: tambahHari(hari, 1) }
+      : { ...j, lengkap: false, sebagian: true },
     hapusJadwal: false,
   };
+}
+
+// K-30: membatalkan tanda hafalan lama untuk ayat tertentu (entri lama dipecah ulang).
+export function batalkanAyatLama(
+  surah: number,
+  ayat: number[],
+  hafalan: Map<string, EntriHafalan>,
+  jadwal: Map<number, EntriJadwal>,
+): { hapusHafalan: string[]; tambahHafalan: EntriHafalan[]; jadwal: EntriJadwal[]; hapusJadwal: number[] } {
+  const buang = new Set(ayat);
+  const hapusHafalan: string[] = [];
+  const tambahHafalan: EntriHafalan[] = [];
+  for (const e of hafalan.values()) {
+    if (!e.lama || e.surah !== surah) continue;
+    let kena = false;
+    for (let a = e.ayatAwal; a <= e.ayatAkhir; a++) if (buang.has(a)) kena = true;
+    if (!kena) continue;
+    hapusHafalan.push(e.kunci);
+    let awal = 0;
+    for (let a = e.ayatAwal; a <= e.ayatAkhir + 1; a++) {
+      const tetap = a <= e.ayatAkhir && !buang.has(a);
+      if (tetap && !awal) awal = a;
+      if (!tetap && awal) {
+        tambahHafalan.push({ ...e, kunci: `${surah}:${awal}-${a - 1}`, ayatAwal: awal, ayatAkhir: a - 1 });
+        awal = 0;
+      }
+    }
+  }
+  const sisa = new Map(hafalan);
+  for (const k of hapusHafalan) sisa.delete(k);
+  for (const e of tambahHafalan) sisa.set(e.kunci, e);
+  const hafal = ayatHafal(sisa);
+  const hasilJadwal: EntriJadwal[] = [];
+  const hapusJadwal: number[] = [];
+  const rukuk = new Set(ayat.map((a) => rukukAyat(surah, a)?.nomor).filter((n): n is number => !!n));
+  for (const n of rukuk) {
+    const r = cariRukuk(n)!;
+    const j = jadwal.get(n);
+    if (!j) continue;
+    if (ayatHafalRukuk(r, hafal).length === 0) hapusJadwal.push(n);
+    else if (!rukukLengkap(r, hafal) && j.lengkap) hasilJadwal.push({ ...j, lengkap: false, sebagian: true });
+  }
+  return { hapusHafalan, tambahHafalan, jadwal: hasilJadwal, hapusJadwal };
 }
 
 export function adaTandaLama(nomor: number, hafalan: Map<string, EntriHafalan>): boolean {
@@ -359,4 +473,20 @@ export function migrasiJadwalLama(lama: JadwalPotonganLama[]): { hafalan: EntriH
     });
   }
   return { hafalan, jadwal };
+}
+
+// Label ayat hafal dalam satu rukuk, mis. "ayat 1–3, 7–9" (K-30).
+export function labelAyatHafal(nomor: number, hafalan: Map<string, EntriHafalan>): string {
+  const r = cariRukuk(nomor);
+  if (!r) return '';
+  const ayat = ayatHafalRukuk(r, ayatHafal(hafalan));
+  const bagian: string[] = [];
+  let awal = ayat[0];
+  for (let i = 0; i < ayat.length; i++) {
+    if (ayat[i + 1] !== ayat[i] + 1) {
+      bagian.push(awal === ayat[i] ? `${awal}` : `${awal}–${ayat[i]}`);
+      awal = ayat[i + 1];
+    }
+  }
+  return `ayat ${bagian.join(', ')}`;
 }

@@ -1180,3 +1180,64 @@ button.judul-juz.tandai {
 .aplikasi:has(.bilah-pemutar) {
   padding-bottom: 88px;
 }
+
+/* ---------- Tandai hafal per ayat (K-30) ---------- */
+.bilah-tandai {
+  margin: 8px 16px 0;
+}
+
+.bilah-tandai.buka {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--catatan);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.bilah-tandai p {
+  margin: 0 0 8px;
+}
+
+.isi-rentang {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.isi-rentang input {
+  width: 72px;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 1px solid var(--garis);
+  border-radius: 10px;
+  font: inherit;
+  text-align: center;
+  background: var(--kartu);
+}
+
+.tandai-ayat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  margin-bottom: 6px;
+  padding: 6px 10px;
+  border: 1px dashed var(--garis);
+  border-radius: 12px;
+  background: var(--kartu);
+  font-weight: 650;
+  text-align: left;
+}
+
+.tandai-ayat.semua {
+  border-style: solid;
+  border-color: var(--teal);
+  background: var(--teal-muda);
+  color: var(--teal);
+}
+
+.tandai-ayat.baru {
+  opacity: 0.8;
+}

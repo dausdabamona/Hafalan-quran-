@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { cariRukuk, juzAyat, labelPotongan } from '../data';
+import { cariRukuk, juzAyat } from '../data';
 import { ambilHafalan, ambilJadwal } from '../db';
-import { hariIni, kelompok, rentangMurojaah, selisihHari, type EntriHafalan, type EntriJadwal } from '../jadwal';
+import { hariIni, kelompok, labelAyatHafal, rentangMurojaah, selisihHari, type EntriHafalan, type EntriJadwal } from '../jadwal';
 import { hashPotongan, pergi } from '../navigasi';
 import Kepala from '../komponen/Kepala';
 import { namaRukuk } from './HariIni';
@@ -46,7 +46,7 @@ export default function LayarRukuk() {
                   <span className="nama">{namaRukuk(r)}</span>
                   <span className="redup">
                     Juz {juzAyat(r.surah, r.ayatAwal)} · ayat {r.ayatAwal}–{r.ayatAkhir}
-                    {rentang && !j.lengkap && ` · hafal ${labelPotongan(rentang)}`}
+                    {rentang && !j.lengkap && ` · hafal ${labelAyatHafal(j.nomor, hafalan)}`}
                   </span>
                   <span className="redup">{keteranganJadwal(j, hari)}</span>
                 </span>

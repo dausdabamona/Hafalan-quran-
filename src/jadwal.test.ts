@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { rukukAyat, rukukSurah } from './data';
+import { cariRukuk, rukukAyat, rukukSurah } from './data';
 import {
   adaTandaLama,
+  ayatHafal,
+  ayatHafalRukuk,
+  batalkanAyatLama,
+  rentangMurojaah,
+  tandaiAyatLama,
   batalkanLama,
   daftarUlangHafalan,
   jalurHafalan,
@@ -193,5 +198,59 @@ describe('hafalan lama (K-27)', () => {
     const b = batalkanLama(2, k.hafalan, k.jadwal, AWAL);
     expect(b.hapusJadwal).toBe(true);
     expect(b.hapusHafalan).toHaveLength(1);
+  });
+});
+
+describe('hafalan lama per ayat (K-30)', () => {
+  const yasin = rukukSurah(36);
+  const ayat = (awal: number, akhir: number) => Array.from({ length: akhir - awal + 1 }, (_, i) => ({ surah: 36, ayat: awal + i }));
+  function tandai(k: Keadaan, daftar: { surah: number; ayat: number }[]) {
+    const t = tandaiAyatLama(daftar, k.hafalan, k.jadwal, AWAL);
+    for (const h of t.hafalan) k.hafalan.set(h.kunci, h);
+    for (const j of t.jadwal) k.jadwal.set(j.nomor, j);
+  }
+
+  it('ayat tak berurutan: satu rukuk "sebagian" berjarak, murojaah hanya ayat hafal', () => {
+    const k = baru();
+    const r = yasin[1]; // rukuk kedua Yasin
+    tandai(k, [...ayat(r.ayatAwal, r.ayatAwal + 2), ...ayat(r.ayatAwal + 6, r.ayatAwal + 8)]);
+    expect(k.hafalan.size).toBe(2);
+    const j = k.jadwal.get(r.nomor)!;
+    expect(j.sebagian).toBe(true);
+    expect(kelompok(j)).toBe('lama');
+    expect(ayatHafalRukuk(r, ayatHafal(k.hafalan))).toEqual([0, 1, 2, 6, 7, 8].map((d) => r.ayatAwal + d));
+    expect(rentangMurojaah(j, k.hafalan)).toEqual({ surah: 36, ayatAwal: r.ayatAwal, ayatAkhir: r.ayatAwal + 8 });
+    // murojaah lancar → jarak naik, bukan harian
+    const b = setelahMurojaahRukuk(j, true, j.jatuhTempo)!;
+    expect(selisihHari(j.jatuhTempo, b.jatuhTempo)).toBe(30);
+  });
+
+  it('semua ayat rukuk ditandai satu per satu → rukuk lengkap', () => {
+    const k = baru();
+    const r = yasin[0];
+    tandai(k, ayat(r.ayatAwal, r.ayatAkhir));
+    expect(k.jadwal.get(r.nomor)!.lengkap).toBe(true);
+    expect(k.hafalan.size).toBe(1);
+  });
+
+  it('hafalan baru masuk ke rukuk "sebagian" → menjadi berjalan (harian)', () => {
+    const k = baru();
+    const r = cariRukuk(1)!; // Al-Fatihah
+    tandai(k, [{ surah: 1, ayat: 7 }]);
+    expect(k.jadwal.get(1)!.sebagian).toBe(true);
+    jalaniHari(k, AWAL);
+    expect(kelompok(k.jadwal.get(r.nomor)!)).toBe('berjalan');
+  });
+
+  it('batal tanda per ayat memecah entri dan menurunkan rukuk lengkap menjadi sebagian', () => {
+    const k = baru();
+    const r = yasin[0];
+    tandai(k, ayat(r.ayatAwal, r.ayatAkhir));
+    const b = batalkanAyatLama(36, [r.ayatAwal + 3], k.hafalan, k.jadwal);
+    expect(b.tambahHafalan.map((e) => [e.ayatAwal, e.ayatAkhir])).toEqual([
+      [r.ayatAwal, r.ayatAwal + 2],
+      [r.ayatAwal + 4, r.ayatAkhir],
+    ]);
+    expect(b.jadwal[0].sebagian).toBe(true);
   });
 });

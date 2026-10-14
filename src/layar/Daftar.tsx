@@ -1,19 +1,11 @@
 import { daftarSurah } from '../data';
 import { pergi } from '../navigasi';
+import Kepala from '../komponen/Kepala';
 
 export default function LayarDaftar() {
   return (
     <>
-      <header className="kepala">
-        <div className="judul-surah">
-          <h1>Saku Hati</h1>
-          <p className="sub">Sedikit Ayat, Kuat Ulangnya</p>
-        </div>
-        <button className="tombol-ikon" onClick={() => pergi('#/tentang')} aria-label="Tentang">
-          i
-        </button>
-      </header>
-      <p className="keterangan-daftar">Juz 30 · {daftarSurah.length} surah</p>
+      <Kepala judul="Semua surah" sub={`Juz 30 · ${daftarSurah.length} surah`} />
       <ul className="daftar-surah">
         {daftarSurah.map((s) => (
           <li key={s.nomor}>

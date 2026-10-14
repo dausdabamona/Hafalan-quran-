@@ -105,6 +105,26 @@ Rincian pengolahan data ada di [data/SUMBER.md](../data/SUMBER.md).
 - Perubahan dari usulan arsitektur: rekaman disimpan sebagai Blob di IndexedDB (Dexie), bukan lewat plugin Filesystem — lebih sederhana, tetap di dalam HP, dan ikut cadangan di Fase 4.
 - Gerbang Fase 2 (menunggu Firdaus): rekam satu potongan di HP, koreksi, matikan dan nyalakan ulang HP, lalu pastikan rekaman dan tanda masih ada.
 
+## Status Fase 3 (14 Okt 2026)
+
+- Beranda kini layar **Hari ini**: *Hafalan baru* (Sabaq, setelah Subuh) dengan langkah baca makna → centang sima'i → baca → rekam & koreksi; *Ulang hafalan* (Sabqi & Manzil, sebelum tidur) dengan label Dekat/Lama dan keterangan terlambat; *Latihan sambung ayat*; pilihan jalur.
+- Istilah tampil dalam bahasa Indonesia dengan istilah Arab kecil di bawahnya.
+- Keputusan bawaan yang dipakai (bisa diubah kapan saja):
+  - P-01 lancar = tidak ada kesalahan baru pada sesi itu.
+  - P-02 setelah 30 hari tetap tiap 30 hari. P-03 kesalahan baru → kembali ke jarak 1 hari.
+  - P-04 satu potongan baru per hari; ulang hafalan malam ditampilkan 10 dulu, sisanya lewat "Tampilkan semua".
+  - P-05 tanggungan menumpuk, yang paling lama terlambat di atas.
+  - P-06 hafalan baru yang belum lancar diulang sampai lancar sebelum menambah yang baru.
+  - P-07 sima'i dilakukan di luar aplikasi; aplikasi menyediakan centang "sudah mendengar".
+  - P-09 arah jalur urutan: mulai An-Nas (bisa diganti ke mulai An-Naba' di layar Hari ini).
+  - P-10 satu jalur aktif.
+- Sabqi (Dekat) = jarak 1, 3, 7 hari; Manzil (Lama) = jarak 14 dan 30 hari.
+- Mode **Sambung ayat** (F-08): sambungan yang kedua ayatnya sudah lancar; yang pernah tertukar didahulukan, sisanya acak, 10 soal per latihan. Tertukar → tanda permanen bertambah dan potongan kembali ke jarak 1 hari (K-15).
+- Catatan perilaku: koreksi potongan dari layar surah juga memasukkannya ke jadwal; mengulang sebelum jatuh tempo tidak mengubah jadwal.
+- Belum: **jalur sesuai tema** (P-08) menunggu pengelompokan tema Juz 30 disepakati.
+- Uji: simulasi 120 hari otomatis (potongan pertama diulang hari ke-1, 4, 11, 25, 55) dan uji alur 4 hari di peramban.
+- Gerbang Fase 3 (menunggu Firdaus): pakai beberapa hari di HP; pastikan daftar Hari ini sesuai harapan.
+
 ## Usulan arsitektur (belum dikunci)
 
 | Lapisan | Usulan | Alasan |

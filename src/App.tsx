@@ -6,6 +6,8 @@ import LayarSurah from './layar/Surah';
 import LayarRekam from './layar/Rekam';
 import LayarKoreksi from './layar/Koreksi';
 import LayarTentang from './layar/Tentang';
+import LayarHariIni from './layar/HariIni';
+import LayarSambung from './layar/Sambung';
 
 // ---------- Ukuran huruf Arab (P-15) ----------
 
@@ -50,7 +52,9 @@ export default function App() {
 
   return (
     <div className="aplikasi" style={{ ['--ukuran-arab' as string]: `${ukuran}px` }}>
+      {layar.nama === 'hari-ini' && <LayarHariIni />}
       {layar.nama === 'daftar' && <LayarDaftar />}
+      {layar.nama === 'sambung' && <LayarSambung />}
       {layar.nama === 'surah' && <LayarSurah surah={cariSurah(layar.nomor)!} aturUkuran={aturUkuran} />}
       {layar.nama === 'rekam' && <LayarRekam key={JSON.stringify(layar.potongan)} potongan={layar.potongan} />}
       {layar.nama === 'koreksi' && <LayarKoreksi key={JSON.stringify(layar.potongan)} potongan={layar.potongan} />}

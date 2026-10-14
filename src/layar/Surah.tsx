@@ -126,8 +126,8 @@ export default function LayarSurah({ surah, aturUkuran }: { surah: Surah; aturUk
                     {tertukar && (
                       <div className="sambungan-bertanda">
                         <span>
-                          ⚠ Sambungan ke ayat {tertukar.ayatAsal + 1} pernah tertukar {tertukar.jumlah}× (terbaca ayat{' '}
-                          {tertukar.ayatKeliru})
+                          ⚠ Sambungan ke ayat {tertukar.ayatAsal + 1} pernah tertukar {tertukar.jumlah}× (terbaca{' '}
+                          {tertukar.ayatKeliru ? `ayat ${tertukar.ayatKeliru}` : 'ayat lain'})
                         </span>
                         <button className="tautan kecil" onClick={() => hapusTertukar(tertukar)}>
                           Hapus tanda

@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
+import { hariIni, perbaruiJadwal, turunkanJadwal, type EntriJadwal } from './jadwal';
 
 // Keterangan pribadi (K-19). urutan = 0 berarti keterangan untuk satu ayat;
 // urutan >= 1 berarti keterangan untuk kata ke-n pada ayat itu.
@@ -37,7 +38,7 @@ export interface TandaTertukar {
   kunci: string; // "surah:ayatAsal"
   surah: number;
   ayatAsal: number; // sesudah ayat ini, seharusnya ayatAsal + 1
-  ayatKeliru: number; // ayat yang terbaca keliru (terakhir)
+  ayatKeliru: number; // ayat yang terbaca keliru (terakhir); 0 = tidak yakin ayat mana
   pertama: string;
   terakhir: string;
   jumlah: number;
@@ -61,6 +62,7 @@ const db = new Dexie('rabth') as Dexie & {
   tandaSalah: EntityTable<TandaSalah, 'kunci'>;
   tandaTertukar: EntityTable<TandaTertukar, 'kunci'>;
   sesi: EntityTable<Sesi, 'id'>;
+  jadwal: EntityTable<EntriJadwal, 'kunci'>;
 };
 
 db.version(1).stores({
@@ -75,7 +77,21 @@ db.version(2).stores({
   sesi: '++id, surah, tanggal',
 });
 
+db.version(3).stores({
+  keterangan: 'kunci, surah, [surah+ayat]',
+  rekaman: 'kunci, surah',
+  tandaSalah: 'kunci, surah',
+  tandaTertukar: 'kunci, surah',
+  sesi: '++id, surah, tanggal',
+  jadwal: 'kunci, surah, jatuhTempo, mulai',
+});
+
 export { db };
+
+export async function ambilJadwal(): Promise<Map<string, EntriJadwal>> {
+  const daftar = await db.jadwal.toArray();
+  return new Map(daftar.map((e) => [e.kunci, e]));
+}
 
 export function kunciKeterangan(surah: number, ayat: number, urutan: number): string {
   return `${surah}:${ayat}:${urutan}`;
@@ -147,6 +163,7 @@ export interface HasilKoreksi {
   ayatAkhir: number;
   kataSalah: { ayat: number; urutan: number }[];
   tertukar: { ayatAsal: number; ayatKeliru: number }[];
+  hari?: string; // untuk uji; bawaan hari ini
 }
 
 // Menyimpan hasil satu sesi koreksi. Tanda lama yang salah lagi bertambah
@@ -162,7 +179,7 @@ export async function simpanKoreksi(h: HasilKoreksi): Promise<Sesi> {
     sambunganTertukar: h.tertukar.length,
     lancar: h.kataSalah.length === 0 && h.tertukar.length === 0,
   };
-  await db.transaction('rw', db.tandaSalah, db.tandaTertukar, db.sesi, async () => {
+  await db.transaction('rw', [db.tandaSalah, db.tandaTertukar, db.sesi, db.jadwal], async () => {
     for (const k of h.kataSalah) {
       const kunci = kunciKata(h.surah, k.ayat, k.urutan);
       const lama = await db.tandaSalah.get(kunci);
@@ -190,8 +207,37 @@ export async function simpanKoreksi(h: HasilKoreksi): Promise<Sesi> {
       });
     }
     sesi.id = await db.sesi.add(sesi);
+    // Jadwal ulang (K-05, K-06): hafalan baru masuk jadwal; ulang hafalan naik/turun jarak.
+    const p = { surah: h.surah, ayatAwal: h.ayatAwal, ayatAkhir: h.ayatAkhir };
+    const kunciJadwal = `${h.surah}:${h.ayatAwal}-${h.ayatAkhir}`;
+    const lama = await db.jadwal.get(kunciJadwal);
+    const baru = perbaruiJadwal(lama, p, sesi.lancar, h.hari ?? hariIni());
+    if (baru) await db.jadwal.put(baru);
   });
   return sesi;
+}
+
+// Sambungan tertukar dari mode Sambung ayat (K-15, K-17): tanda permanen
+// bertambah dan jadwal potongan yang memuat ayat asal kembali ke jarak 1 hari.
+export async function tandaiTertukarLatihan(surah: number, ayatAsal: number, ayatKeliru: number, hari = hariIni()) {
+  const sekarang = new Date().toISOString();
+  await db.transaction('rw', db.tandaTertukar, db.jadwal, async () => {
+    const kunci = kunciAyat(surah, ayatAsal);
+    const lama = await db.tandaTertukar.get(kunci);
+    await db.tandaTertukar.put({
+      kunci,
+      surah,
+      ayatAsal,
+      ayatKeliru,
+      pertama: lama?.pertama ?? sekarang,
+      terakhir: sekarang,
+      jumlah: (lama?.jumlah ?? 0) + 1,
+    });
+    const entri = (await db.jadwal.where('surah').equals(surah).toArray()).find(
+      (e) => e.ayatAwal <= ayatAsal && ayatAsal <= e.ayatAkhir,
+    );
+    if (entri) await db.jadwal.put(turunkanJadwal(entri, hari));
+  });
 }
 
 // Penghapusan tanda hanya lewat tindakan manual pengguna (K-13, K-15).

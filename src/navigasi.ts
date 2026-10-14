@@ -2,7 +2,9 @@ import { cariSurah, type Potongan } from './data';
 
 // Navigasi berbasis hash: tombol kembali Android ikut berfungsi lewat riwayat WebView.
 export type Layar =
+  | { nama: 'hari-ini' }
   | { nama: 'daftar' }
+  | { nama: 'sambung' }
   | { nama: 'surah'; nomor: number }
   | { nama: 'rekam'; potongan: Potongan }
   | { nama: 'koreksi'; potongan: Potongan }
@@ -26,7 +28,9 @@ export function bacaHash(): Layar {
     if (p) return { nama: m[1] as 'rekam' | 'koreksi', potongan: p };
   }
   if (h === '#/tentang') return { nama: 'tentang' };
-  return { nama: 'daftar' };
+  if (h === '#/semua') return { nama: 'daftar' };
+  if (h === '#/sambung') return { nama: 'sambung' };
+  return { nama: 'hari-ini' };
 }
 
 export function hashPotongan(jenis: 'rekam' | 'koreksi', p: Potongan): string {

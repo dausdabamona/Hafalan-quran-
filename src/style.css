@@ -669,3 +669,137 @@ textarea:focus {
   color: var(--teal);
   margin: 0 0 6px;
 }
+
+/* ---------- Fase 3: Hari ini & Sambung ayat ---------- */
+
+.kartu {
+  background: var(--kartu);
+  border: 1px solid var(--garis);
+  border-radius: 16px;
+  margin: 12px 12px;
+  padding: 14px 16px;
+}
+
+.kartu.utama {
+  border: 2px solid var(--teal);
+}
+
+.kartu h2 {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+  color: var(--teks);
+}
+
+.istilah {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--teks-lembut);
+  margin-top: 2px;
+}
+
+.kosong {
+  color: var(--teks-lembut);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin: 6px 0;
+}
+
+.potongan-hari-ini {
+  font-size: 1.15rem;
+  font-weight: 650;
+  color: var(--teal);
+  margin: 4px 0 8px;
+}
+
+.langkah {
+  margin: 0;
+  padding-left: 22px;
+  line-height: 1.5;
+}
+
+.langkah li {
+  margin: 6px 0;
+}
+
+.langkah .saklar {
+  padding: 2px 0;
+  color: var(--teks);
+}
+
+.tombol.lebar {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.daftar-ulang {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.baris-ulang {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 10px;
+  margin: 6px 0;
+  background: var(--latar);
+  border: 1px solid var(--garis);
+  border-radius: 12px;
+  text-align: left;
+}
+
+.baris-ulang .info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.baris-ulang .nama {
+  font-weight: 600;
+}
+
+.telat {
+  color: #a12a1c;
+  font-size: 0.82rem;
+}
+
+.label-kelompok {
+  flex: none;
+  font-size: 0.78rem;
+  font-weight: 650;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.label-kelompok.dekat {
+  background: var(--teal-muda);
+  color: var(--teal);
+}
+
+.label-kelompok.lama {
+  background: #f3ead4;
+  color: #7a5c1e;
+}
+
+.pilihan-arah {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0 6px;
+}
+
+.pilihan-arah label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+}
+
+.pilihan-arah input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--teal);
+}

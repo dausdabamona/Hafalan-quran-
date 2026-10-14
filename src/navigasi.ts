@@ -1,4 +1,5 @@
 import { cariSurah, type Potongan } from './data';
+import type { Rentang } from './murotal';
 
 // Navigasi berbasis hash: tombol kembali Android ikut berfungsi lewat riwayat WebView.
 export type Layar =
@@ -9,7 +10,9 @@ export type Layar =
   | { nama: 'rekam'; potongan: Potongan; rukuk?: number }
   | { nama: 'koreksi'; potongan: Potongan; rukuk?: number }
   | { nama: 'rukuk' }
-  | { nama: 'tentang' };
+  | { nama: 'tentang' }
+  | { nama: 'pilih-murotal' }
+  | { nama: 'murotal'; rentang: Rentang };
 
 function bacaPotongan(nomor: string, awal: string, akhir: string): Potongan | null {
   const surah = cariSurah(Number(nomor));
@@ -28,6 +31,16 @@ export function bacaHash(): Layar {
   if (m) {
     const p = bacaPotongan(m[2], m[3], m[4]);
     if (p) return { nama: m[1] as 'rekam' | 'koreksi', potongan: p, rukuk: m[5] ? Number(m[5]) : undefined };
+  }
+  // Murotal (K-28): #/murotal, #/murotal/hafalan, #/murotal/juz/N, #/murotal/S/A-B
+  if (h === '#/murotal') return { nama: 'pilih-murotal' };
+  if (h === '#/murotal/hafalan') return { nama: 'murotal', rentang: { jenis: 'hafalan' } };
+  m = /^#\/murotal\/juz\/(\d+)$/.exec(h);
+  if (m && Number(m[1]) >= 1 && Number(m[1]) <= 30) return { nama: 'murotal', rentang: { jenis: 'juz', nomor: Number(m[1]) } };
+  m = /^#\/murotal\/(\d+)\/(\d+)-(\d+)$/.exec(h);
+  if (m) {
+    const p = bacaPotongan(m[1], m[2], m[3]);
+    if (p) return { nama: 'murotal', rentang: { jenis: 'ayat', ...p } };
   }
   if (h === '#/rukuk') return { nama: 'rukuk' };
   if (h === '#/tentang') return { nama: 'tentang' };

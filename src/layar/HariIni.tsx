@@ -142,6 +142,14 @@ export default function LayarHariIni() {
       </section>
 
       <section className="kartu">
+        <h2>Murotal</h2>
+        <p className="kosong">Dengarkan rekaman murojaah Anda sendiri yang sudah dikoreksi dan bersih dari kesalahan.</p>
+        <button className="tombol sekunder lebar" onClick={() => pergi('#/murotal')}>
+          ▶ Buka murotal
+        </button>
+      </section>
+
+      <section className="kartu">
         <h2>Jelajah mushaf</h2>
         <p className="kosong">Urutan hafalan: Al-Fatihah → An-Nas.</p>
         <button className="tombol sekunder lebar" onClick={() => pergi('#/semua')}>

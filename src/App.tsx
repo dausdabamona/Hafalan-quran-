@@ -9,6 +9,8 @@ import LayarTentang from './layar/Tentang';
 import LayarHariIni from './layar/HariIni';
 import LayarSambung from './layar/Sambung';
 import LayarRukuk from './layar/Rukuk';
+import LayarMurotal, { BilahPemutar, LayarPilihMurotal } from './layar/Murotal';
+import { hashMurotal } from './murotal';
 
 // ---------- Ukuran huruf Arab (P-15) ----------
 
@@ -72,6 +74,9 @@ export default function App() {
       )}
       {layar.nama === 'rukuk' && <LayarRukuk />}
       {layar.nama === 'tentang' && <LayarTentang />}
+      {layar.nama === 'pilih-murotal' && <LayarPilihMurotal />}
+      {layar.nama === 'murotal' && <LayarMurotal key={hashMurotal(layar.rentang)} rentang={layar.rentang} />}
+      <BilahPemutar layarHash={layar.nama === 'murotal' ? hashMurotal(layar.rentang) : ''} />
     </div>
   );
 }

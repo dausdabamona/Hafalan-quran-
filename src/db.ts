@@ -402,3 +402,26 @@ export async function mintaPenyimpananTetap() {
     // diabaikan: penyimpanan tetap berjalan tanpa izin ini
   }
 }
+
+// ---------- Murotal (K-28) ----------
+
+export interface BahanSurah {
+  rekaman: Map<string, Rekaman>;
+  sesi: Sesi[];
+  tandaSalah: TandaSalah[];
+  tertukar: Map<string, TandaTertukar>;
+}
+
+export async function ambilBahanMurotal(surah: number[]): Promise<Map<number, BahanSurah>> {
+  const hasil = new Map<number, BahanSurah>();
+  for (const s of [...new Set(surah)]) {
+    const [rekaman, sesi, tandaSalah, tertukar] = await Promise.all([
+      ambilRekamanSurah(s),
+      db.sesi.where('surah').equals(s).toArray(),
+      db.tandaSalah.where('surah').equals(s).toArray(),
+      db.tandaTertukar.where('surah').equals(s).toArray(),
+    ]);
+    hasil.set(s, { rekaman, sesi, tandaSalah, tertukar: new Map(tertukar.map((t) => [t.kunci, t])) });
+  }
+  return hasil;
+}

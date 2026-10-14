@@ -8,6 +8,7 @@ Dicatat 14 Oktober 2026. Berkas `quran.json` dihasilkan oleh workflow **Siapkan 
 | Arti per kata bahasa Indonesia | [Quran.com](https://quran.com), API v4 lama (`api.quran.com/api/v4`) | Ketentuan lisensi tidak tercantum di dokumentasi API. Dipakai untuk keperluan pribadi non-komersial dengan atribusi | Belum jelas; repositori publik atas pilihan pemilik |
 | Nama surah | Quran.com API v4 | Sama seperti di atas | Belum jelas |
 | Pembagian rukuk (556) dan awal juz (30) | [quran-meta](https://www.npmjs.com/package/quran-meta), riwayat Hafs | MIT | Aman |
+| Pemutar latar belakang (kode) | [@capgo/capacitor-media-session](https://github.com/Cap-go/capacitor-media-session) | MPL-2.0 (dipakai tanpa diubah) | Aman |
 | Makna per potongan waqaf | Disusun aplikasi dari gabungan arti per kata; dapat disunting pemakai | — | Bukan terjemahan resmi |
 
 ## Pengolahan

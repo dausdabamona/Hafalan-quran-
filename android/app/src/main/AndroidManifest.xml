@@ -41,4 +41,8 @@
     <!-- Rekam murojaah (F-02); Capacitor meminta izin ini saat pertama merekam -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- Murotal tetap berputar saat layar mati (K-28): layanan latar depan pemutar media -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 </manifest>

@@ -36,6 +36,7 @@ import {
 } from '../db';
 import { adaTandaLama, rentangMurojaah, type EntriHafalan, type EntriJadwal } from '../jadwal';
 import { hashPotongan, pergi } from '../navigasi';
+import { hashMurotal } from '../murotal';
 import Kepala from '../komponen/Kepala';
 import TeksAyat from '../komponen/TeksAyat';
 import TombolPutar from '../komponen/TombolPutar';
@@ -202,6 +203,12 @@ export default function LayarSurah({
                 {juzAyat(r.surah, r.ayatAwal)}
               </span>
               <div className="aksi-rukuk">
+                <button
+                  className="tautan kecil"
+                  onClick={() => pergi(hashMurotal({ jenis: 'ayat', surah: r.surah, ayatAwal: r.ayatAwal, ayatAkhir: r.ayatAkhir }))}
+                >
+                  ▶ Murotal
+                </button>
                 {j && !j.lengkap && (
                   <button className="tautan kecil" onClick={() => tandaiLalu(r.nomor, false)}>
                     Tandai hafal semua

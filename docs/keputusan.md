@@ -96,6 +96,15 @@ Rincian pengolahan data ada di [data/SUMBER.md](../data/SUMBER.md).
 - Kunci tanda tangan: sementara memakai `android/kunci-sementara.jks` yang ada di repositori publik (P-21). Kunci permanen disiapkan sebelum Fase 4; mengganti kunci mengharuskan aplikasi dicopot dan dipasang ulang, jadi dilakukan sebelum ada data hafalan penting.
 - Gerbang Fase 1 (menunggu Firdaus): APK terpasang di OPPO A7 Pro, berjalan dalam mode pesawat, dan beberapa ayat dicocokkan dengan mushaf cetak.
 
+## Status Fase 2 (14 Okt 2026)
+
+- Layar surah dibagi per potongan otomatis 1–3 ayat (maksimal 24 kata per potongan berisi lebih dari satu ayat); tiap potongan punya tombol **Rekam** dan **Koreksi**.
+- **Rekam** (K-12, K-14, K-16): rekam berurutan per ayat, teks tertutup secara bawaan (bisa dibuka untuk hafalan baru), tombol "Selesai ayat ini" dan "Ulangi ayat"; rekaman baru menimpa rekaman lama ayat yang sama.
+- **Koreksi** (F-03, F-06): putar per ayat atau berurutan, ketuk kata yang salah, tandai sambungan tertukar beserta ayat yang terbaca keliru; disimpan sebagai satu sesi (lancar bila tanpa kesalahan baru, P-01).
+- Tanda kata salah dan sambungan tertukar tampil permanen di layar surah dengan jumlah dan tanggal terakhir; dihapus hanya lewat tombol "Hapus tanda" (K-13, K-15).
+- Perubahan dari usulan arsitektur: rekaman disimpan sebagai Blob di IndexedDB (Dexie), bukan lewat plugin Filesystem — lebih sederhana, tetap di dalam HP, dan ikut cadangan di Fase 4.
+- Gerbang Fase 2 (menunggu Firdaus): rekam satu potongan di HP, koreksi, matikan dan nyalakan ulang HP, lalu pastikan rekaman dan tanda masih ada.
+
 ## Usulan arsitektur (belum dikunci)
 
 | Lapisan | Usulan | Alasan |

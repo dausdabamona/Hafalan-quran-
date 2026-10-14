@@ -69,6 +69,49 @@ export function susunToken(ayat: Ayat): Token[] {
   return hasil;
 }
 
+// ---------- Potongan hafalan (K-04, P-11) ----------
+
+export interface Potongan {
+  surah: number;
+  ayatAwal: number;
+  ayatAkhir: number;
+}
+
+// Batas kata satu potongan. Ayat pendek dikumpulkan hingga 3 ayat selama
+// jumlah katanya tidak melewati batas; ayat panjang berdiri sendiri.
+export const MAKS_AYAT_POTONGAN = 3;
+export const MAKS_KATA_POTONGAN = 24;
+
+export function bagiPotongan(surah: Surah): Potongan[] {
+  const hasil: Potongan[] = [];
+  let awal = 0;
+  let akhir = 0;
+  let kata = 0;
+  for (const a of surah.ayat) {
+    const n = a.kata.length;
+    const muat = awal > 0 && akhir - awal + 1 < MAKS_AYAT_POTONGAN && kata + n <= MAKS_KATA_POTONGAN;
+    if (muat) {
+      akhir = a.ayat;
+      kata += n;
+    } else {
+      if (awal > 0) hasil.push({ surah: surah.nomor, ayatAwal: awal, ayatAkhir: akhir });
+      awal = a.ayat;
+      akhir = a.ayat;
+      kata = n;
+    }
+  }
+  if (awal > 0) hasil.push({ surah: surah.nomor, ayatAwal: awal, ayatAkhir: akhir });
+  return hasil;
+}
+
+export function ayatPotongan(surah: Surah, p: Potongan): Ayat[] {
+  return surah.ayat.filter((a) => a.ayat >= p.ayatAwal && a.ayat <= p.ayatAkhir);
+}
+
+export function labelPotongan(p: Potongan): string {
+  return p.ayatAwal === p.ayatAkhir ? `ayat ${p.ayatAwal}` : `ayat ${p.ayatAwal}–${p.ayatAkhir}`;
+}
+
 // Basmalah diambil langsung dari teks Tanzil ayat pertama, bukan diketik ulang.
 export function teksBasmalah(ayat: Ayat): string | null {
   if (!ayat.basmalah) return null;

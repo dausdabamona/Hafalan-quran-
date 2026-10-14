@@ -377,3 +377,295 @@ textarea:focus {
   padding: 12px;
   overflow-x: auto;
 }
+
+/* ---------- Fase 2: daftar, potongan, rekam, koreksi ---------- */
+
+.keterangan-daftar {
+  margin: 12px 18px 0;
+  color: var(--teks-lembut);
+  font-size: 0.9rem;
+}
+
+.baris-surah .nama-arab {
+  font-size: 1.3rem;
+  flex: none;
+}
+
+.potongan {
+  margin: 4px 12px 18px;
+}
+
+.kepala-potongan {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 4px 0;
+}
+
+.label-potongan {
+  font-weight: 650;
+  color: var(--teal);
+}
+
+.aksi-potongan {
+  display: flex;
+  gap: 8px;
+}
+
+.potongan .daftar-ayat {
+  padding: 0;
+}
+
+.daftar-ayat > li {
+  list-style: none;
+}
+
+.tombol.kecil {
+  flex: none;
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 0.92rem;
+}
+
+.tombol:disabled {
+  opacity: 0.45;
+}
+
+.tombol.besar {
+  flex: 2;
+  min-height: 54px;
+  font-size: 1.05rem;
+}
+
+.kata:disabled {
+  color: inherit;
+  cursor: default;
+}
+
+/* Tanda kata salah lama (K-13): garis bawah merah putus-putus */
+.kata.tanda-lama {
+  text-decoration: underline dotted #c0392b;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 10px;
+}
+
+/* Kata yang ditandai salah pada sesi koreksi ini */
+.kata.salah-sesi {
+  background: #fbe3df;
+  color: #a12a1c;
+  box-shadow: inset 0 -3px 0 #c0392b;
+}
+
+.kaki-ayat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tombol-putar {
+  border: 1px solid var(--garis);
+  background: var(--teal-muda);
+  color: var(--teal);
+  border-radius: 999px;
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.tombol-putar.aktif {
+  background: var(--teal);
+  color: #fff;
+}
+
+.tautan.kecil {
+  font-size: 0.85rem;
+  min-height: 32px;
+}
+
+.info-tanda,
+.sambungan-bertanda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  background: #fbe3df;
+  color: #8a2a1e;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 0.88rem;
+}
+
+.info-tanda {
+  margin: 4px 0 8px;
+}
+
+.sambungan-bertanda {
+  margin: -4px 4px 8px;
+}
+
+.sambungan-bertanda .tautan,
+.info-tanda .tautan {
+  color: #8a2a1e;
+}
+
+/* ---------- Rekam ---------- */
+
+.isi-rekam {
+  padding: 8px 12px 120px;
+}
+
+.saklar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 6px;
+  font-size: 0.92rem;
+  color: var(--teks-lembut);
+}
+
+.saklar input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--teal);
+}
+
+.status-ayat {
+  margin: 0 0 4px;
+  font-weight: 600;
+  color: var(--teal);
+  font-size: 0.92rem;
+}
+
+.ayat.selesai {
+  opacity: 0.75;
+}
+
+.ayat.kini {
+  border-width: 2px;
+  border-color: var(--teal);
+}
+
+.ayat.kini.sedang-rekam {
+  border-color: #c0392b;
+}
+
+.indikator-rekam {
+  color: #c0392b;
+}
+
+.teks-tertutup {
+  margin: 10px 0 4px;
+  padding: 28px 12px;
+  border: 2px dashed var(--garis);
+  border-radius: 12px;
+  text-align: center;
+  color: var(--teks-lembut);
+  background: var(--latar);
+}
+
+.pesan-galat {
+  background: #fbe3df;
+  color: #8a2a1e;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 0.92rem;
+}
+
+.bilah-aksi {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  gap: 10px;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: var(--kartu);
+  border-top: 1px solid var(--garis);
+  box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.06);
+}
+
+/* ---------- Koreksi ---------- */
+
+.petunjuk {
+  margin: 12px 16px 0;
+  font-size: 0.9rem;
+  color: var(--teks-lembut);
+  line-height: 1.5;
+}
+
+.daftar-ayat.koreksi {
+  padding-bottom: 110px;
+}
+
+.kepala-ayat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--teal);
+  font-size: 0.92rem;
+}
+
+.redup {
+  color: var(--teks-lembut);
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+.sambungan {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin: -4px 8px 8px;
+  padding: 6px 12px;
+  border-left: 3px solid var(--garis);
+  font-size: 0.88rem;
+  color: var(--teks-lembut);
+}
+
+.sambungan.tertukar {
+  border-left-color: #c0392b;
+  background: #fbe3df;
+  color: #8a2a1e;
+  border-radius: 0 10px 10px 0;
+}
+
+.pilih-keliru {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pilih-keliru select {
+  font: inherit;
+  min-height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--garis);
+  background: var(--kartu);
+  padding: 0 6px;
+}
+
+.hasil-koreksi {
+  padding: 32px 18px;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.hasil-besar {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--teal);
+  margin: 0 0 6px;
+}

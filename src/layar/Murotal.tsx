@@ -17,6 +17,7 @@ import {
   aturKecepatan,
   berhenti,
   dengarkan,
+  keadaanPemutar,
   lompat,
   mulai,
   pilihAyat,
@@ -26,6 +27,11 @@ import {
 } from '../pemutar';
 import Kepala from '../komponen/Kepala';
 import TeksAyat from '../komponen/TeksAyat';
+import PerbaikanMurotal from './PerbaikanMurotal';
+
+function keadaanMain(): boolean {
+  return !!keadaanPemutar()?.main;
+}
 
 export function usePemutar(): KeadaanPemutar | null {
   const [k, setK] = useState<KeadaanPemutar | null>(null);
@@ -107,6 +113,9 @@ export default function LayarMurotal({ rentang }: { rentang: Rentang }) {
   const [hasil, setHasil] = useState<Hasil | null>(null);
   const [tutupTeks, setTutupTeks] = useState(false);
   const [lihatSemua, setLihatSemua] = useState(false);
+  const [versi, setVersi] = useState(0);
+  const [perbaikan, setPerbaikan] = useState<LetakAyat | null>(null);
+  const [lanjutDari, setLanjutDari] = useState<LetakAyat | null>(null);
 
   useEffect(() => {
     let batal = false;
@@ -133,7 +142,22 @@ export default function LayarMurotal({ rentang }: { rentang: Rentang }) {
     return () => {
       batal = true;
     };
-  }, [hash]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hash, versi]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sesudah perbaikan (K-31): daftar putar disusun ulang lalu berlanjut dari ayat sesudahnya.
+  useEffect(() => {
+    if (!hasil || !lanjutDari) return;
+    const l = lanjutDari;
+    setLanjutDari(null);
+    const i = hasil.siap.findIndex((x) => x.surah > l.surah || (x.surah === l.surah && x.ayat > l.ayat));
+    if (i >= 0) mulai(judul, hasil.siap, hash, i);
+    else berhenti();
+  }, [hasil]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const bukaPerbaikan = (l: LetakAyat) => {
+    if (keadaanMain()) putarJeda();
+    setPerbaikan(l);
+  };
 
   const jumlah = useMemo(() => {
     const n = { perbaiki: 0, 'belum-koreksi': 0, 'belum-rekam': 0 };
@@ -201,6 +225,9 @@ export default function LayarMurotal({ rentang }: { rentang: Rentang }) {
               Sebelumnya ›
             </button>
           </div>
+          <button className="tombol sekunder lebar ada-salah" onClick={() => bukaPerbaikan({ surah: kini.surah, ayat: kini.ayat })}>
+            ⚠ Ada salah di ayat ini
+          </button>
           {aktif.selesai && <p className="kosong">Murotal selesai. Ketuk ▶ untuk mengulang dari awal.</p>}
           <div className="pilihan-putar">
             <label className="saklar">
@@ -237,6 +264,21 @@ export default function LayarMurotal({ rentang }: { rentang: Rentang }) {
             ))}
           </ol>
         </section>
+      )}
+
+      {perbaikan && (
+        <PerbaikanMurotal
+          surah={perbaikan.surah}
+          ayat={perbaikan.ayat}
+          tutup={(lanjut) => {
+            setPerbaikan(null);
+            if (lanjut) {
+              // Ada perubahan: daftar putar disusun ulang, berlanjut dari ayat sesudahnya.
+              setLanjutDari(perbaikan);
+              setVersi((v) => v + 1);
+            } else if (!keadaanMain()) putarJeda(); // batal: lanjut dari posisi semula
+          }}
+        />
       )}
 
       {perluTindakan.length > 0 && (

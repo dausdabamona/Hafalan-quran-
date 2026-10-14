@@ -1241,3 +1241,14 @@ button.judul-juz.tandai {
 .tandai-ayat.baru {
   opacity: 0.8;
 }
+
+.ada-salah {
+  margin: 4px 0 10px;
+  color: #a34a1f;
+  border-color: #e3b9a3;
+}
+
+.lembar-perbaikan {
+  max-height: 90vh;
+  overflow-y: auto;
+}

@@ -5,7 +5,6 @@ import {
   ambilTandaSurah,
   kunciAyat,
   kunciKata,
-  simpanDeres,
   simpanKoreksi,
   type Rekaman,
   type Sesi,
@@ -70,8 +69,8 @@ export default function LayarKoreksi({ potongan, rukuk }: { potongan: Potongan; 
       }),
       tertukar: [...tertukarSesi].map(([ayatAsal, ayatKeliru]) => ({ ayatAsal, ayatKeliru })),
     };
-    // Deres rukuk tidak memasukkan rentangnya ke jadwal potongan (K-22).
-    const sesi = rukuk ? await simpanDeres({ ...isi, rukuk }) : await simpanKoreksi(isi);
+    // Murojaah rukuk memperbarui jadwal rukuk, bukan jadwal potongan (K-23).
+    const sesi = await simpanKoreksi({ ...isi, rukuk });
     setMenyimpan(false);
     setHasil(sesi);
     window.scrollTo(0, 0);
@@ -80,7 +79,7 @@ export default function LayarKoreksi({ potongan, rukuk }: { potongan: Potongan; 
   if (hasil) {
     return (
       <>
-        <Kepala judul={`Koreksi · ${surah.nama}`} sub={`${rukuk ? 'Deres rukuk' : 'Potongan'} ${labelPotongan(potongan)}`} />
+        <Kepala judul={`Koreksi · ${surah.nama}`} sub={`${rukuk ? 'Murojaah rukuk' : 'Potongan'} ${labelPotongan(potongan)}`} />
         <div className="hasil-koreksi">
           {hasil.lancar ? (
             <>
@@ -93,7 +92,7 @@ export default function LayarKoreksi({ potongan, rukuk }: { potongan: Potongan; 
               <p>
                 {hasil.kataSalah} kata dan {hasil.sambunganTertukar} sambungan ditandai. Tandanya akan tetap tersorot
                 sebagai pengingat di sesi berikutnya
-                {rukuk ? ', dan potongan yang memuatnya masuk ulang hafalan besok.' : '.'}
+                {rukuk ? ', dan rukuk ini diulang lagi besok.' : '.'}
               </p>
             </>
           )}
@@ -112,7 +111,7 @@ export default function LayarKoreksi({ potongan, rukuk }: { potongan: Potongan; 
 
   return (
     <>
-      <Kepala judul={`Koreksi · ${surah.nama}`} sub={`${rukuk ? 'Deres rukuk' : 'Potongan'} ${labelPotongan(potongan)}`} />
+      <Kepala judul={`Koreksi · ${surah.nama}`} sub={`${rukuk ? 'Murojaah rukuk' : 'Potongan'} ${labelPotongan(potongan)}`} />
       <p className="petunjuk">
         Putar rekaman sambil melihat ayat. Ketuk kata yang salah; ketuk lagi untuk membatalkan. Bila urutan ayat
         tertukar, tandai pada sambungannya.

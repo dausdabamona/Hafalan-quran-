@@ -1,14 +1,17 @@
-import juz30 from '../data/juz30.json';
+import quran from '../data/quran.json';
+import rukukJson from '../data/rukuk.json';
+
+// ---------- Bentuk data ----------
 
 export interface Kata {
-  urutan: number;
+  urutan: number; // urutan kata dalam ayat (sesudah basmalah), mulai 1
   teks: string;
   arti: string;
 }
 
 export interface Ayat {
   ayat: number;
-  teks: string;
+  teks: string; // teks Tanzil apa adanya (K-18)
   basmalah: boolean;
   kata: Kata[];
 }
@@ -19,53 +22,196 @@ export interface Surah {
   namaArab: string;
   arti: string;
   jumlahAyat: number;
-  ayat: Ayat[];
+  readonly ayat: Ayat[]; // dibentuk saat pertama dibutuhkan
 }
 
-interface DataJuz {
+export interface Rukuk {
+  nomor: number; // 1–556 se-Al-Qur'an
+  surah: number;
+  ayatAwal: number;
+  ayatAkhir: number;
+}
+
+export interface AwalJuz {
+  nomor: number;
+  surah: number;
+  ayat: number;
+}
+
+interface AyatMentah {
+  t: string;
+  b?: 1;
+  a: string[];
+  w?: string[];
+}
+
+interface SurahMentah {
+  n: number;
+  nama: string;
+  arab: string;
+  arti: string;
+  jml: number;
+  ayat: AyatMentah[];
+}
+
+interface DataQuran {
   versi: number;
   sumber: { teks: string; artiPerKata: string; lisensiTanzil: string };
-  surah: Surah[];
+  surah: SurahMentah[];
 }
 
-export const dataJuz30 = juz30 as DataJuz;
-export const daftarSurah: Surah[] = dataJuz30.surah;
+const data = quran as DataQuran;
+export const sumberData = data.sumber;
+export const JUMLAH_AYAT = 6236;
+
+// ---------- Token ----------
+
+// Token berisi huruf Arab adalah kata; selain itu tanda waqaf, rubu' (۞), atau sajdah (۩).
+const POLA_HURUF = /[ء-يٱ-ۓ]/;
+// Tanda waqaf kecil di atas baris (ۖ ۗ ۘ ۙ ۚ ۛ ۜ): batas potongan makna.
+const POLA_WAQAF = /[ۖ-ۜ]/;
+const KATA_BASMALAH = 4;
+
+export function adalahKata(token: string): boolean {
+  return POLA_HURUF.test(token);
+}
+
+export function adalahWaqaf(token: string): boolean {
+  return !adalahKata(token) && POLA_WAQAF.test(token);
+}
+
+// Pada beberapa ayat Quran.com menggabungkan dua kata Tanzil (mis. "بَعْدَ مَا")
+// menjadi satu entri arti. Arti itu dipakai untuk setiap kata Tanzil di dalamnya.
+function artiSejajar(m: AyatMentah): string[] {
+  if (!m.w) return m.a;
+  const hasil: string[] = [];
+  m.w.forEach((w, i) => {
+    const n = w.split(/\s+/).filter((t) => t && adalahKata(t)).length || 1;
+    for (let k = 0; k < n; k++) hasil.push(m.a[i] ?? '');
+  });
+  return hasil;
+}
+
+function bentukAyat(m: AyatMentah, nomor: number): Ayat {
+  const arti = artiSejajar(m);
+  let lewati = m.b ? KATA_BASMALAH : 0;
+  const kata: Kata[] = [];
+  for (const t of m.t.split(/\s+/)) {
+    if (!t || !adalahKata(t)) continue;
+    if (lewati > 0) {
+      lewati--;
+      continue;
+    }
+    kata.push({ urutan: kata.length + 1, teks: t, arti: arti[kata.length] ?? '' });
+  }
+  return { ayat: nomor, teks: m.t, basmalah: !!m.b, kata };
+}
+
+function bentukSurah(m: SurahMentah): Surah {
+  let cache: Ayat[] | null = null;
+  return {
+    nomor: m.n,
+    nama: m.nama,
+    namaArab: m.arab,
+    arti: m.arti,
+    jumlahAyat: m.jml,
+    get ayat() {
+      if (!cache) cache = m.ayat.map((a, i) => bentukAyat(a, i + 1));
+      return cache;
+    },
+  };
+}
+
+export const daftarSurah: Surah[] = data.surah.map(bentukSurah);
 
 export function cariSurah(nomor: number): Surah | undefined {
-  return daftarSurah.find((s) => s.nomor === nomor);
+  return daftarSurah[nomor - 1];
 }
 
-// Harus sama dengan scripts/siapkan-data.mjs: token tanpa huruf Arab adalah
-// tanda waqaf, rubu' (۞), atau sajdah (۩) yang berdiri sendiri.
-const POLA_HURUF = /[ء-يٱ-ۓ]/;
-const KATA_BASMALAH = 4;
+export function cariAyat(surah: number, ayat: number): Ayat | undefined {
+  return cariSurah(surah)?.ayat[ayat - 1];
+}
+
+// ---------- Rukuk & juz ----------
+
+export const daftarRukuk: Rukuk[] = (rukukJson as { rukuk: Rukuk[] }).rukuk;
+export const daftarJuz: AwalJuz[] = (rukukJson as { juz: AwalJuz[] }).juz;
+
+export function cariRukuk(nomor: number): Rukuk | undefined {
+  return daftarRukuk[nomor - 1];
+}
+
+export function rukukSurah(surah: number): Rukuk[] {
+  return daftarRukuk.filter((r) => r.surah === surah);
+}
+
+export function rukukAyat(surah: number, ayat: number): Rukuk | undefined {
+  return daftarRukuk.find((r) => r.surah === surah && r.ayatAwal <= ayat && ayat <= r.ayatAkhir);
+}
+
+export function juzAyat(surah: number, ayat: number): number {
+  let juz = 1;
+  for (const j of daftarJuz) {
+    if (j.surah < surah || (j.surah === surah && j.ayat <= ayat)) juz = j.nomor;
+  }
+  return juz;
+}
+
+// ---------- Token tampilan & potongan waqaf ----------
 
 export interface Token {
   teks: string;
-  // null untuk tanda waqaf/rubu'/sajdah yang tidak bisa diketuk.
-  kata: Kata | null;
+  kata: Kata | null; // null untuk tanda waqaf/rubu'/sajdah yang tidak bisa diketuk
+  segmen: number; // indeks potongan makna (waqaf) dalam ayat, mulai 0
 }
 
 // Memecah teks ayat (Tanzil, apa adanya) menjadi token tampilan. Basmalah di
 // awal ayat pertama dibuang dari token karena ditampilkan sebagai judul surah.
+// Setiap tanda waqaf menutup satu potongan makna.
 export function susunToken(ayat: Ayat): Token[] {
-  const token = ayat.teks.split(/\s+/).filter(Boolean);
   let lewati = ayat.basmalah ? KATA_BASMALAH : 0;
   let iKata = 0;
+  let segmen = 0;
+  let segmenBerisi = false;
   const hasil: Token[] = [];
-  for (const t of token) {
-    const adalahKata = POLA_HURUF.test(t);
+  for (const t of ayat.teks.split(/\s+/)) {
+    if (!t) continue;
+    const kata = adalahKata(t);
     if (lewati > 0) {
-      if (adalahKata) lewati--;
+      if (kata) lewati--;
       continue;
     }
-    if (adalahKata) {
-      hasil.push({ teks: t, kata: ayat.kata[iKata] ?? null });
+    if (kata) {
+      hasil.push({ teks: t, kata: ayat.kata[iKata] ?? null, segmen });
       iKata++;
+      segmenBerisi = true;
     } else {
-      hasil.push({ teks: t, kata: null });
+      hasil.push({ teks: t, kata: null, segmen });
+      // Waqaf menutup potongan yang sudah berisi kata; dua tanda berturutan tidak membuat potongan kosong.
+      if (POLA_WAQAF.test(t) && segmenBerisi && iKata < ayat.kata.length) {
+        segmen++;
+        segmenBerisi = false;
+      }
     }
   }
+  return hasil;
+}
+
+export interface Segmen {
+  indeks: number;
+  kata: Kata[];
+  maknaBawaan: string; // gabungan arti per kata
+}
+
+// Potongan makna per tanda waqaf; makna bawaan = gabungan arti per kata.
+export function segmenAyat(ayat: Ayat): Segmen[] {
+  const hasil: Segmen[] = [];
+  for (const t of susunToken(ayat)) {
+    if (!t.kata) continue;
+    if (!hasil[t.segmen]) hasil[t.segmen] = { indeks: t.segmen, kata: [], maknaBawaan: '' };
+    hasil[t.segmen].kata.push(t.kata);
+  }
+  for (const s of hasil) s.maknaBawaan = s.kata.map((k) => k.arti).filter(Boolean).join(' ');
   return hasil;
 }
 
@@ -77,35 +223,43 @@ export interface Potongan {
   ayatAkhir: number;
 }
 
-// Batas kata satu potongan. Ayat pendek dikumpulkan hingga 3 ayat selama
-// jumlah katanya tidak melewati batas; ayat panjang berdiri sendiri.
+// Ayat pendek dikumpulkan hingga 3 ayat selama jumlah katanya tidak melewati
+// batas; ayat panjang berdiri sendiri. Potongan tidak melintasi batas rukuk.
 export const MAKS_AYAT_POTONGAN = 3;
 export const MAKS_KATA_POTONGAN = 24;
 
 export function bagiPotongan(surah: Surah): Potongan[] {
   const hasil: Potongan[] = [];
-  let awal = 0;
-  let akhir = 0;
-  let kata = 0;
-  for (const a of surah.ayat) {
-    const n = a.kata.length;
-    const muat = awal > 0 && akhir - awal + 1 < MAKS_AYAT_POTONGAN && kata + n <= MAKS_KATA_POTONGAN;
-    if (muat) {
-      akhir = a.ayat;
-      kata += n;
-    } else {
-      if (awal > 0) hasil.push({ surah: surah.nomor, ayatAwal: awal, ayatAkhir: akhir });
-      awal = a.ayat;
-      akhir = a.ayat;
-      kata = n;
+  for (const r of rukukSurah(surah.nomor)) {
+    let awal = 0;
+    let akhir = 0;
+    let kata = 0;
+    for (let n = r.ayatAwal; n <= r.ayatAkhir; n++) {
+      const jumlah = surah.ayat[n - 1].kata.length;
+      const muat = awal > 0 && akhir - awal + 1 < MAKS_AYAT_POTONGAN && kata + jumlah <= MAKS_KATA_POTONGAN;
+      if (muat) {
+        akhir = n;
+        kata += jumlah;
+      } else {
+        if (awal > 0) hasil.push({ surah: surah.nomor, ayatAwal: awal, ayatAkhir: akhir });
+        awal = n;
+        akhir = n;
+        kata = jumlah;
+      }
     }
+    if (awal > 0) hasil.push({ surah: surah.nomor, ayatAwal: awal, ayatAkhir: akhir });
   }
-  if (awal > 0) hasil.push({ surah: surah.nomor, ayatAwal: awal, ayatAkhir: akhir });
   return hasil;
 }
 
+const cachePotongan = new Map<number, Potongan[]>();
+export function potonganSurah(nomor: number): Potongan[] {
+  if (!cachePotongan.has(nomor)) cachePotongan.set(nomor, bagiPotongan(cariSurah(nomor)!));
+  return cachePotongan.get(nomor)!;
+}
+
 export function ayatPotongan(surah: Surah, p: Potongan): Ayat[] {
-  return surah.ayat.filter((a) => a.ayat >= p.ayatAwal && a.ayat <= p.ayatAkhir);
+  return surah.ayat.slice(p.ayatAwal - 1, p.ayatAkhir);
 }
 
 export function labelPotongan(p: Potongan): string {
@@ -120,7 +274,7 @@ export function teksBasmalah(ayat: Ayat): string | null {
   for (const t of ayat.teks.split(/\s+/).filter(Boolean)) {
     if (kata === KATA_BASMALAH) break;
     hasil.push(t);
-    if (POLA_HURUF.test(t)) kata++;
+    if (adalahKata(t)) kata++;
   }
   return hasil.join(' ');
 }

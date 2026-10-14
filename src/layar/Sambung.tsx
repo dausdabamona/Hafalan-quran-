@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { cariSurah, type Ayat, type Surah } from '../data';
-import { ambilJadwal, db, tandaiTertukarLatihan } from '../db';
+import { ambilHafalan, db, tandaiTertukarLatihan } from '../db';
+import { ayatHafal } from '../jadwal';
 import Kepala from '../komponen/Kepala';
 import TeksAyat from '../komponen/TeksAyat';
 
@@ -16,12 +17,8 @@ interface Soal {
 // Sambungan ayat yang kedua ayatnya sudah masuk hafalan. Yang pernah tertukar
 // didahulukan (paling sering lebih dulu), sisanya diacak (K-17).
 async function susunSoal(): Promise<Soal[]> {
-  const [jadwal, tertukar] = await Promise.all([ambilJadwal(), db.tandaTertukar.toArray()]);
-  const hafal = new Set<string>();
-  for (const e of jadwal.values()) {
-    if (!e.sabaqLancar) continue;
-    for (let a = e.ayatAwal; a <= e.ayatAkhir; a++) hafal.add(`${e.surah}:${a}`);
-  }
+  const [hafalan, tertukar] = await Promise.all([ambilHafalan(), db.tandaTertukar.toArray()]);
+  const hafal = ayatHafal(hafalan);
   const pernah = new Map(tertukar.map((t) => [t.kunci, t.jumlah]));
   const semua: Soal[] = [];
   for (const kunci of hafal) {

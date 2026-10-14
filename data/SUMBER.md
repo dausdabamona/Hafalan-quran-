@@ -1,20 +1,21 @@
 # Sumber data dan lisensi
 
-Dicatat 14 Oktober 2026 (Fase 0). Berkas `juz30.json` dihasilkan oleh workflow **Siapkan data Juz 30** (`scripts/siapkan-data.mjs`), bukan diketik tangan.
+Dicatat 14 Oktober 2026. Berkas `quran.json` dihasilkan oleh workflow **Siapkan data Al-Quran** (`scripts/siapkan-data.mjs`), dan `rukuk.json` oleh `npm run siapkan-rukuk` (`scripts/siapkan-rukuk.mjs`); keduanya bukan diketik tangan.
 
 | Data | Sumber | Lisensi / ketentuan | Status |
 | --- | --- | --- | --- |
-| Teks Utsmani Mushaf Madinah | [Tanzil](https://tanzil.net) | CC BY 3.0. Boleh dipakai di aplikasi asal sumber disebut dan ditautkan ke tanzil.net; teks tidak boleh diubah; catatan hak cipta Tanzil disertakan di `juz30.json` (kolom `sumber.lisensiTanzil`) | Aman, dipakai apa adanya |
-| Arti per kata bahasa Indonesia | [Quran.com](https://quran.com), API v4 lama (`api.quran.com/api/v4`) | Ketentuan lisensi tidak tercantum di dokumentasi API; API baru Quran Foundation memakai kunci akses. Dipakai untuk keperluan pribadi non-komersial dengan atribusi | Belum jelas — repositori sebaiknya privat |
+| Teks Utsmani Mushaf Madinah, 114 surah, 6.236 ayat | [Tanzil](https://tanzil.net) | CC BY 3.0. Boleh dipakai di aplikasi asal sumber disebut dan ditautkan ke tanzil.net; teks tidak boleh diubah; catatan hak cipta Tanzil disertakan di `quran.json` (kolom `sumber.lisensiTanzil`) | Aman, dipakai apa adanya |
+| Arti per kata bahasa Indonesia | [Quran.com](https://quran.com), API v4 lama (`api.quran.com/api/v4`) | Ketentuan lisensi tidak tercantum di dokumentasi API. Dipakai untuk keperluan pribadi non-komersial dengan atribusi | Belum jelas; repositori publik atas pilihan pemilik |
 | Nama surah | Quran.com API v4 | Sama seperti di atas | Belum jelas |
-| Pembagian rukuk (`rukuk-juz30.json`) | [quran-meta](https://www.npmjs.com/package/quran-meta), riwayat Hafs | MIT | Aman |
+| Pembagian rukuk (556) dan awal juz (30) | [quran-meta](https://www.npmjs.com/package/quran-meta), riwayat Hafs | MIT | Aman |
+| Makna per potongan waqaf | Disusun aplikasi dari gabungan arti per kata; dapat disunting pemakai | — | Bukan terjemahan resmi |
 
 ## Pengolahan
 
-- Teks Tanzil tidak diubah. Pada ayat pertama tiap surah, Tanzil menyertakan basmalah di awal teks; skrip hanya menandainya (`basmalah: true`) dan memasangkan arti mulai kata sesudah basmalah. Teks ayat tetap utuh.
-- Tanda waqaf, rubu' (۞), dan sajdah (۩) yang berdiri sendiri tidak dihitung sebagai kata.
-- Skrip berhenti dengan galat bila jumlah kata satu ayat berbeda antara Tanzil dan Quran.com, atau total ayat Juz 30 bukan 564.
+- Teks Tanzil tidak diubah. Pada ayat pertama tiap surah (kecuali Al-Fatihah dan At-Taubah), Tanzil menyertakan basmalah di awal teks; aplikasi memisahkannya saat tampil dan memasangkan arti mulai kata sesudah basmalah.
+- Tanda waqaf, rubu' (۞), dan sajdah (۩) yang berdiri sendiri tidak dihitung sebagai kata. Tanda waqaf (U+06D6–U+06DC) dipakai sebagai batas potongan makna.
+- Pada 4 ayat (2:181, 8:6, 13:37, 37:130) Quran.com menggabungkan dua kata yang di Tanzil terpisah (mis. "بَعْدَ مَا"). Arti gabungan itu dipasang pada kedua kata. Rinciannya di `laporan-data.txt`.
 
 ## Atribusi di aplikasi
 
-Halaman "Tentang" di aplikasi wajib memuat: Tanzil Project (tautan ke tanzil.net) dan Quran.com.
+Halaman "Tentang" di aplikasi memuat: Tanzil Project (tautan ke tanzil.net), Quran.com, dan quran-meta.

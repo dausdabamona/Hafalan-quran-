@@ -37,7 +37,10 @@ Di luar cakupan versi pertama: banyak pengguna, audio qari, pengenalan suara oto
 | K-19 | Makna | Arti per kata saja, tanpa terjemahan per ayat; ditambah keterangan pribadi yang bisa diisi sendiri |
 | K-20 | Perangkat | OPPO A7 Pro (ColorOS). APK memakai batas minimum Capacitor, Android 7 (API 24); versi Android persis dicek saat APK pertama dipasang |
 | K-21 | Istilah | Bahasa Indonesia sebagai istilah utama, istilah Arab kecil di bawahnya: Hafalan baru (Sabaq), Ulang hafalan — Dekat (Sabqi) dan Lama (Manzil); boleh ditinjau ulang kemudian |
-| K-22 | Deres per rukuk | Tambahan satu rukuk per hari di layar Hari ini, bergilir dari rukuk yang paling lama tidak dideres; rukuk yang belum lengkap dihafal dideres pada bagian yang sudah hafal (minimal dua ayat berurutan). Kesalahan baru menurunkan potongan yang memuatnya ke jarak 1 hari; tanda permanen sama dengan koreksi biasa. Data rukuk dari quran-meta (MIT, Hafs): 39 rukuk Juz 30 (14 Okt 2026) |
+| K-22 | ~~Deres per rukuk~~ (diganti K-23) | Tambahan satu rukuk per hari di layar Hari ini, bergilir dari rukuk yang paling lama tidak dideres; rukuk yang belum lengkap dihafal dideres pada bagian yang sudah hafal (minimal dua ayat berurutan). Kesalahan baru menurunkan potongan yang memuatnya ke jarak 1 hari; tanda permanen sama dengan koreksi biasa. Data rukuk dari quran-meta (MIT, Hafs): 39 rukuk Juz 30 (14 Okt 2026) |
+| K-23 | Murojaah per rukuk | Satuan ulang hafalan dan rekam-koreksi adalah rukuk (556 rukuk, quran-meta, Hafs). Rukuk yang belum lengkap ("berjalan") diulang setiap hari pada bagian yang sudah hafal; rukuk lengkap berjarak 1–3–7–14–30 hari; kesalahan baru kembali ke 1 hari. Hafalan baru tetap 1–3 ayat sehari, tidak melewati batas rukuk. Rekaman tetap disimpan per ayat (K-04) (14 Okt 2026) |
+| K-24 | Cakupan dan jalur | 30 juz lengkap; jalur hafalan Al-Fatihah → An-Nas. Jalur sesuai tema disembunyikan dulu (14 Okt 2026) |
+| K-25 | Makna per waqaf | Di bawah tiap ayat tampil makna per potongan sesuai tanda waqaf; bawaannya gabungan arti per kata, bisa disunting dan dikembalikan. Arti per kata tetap seperti semula dan tampil hanya saat kata diketuk; lembar arti kata punya tombol Berikutnya/Sebelumnya (14 Okt 2026) |
 
 ## Metode dan alur harian
 
@@ -133,6 +136,15 @@ Rincian pengolahan data ada di [data/SUMBER.md](../data/SUMBER.md).
 - Alurnya memakai layar Rekam dan Koreksi yang sama, mencakup seluruh ayat hafal dalam rukuk, dengan teks tertutup.
 - Hasil deres tidak membuat entri jadwal baru; hanya menambah tanda dan menurunkan potongan yang bermasalah (K-22).
 - Data: `data/rukuk-juz30.json`, dibuat oleh `npm run siapkan-rukuk` dari paket quran-meta. Catatan: tanda rukuk lazim di mushaf Indonesia/IndoPak; mushaf Madinah sendiri tidak mencantumkannya.
+
+## Perluasan 30 juz (14 Okt 2026)
+
+- Data: `data/quran.json` (6.236 ayat, teks Tanzil + arti per kata Quran.com) dan `data/rukuk.json` (556 rukuk, 30 juz). Berkas Juz 30 lama dihapus.
+- Hari ini: kartu Hafalan baru (Al-Fatihah → An-Nas, dengan nomor juz), Ulang hafalan per rukuk (label Berjalan/Dekat/Lama), Sambung ayat, Jelajah mushaf. Kartu jalur, tema, dan deres dihapus (K-23, K-24).
+- Layar surah: dikelompokkan per rukuk dengan tombol Murojaah rukuk; makna per waqaf bisa disunting (tombol Makna untuk menampilkan/menyembunyikan); lembar arti kata dengan Berikutnya/Sebelumnya, catatan ikut tersimpan saat pindah kata (K-25).
+- Jadwal lama per potongan dipindahkan otomatis ke jadwal per rukuk saat aplikasi diperbarui (Dexie versi 5); tabel deres dihapus (versi 6). Tanda salah, tanda tertukar, catatan, dan rekaman tidak berubah.
+- `data/tema-juz30.json` dibiarkan untuk dikoreksi nanti; tidak dipakai aplikasi.
+- Uji: 21 uji otomatis; uji peramban 3 hari (sabaq → murojaah berjalan → sabaq berikutnya), edit makna, navigasi kata, Al-Baqarah (40 rukuk) terbuka di ayat 255.
 
 ## Usulan arsitektur (belum dikunci)
 

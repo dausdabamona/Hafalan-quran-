@@ -5,7 +5,7 @@ export type Layar =
   | { nama: 'hari-ini' }
   | { nama: 'daftar' }
   | { nama: 'sambung' }
-  | { nama: 'surah'; nomor: number }
+  | { nama: 'surah'; nomor: number; ayat?: number }
   | { nama: 'rekam'; potongan: Potongan; rukuk?: number }
   | { nama: 'koreksi'; potongan: Potongan; rukuk?: number }
   | { nama: 'rukuk' }
@@ -21,9 +21,9 @@ function bacaPotongan(nomor: string, awal: string, akhir: string): Potongan | nu
 
 export function bacaHash(): Layar {
   const h = window.location.hash;
-  let m = /^#\/surah\/(\d+)$/.exec(h);
-  if (m && cariSurah(Number(m[1]))) return { nama: 'surah', nomor: Number(m[1]) };
-  // Akhiran /r<nomor> menandai deres per rukuk (K-22).
+  let m = /^#\/surah\/(\d+)(?:\/(\d+))?$/.exec(h);
+  if (m && cariSurah(Number(m[1]))) return { nama: 'surah', nomor: Number(m[1]), ayat: m[2] ? Number(m[2]) : undefined };
+  // Akhiran /r<nomor> menandai murojaah per rukuk (K-23).
   m = /^#\/(rekam|koreksi)\/(\d+)\/(\d+)-(\d+)(?:\/r(\d+))?$/.exec(h);
   if (m) {
     const p = bacaPotongan(m[2], m[3], m[4]);

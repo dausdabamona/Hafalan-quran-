@@ -5,5 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   base: './',
   plugins: [react()],
-  build: { outDir: 'dist', target: 'es2020', chunkSizeWarningLimit: 800 },
+  // Data Al-Qur'an dimuat sebagai JSON.parse agar lebih cepat dibuka di HP.
+  json: { stringify: true },
+  build: { outDir: 'dist', target: 'es2020', chunkSizeWarningLimit: 4000 },
 });

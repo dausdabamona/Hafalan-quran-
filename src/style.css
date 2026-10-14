@@ -826,3 +826,109 @@ textarea:focus {
   display: block;
   font-weight: 600;
 }
+
+/* ---------- 30 juz: judul juz, rukuk, makna per waqaf, navigasi kata ---------- */
+.judul-juz {
+  margin: 18px 16px 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--emas);
+}
+
+.tombol-ikon.aktif {
+  background: var(--teal);
+  color: #fff;
+  border-color: var(--teal);
+}
+
+.rukuk {
+  margin-bottom: 18px;
+}
+
+.kepala-rukuk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 16px;
+  padding: 10px 0 6px;
+  border-bottom: 2px solid var(--emas);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--teks-lembut);
+}
+
+.rukuk .potongan,
+.rukuk .daftar-ayat > li {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 260px;
+}
+
+.daftar-makna {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.makna {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--teal-muda);
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.makna.diedit {
+  background: var(--catatan);
+}
+
+.makna .pena {
+  color: var(--teks-lembut);
+  font-size: 0.8rem;
+}
+
+.navigasi-kata {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.navigasi-kata .kata-besar {
+  flex: 1;
+  margin: 0;
+}
+
+.tombol-nav {
+  flex: none;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--garis);
+  border-radius: 10px;
+  background: var(--kartu);
+  font-size: 0.85rem;
+  color: var(--teal);
+}
+
+.tombol-nav:disabled {
+  opacity: 0.35;
+}
+
+.potongan-arab {
+  font-family: var(--font-arab);
+  font-size: 1.6rem;
+  line-height: 2;
+  margin: 4px 0;
+  text-align: center;
+}

@@ -1,4 +1,4 @@
-import { dataJuz30 } from '../data';
+import { sumberData } from '../data';
 import Kepala from '../komponen/Kepala';
 
 export default function LayarTentang() {
@@ -9,8 +9,8 @@ export default function LayarTentang() {
         <h2>Saku Hati</h2>
         <p>
           <strong>S</strong>edikit <strong>A</strong>yat, <strong>K</strong>uat <strong>U</strong>langnya. Aplikasi
-          pribadi untuk menghafal dan merawat hafalan Al-Qur'an, berjalan tanpa internet. Semua catatan, tanda, dan
-          rekaman tersimpan di HP ini.
+          pribadi untuk menghafal dan merawat hafalan Al-Qur'an 30 juz, berjalan tanpa internet. Semua catatan, makna
+          yang Anda edit, tanda, dan rekaman tersimpan di HP ini.
         </p>
         <h2>Teks Al-Qur'an</h2>
         <p>
@@ -20,14 +20,15 @@ export default function LayarTentang() {
         <h2>Arti per kata</h2>
         <p>
           Terjemahan per kata bahasa Indonesia dari <a href="https://quran.com">Quran.com</a>, untuk pemakaian pribadi.
+          Makna per potongan waqaf disusun dari gabungan arti per kata dan dapat Anda sunting sendiri; makna ini bukan
+          terjemahan resmi.
         </p>
-        <h2>Pembagian rukuk</h2>
+        <h2>Pembagian rukuk dan juz</h2>
         <p>
-          Daftar rukuk riwayat Hafs dari paket <a href="https://github.com/quran-center/quran-meta">quran-meta</a>{' '}
-          (lisensi MIT).
+          Riwayat Hafs, dari paket <a href="https://github.com/quran-center/quran-meta">quran-meta</a> (lisensi MIT).
         </p>
         <h2>Catatan lisensi Tanzil</h2>
-        <pre className="lisensi">{dataJuz30.sumber.lisensiTanzil}</pre>
+        <pre className="lisensi">{sumberData.lisensiTanzil}</pre>
       </section>
     </>
   );

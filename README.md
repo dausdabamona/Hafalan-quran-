@@ -2,7 +2,7 @@
 
 *Sedikit Ayat, Kuat Ulangnya*
 
-Aplikasi Android pribadi untuk menghafal Al-Qur'an, dimulai dari Juz 30. Berjalan penuh tanpa internet; rekaman murojaah dan data hafalan tersimpan di HP.
+Aplikasi Android pribadi untuk menghafal Al-Qur'an, 30 juz, dari Al-Fatihah sampai An-Nas. Berjalan penuh tanpa internet; rekaman murojaah dan data hafalan tersimpan di HP.
 
 ## Unduh
 

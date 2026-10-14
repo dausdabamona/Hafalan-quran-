@@ -1,37 +1,45 @@
 import { describe, expect, it } from 'vitest';
+import { rukukAyat } from './data';
 import {
   daftarUlangHafalan,
-  jalurUrutan,
+  jalurHafalan,
   kelompok,
   kunciPotongan,
+  migrasiJadwalLama,
   pilihHafalanBaru,
-  perbaruiJadwal,
   selisihHari,
+  setelahKoreksiPotongan,
+  setelahMurojaahRukuk,
   tambahHari,
+  type EntriHafalan,
   type EntriJadwal,
 } from './jadwal';
 
 const AWAL = '2026-10-15';
 
-// Simulasi satu hari: kerjakan hafalan baru dan semua ulang hafalan yang jatuh tempo.
-function jalaniHari(
-  jadwal: Map<string, EntriJadwal>,
-  hari: string,
-  lancar: (kunci: string, hari: string) => boolean = () => true,
-) {
-  const jalur = jalurUrutan('dari-an-nas');
-  const ulang = daftarUlangHafalan(jadwal, hari);
-  for (const e of ulang) {
-    const baru = perbaruiJadwal(e, e, lancar(e.kunci, hari), hari);
-    if (baru) jadwal.set(baru.kunci, baru);
+interface Keadaan {
+  hafalan: Map<string, EntriHafalan>;
+  jadwal: Map<number, EntriJadwal>;
+}
+
+function baru(): Keadaan {
+  return { hafalan: new Map(), jadwal: new Map() };
+}
+
+// Simulasi satu hari: ulang semua rukuk yang jatuh tempo, lalu satu hafalan baru.
+function jalaniHari(k: Keadaan, hari: string, lancar: (jenis: string, hari: string) => boolean = () => true) {
+  const ulang = daftarUlangHafalan(k.jadwal, hari);
+  for (const j of ulang) {
+    const b = setelahMurojaahRukuk(j, lancar(`r${j.nomor}`, hari), hari);
+    k.jadwal.set(j.nomor, b ?? { ...j, terakhir: hari });
   }
-  const hb = pilihHafalanBaru(jalur, jadwal, hari);
+  const hb = pilihHafalanBaru(k.hafalan, hari);
   if (hb.status === 'baru' || hb.status === 'ulang') {
-    const k = kunciPotongan(hb.potongan);
-    const baru = perbaruiJadwal(jadwal.get(k), hb.potongan, lancar(k, hari), hari);
-    if (baru) jadwal.set(baru.kunci, baru);
+    const u = setelahKoreksiPotongan(k.hafalan, k.jadwal, hb.potongan, lancar(kunciPotongan(hb.potongan), hari), hari);
+    if (u.hafalan) k.hafalan.set(u.hafalan.kunci, u.hafalan);
+    for (const j of u.jadwal) k.jadwal.set(j.nomor, j);
   }
-  return { ulang: ulang.map((e) => e.kunci), baru: hb };
+  return { ulang: ulang.map((j) => j.nomor), baru: hb };
 }
 
 describe('tanggal', () => {
@@ -41,98 +49,86 @@ describe('tanggal', () => {
   });
 });
 
-describe('jalur urutan', () => {
-  it('dari An-Nas dimulai surah 114, dari An-Naba dimulai surah 78', () => {
-    expect(jalurUrutan('dari-an-nas')[0].surah).toBe(114);
-    expect(jalurUrutan('dari-an-naba')[0].surah).toBe(78);
+describe('jalur Al-Fatihah → An-Nas (K-24)', () => {
+  it('dimulai Al-Fatihah dan menutup 6236 ayat', () => {
+    const j = jalurHafalan();
+    expect(j[0].surah).toBe(1);
+    expect(j.at(-1)!.surah).toBe(114);
+    expect(j.reduce((n, p) => n + p.ayatAkhir - p.ayatAwal + 1, 0)).toBe(6236);
   });
 });
 
-describe('simulasi 30 hari, semua lancar', () => {
-  it('satu hafalan baru per hari dan jarak ulang 1–3–7–14–30', () => {
-    const jadwal = new Map<string, EntriJadwal>();
-    const tanggalUlang: string[] = [];
-    let pertama = '';
+describe('jadwal per rukuk (K-23)', () => {
+  it('Al-Fatihah: berjalan diulang harian, lalu jarak 1–3–7–14–30 setelah lengkap', () => {
+    const k = baru();
+    const hariUlang: number[] = [];
     for (let i = 0; i < 70; i++) {
       const hari = tambahHari(AWAL, i);
-      const h = jalaniHari(jadwal, hari);
-      if (i === 0 && h.baru.status === 'baru') pertama = kunciPotongan(h.baru.potongan);
-      if (h.ulang.includes(pertama)) tanggalUlang.push(hari);
+      const h = jalaniHari(k, hari);
+      if (h.ulang.includes(1)) hariUlang.push(i);
     }
-    // Potongan pertama diulang pada hari ke-1, 4, 11, 25, 55 (jarak 1, 3, 7, 14, 30)
-    expect(tanggalUlang.map((t) => selisihHari(AWAL, t))).toEqual([1, 4, 11, 25, 55]);
-    // Satu potongan baru per hari selama 70 hari
-    const mulai = new Set([...jadwal.values()].map((e) => e.mulai));
-    expect(mulai.size).toBe(70);
+    // Al-Fatihah = 3 potongan (hari 0, 1, 2); berjalan diulang hari 1 dan 2;
+    // lengkap pada hari 2 → ulang hari 3, 6, 13, 27, 57.
+    expect(hariUlang).toEqual([1, 2, 3, 6, 13, 27, 57]);
+    expect(kelompok(k.jadwal.get(1)!)).toBe('lama');
   });
 
-  it('setelah jarak 30 hari tetap 30 hari (P-02)', () => {
-    const jadwal = new Map<string, EntriJadwal>();
-    for (let i = 0; i < 120; i++) jalaniHari(jadwal, tambahHari(AWAL, i));
-    const e = [...jadwal.values()].find((x) => x.mulai === AWAL)!;
-    expect(e.tingkat).toBe(4);
-    expect(kelompok(e)).toBe('lama');
-  });
-});
-
-describe('kesalahan dan hari terlewat', () => {
-  it('kesalahan baru mengembalikan ke jarak 1 hari (P-03)', () => {
-    const jadwal = new Map<string, EntriJadwal>();
-    for (let i = 0; i < 12; i++) jalaniHari(jadwal, tambahHari(AWAL, i));
-    const k = [...jadwal.values()].find((x) => x.mulai === AWAL)!.kunci;
-    const hari = tambahHari(AWAL, 25);
-    const e = jadwal.get(k)!;
-    const baru = perbaruiJadwal(e, e, false, hari)!;
-    expect(baru.tingkat).toBe(0);
-    expect(baru.jatuhTempo).toBe(tambahHari(hari, 1));
-    expect(kelompok(baru)).toBe('dekat');
+  it('satu hafalan baru per hari (P-04)', () => {
+    const k = baru();
+    jalaniHari(k, AWAL);
+    expect(pilihHafalanBaru(k.hafalan, AWAL).status).toBe('selesai');
   });
 
-  it('hafalan baru yang belum lancar diulang esok pagi, tanpa menambah yang baru (P-06)', () => {
-    const jadwal = new Map<string, EntriJadwal>();
-    jalaniHari(jadwal, AWAL, () => false);
-    const besok = pilihHafalanBaru(jalurUrutan('dari-an-nas'), jadwal, tambahHari(AWAL, 1));
-    expect(besok.status).toBe('ulang');
-    expect(daftarUlangHafalan(jadwal, tambahHari(AWAL, 1))).toHaveLength(0);
+  it('hafalan baru belum lancar diulang esok pagi (P-06)', () => {
+    const k = baru();
+    jalaniHari(k, AWAL, () => false);
+    expect(pilihHafalanBaru(k.hafalan, tambahHari(AWAL, 1)).status).toBe('ulang');
+    expect(k.jadwal.size).toBe(0);
   });
 
-  it('hafalan baru hanya satu per hari (P-04)', () => {
-    const jadwal = new Map<string, EntriJadwal>();
-    jalaniHari(jadwal, AWAL);
-    expect(pilihHafalanBaru(jalurUrutan('dari-an-nas'), jadwal, AWAL).status).toBe('selesai');
+  it('kesalahan saat murojaah rukuk lengkap mengembalikan ke jarak 1 hari (P-03)', () => {
+    const k = baru();
+    for (let i = 0; i < 12; i++) jalaniHari(k, tambahHari(AWAL, i));
+    const j = k.jadwal.get(1)!;
+    expect(j.tingkat).toBeGreaterThan(0);
+    const hari = tambahHari(AWAL, 12);
+    const b = setelahMurojaahRukuk(j, false, hari)!;
+    expect(b.tingkat).toBe(0);
+    expect(b.jatuhTempo).toBe(tambahHari(hari, 1));
   });
 
-  it('hari terlewat: tanggungan menumpuk, yang paling lama terlambat lebih dulu (P-05)', () => {
-    const jadwal = new Map<string, EntriJadwal>();
-    for (let i = 0; i < 5; i++) jalaniHari(jadwal, tambahHari(AWAL, i));
-    const nanti = tambahHari(AWAL, 20);
-    const daftar = daftarUlangHafalan(jadwal, nanti);
-    expect(daftar.length).toBe(5);
-    const tempo = daftar.map((e) => e.jatuhTempo);
+  it('hari terlewat: tanggungan menumpuk, yang paling lama terlambat di atas (P-05)', () => {
+    const k = baru();
+    for (let i = 0; i < 20; i++) jalaniHari(k, tambahHari(AWAL, i));
+    const daftar = daftarUlangHafalan(k.jadwal, tambahHari(AWAL, 60));
+    const tempo = daftar.map((j) => j.jatuhTempo);
+    expect(daftar.length).toBeGreaterThan(1);
     expect(tempo).toEqual([...tempo].sort());
   });
 
-  it('mengulang sebelum jatuh tempo tidak mengubah jadwal', () => {
-    const jadwal = new Map<string, EntriJadwal>();
-    jalaniHari(jadwal, AWAL);
-    jalaniHari(jadwal, tambahHari(AWAL, 1));
-    const e = [...jadwal.values()].find((x) => x.mulai === AWAL)!;
-    expect(perbaruiJadwal(e, e, true, tambahHari(AWAL, 2))).toBeNull();
+  it('rukuk masuk jadwal sejak potongan pertamanya lancar', () => {
+    const k = baru();
+    for (let i = 0; i < 4; i++) jalaniHari(k, tambahHari(AWAL, i));
+    // hari ke-4 menghafal potongan pertama Al-Baqarah rukuk 1
+    const r2 = rukukAyat(2, 1)!;
+    expect(k.jadwal.get(r2.nomor)?.lengkap).toBe(false);
+    expect(kelompok(k.jadwal.get(r2.nomor)!)).toBe('berjalan');
   });
 });
 
-describe('jalur sesuai tema', () => {
-  it('setiap surah Juz 30 muncul tepat sekali di kelompok tema', async () => {
-    const { kelompokTema } = await import('./jadwal');
-    const semua = kelompokTema.flatMap((k) => k.surah);
-    expect(semua).toHaveLength(37);
-    expect(new Set(semua).size).toBe(37);
-    for (let n = 78; n <= 114; n++) expect(semua).toContain(n);
-  });
-
-  it('jalur tema dimulai dari kelompok pertama dan menutup 564 ayat', () => {
-    const jalur = jalurUrutan('tema');
-    expect(jalur[0].surah).toBe(114);
-    expect(jalur.reduce((n, p) => n + p.ayatAkhir - p.ayatAwal + 1, 0)).toBe(564);
+describe('migrasi jadwal per potongan', () => {
+  it('potongan Juz 30 lama menjadi hafalan + jadwal rukuk', () => {
+    const lama = [
+      { kunci: '114:1-3', surah: 114, ayatAwal: 1, ayatAkhir: 3, tingkat: 2, jatuhTempo: '2026-10-20', mulai: '2026-10-14', terakhir: '2026-10-14', sabaqLancar: true },
+      { kunci: '114:4-6', surah: 114, ayatAwal: 4, ayatAkhir: 6, tingkat: 1, jatuhTempo: '2026-10-18', mulai: '2026-10-15', terakhir: '2026-10-15', sabaqLancar: true },
+      { kunci: '113:1-3', surah: 113, ayatAwal: 1, ayatAkhir: 3, tingkat: 0, jatuhTempo: '2026-10-17', mulai: '2026-10-16', terakhir: '2026-10-16', sabaqLancar: true },
+    ];
+    const { hafalan, jadwal } = migrasiJadwalLama(lama);
+    expect(hafalan).toHaveLength(3);
+    const nas = jadwal.find((j) => j.nomor === 556)!;
+    expect(nas.lengkap).toBe(true);
+    expect(nas.tingkat).toBe(1);
+    expect(nas.jatuhTempo).toBe('2026-10-18');
+    expect(jadwal.find((j) => j.nomor === 555)!.lengkap).toBe(false);
   });
 });

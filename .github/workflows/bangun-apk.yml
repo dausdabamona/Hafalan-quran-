@@ -8,7 +8,8 @@ on:
     branches: [main]
     paths:
       - src/**
-      - data/juz30.json
+      - data/quran.json
+      - data/rukuk.json
       - android/**
       - index.html
       - package.json

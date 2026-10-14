@@ -56,7 +56,14 @@ export default function App() {
       {layar.nama === 'hari-ini' && <LayarHariIni />}
       {layar.nama === 'daftar' && <LayarDaftar />}
       {layar.nama === 'sambung' && <LayarSambung />}
-      {layar.nama === 'surah' && <LayarSurah surah={cariSurah(layar.nomor)!} aturUkuran={aturUkuran} />}
+      {layar.nama === 'surah' && (
+        <LayarSurah
+          key={layar.nomor}
+          surah={cariSurah(layar.nomor)!}
+          ayatTuju={layar.ayat}
+          aturUkuran={aturUkuran}
+        />
+      )}
       {layar.nama === 'rekam' && (
         <LayarRekam key={JSON.stringify(layar)} potongan={layar.potongan} rukuk={layar.rukuk} />
       )}

@@ -51,7 +51,7 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
   return (
     <>
       <Kepala
-        judul={`${rukuk ? 'Deres' : 'Rekam'} · ${surah.nama}`}
+        judul={`${rukuk ? 'Murojaah' : 'Rekam'} · ${surah.nama}`}
         sub={`${rukuk ? 'Rukuk' : 'Potongan'} ${labelPotongan(potongan)}`}
       />
 

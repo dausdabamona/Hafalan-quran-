@@ -21,6 +21,11 @@ export default function LayarTentang() {
         <p>
           Terjemahan per kata bahasa Indonesia dari <a href="https://quran.com">Quran.com</a>, untuk pemakaian pribadi.
         </p>
+        <h2>Pembagian rukuk</h2>
+        <p>
+          Daftar rukuk riwayat Hafs dari paket <a href="https://github.com/quran-center/quran-meta">quran-meta</a>{' '}
+          (lisensi MIT).
+        </p>
         <h2>Catatan lisensi Tanzil</h2>
         <pre className="lisensi">{dataJuz30.sumber.lisensiTanzil}</pre>
       </section>

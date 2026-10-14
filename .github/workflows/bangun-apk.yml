@@ -88,10 +88,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp android/app/build/outputs/apk/release/app-release.apk rabth.apk
+          cp android/app/build/outputs/apk/release/app-release.apk saku-hati.apk
           gh release delete terbaru --yes --cleanup-tag || true
-          gh release create terbaru rabth.apk \
+          gh release create terbaru saku-hati.apk \
             --target "$GITHUB_SHA" \
-            --title "Rabth 0.1.${{ github.run_number }}" \
-            --notes "APK terbaru dari commit ${GITHUB_SHA::7}. Unduh rabth.apk lalu pasang di HP." \
+            --title "Saku Hati 0.1.${{ github.run_number }}" \
+            --notes "APK terbaru dari commit ${GITHUB_SHA::7}. Unduh saku-hati.apk lalu pasang di HP." \
             --latest

@@ -85,8 +85,8 @@ function LayarDaftar() {
     <>
       <header className="kepala">
         <div>
-          <h1>Rabth</h1>
-          <p className="sub">Hafalan Juz 30 · {daftarSurah.length} surah</p>
+          <h1>Saku Hati</h1>
+          <p className="sub">Sedikit Ayat, Kuat Ulangnya · Juz 30</p>
         </div>
         <button className="tombol-ikon" onClick={() => pergi('#/tentang')} aria-label="Tentang">
           i

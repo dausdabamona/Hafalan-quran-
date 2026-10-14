@@ -7,6 +7,8 @@ import {
   setelahKoreksiPotongan,
   setelahMurojaahRukuk,
   turunkanJadwal,
+  batalkanLama,
+  tandaiLama,
   type EntriHafalan,
   type EntriJadwal,
   type JadwalPotonganLama,
@@ -270,6 +272,29 @@ export async function ambilHafalan(): Promise<Map<string, EntriHafalan>> {
 export async function ambilJadwal(): Promise<Map<number, EntriJadwal>> {
   const daftar = await db.jadwalRukuk.toArray();
   return new Map(daftar.map((e) => [e.nomor, e]));
+}
+
+// ---------- Hafalan lama (K-27) ----------
+
+// Menandai rukuk sebagai hafalan lama; mengembalikan jumlah rukuk yang baru ditandai.
+export async function tandaiHafalanLama(nomor: number[], hari = hariIni()): Promise<number> {
+  return db.transaction('rw', db.hafalan, db.jadwalRukuk, async () => {
+    const t = tandaiLama(nomor, await ambilHafalan(), await ambilJadwal(), hari);
+    await db.hafalan.bulkPut(t.hafalan);
+    await db.jadwalRukuk.bulkPut(t.jadwal);
+    return t.jadwal.length;
+  });
+}
+
+export async function batalkanHafalanLama(nomor: number[], hari = hariIni()): Promise<void> {
+  await db.transaction('rw', db.hafalan, db.jadwalRukuk, async () => {
+    for (const n of nomor) {
+      const b = batalkanLama(n, await ambilHafalan(), await ambilJadwal(), hari);
+      await db.hafalan.bulkDelete(b.hapusHafalan);
+      if (b.hapusJadwal) await db.jadwalRukuk.delete(n);
+      else if (b.jadwal) await db.jadwalRukuk.put(b.jadwal);
+    }
+  });
 }
 
 export interface HasilKoreksi {

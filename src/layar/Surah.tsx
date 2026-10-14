@@ -26,13 +26,15 @@ import {
   kunciKeterangan,
   simpanKeterangan,
   simpanMakna,
+  batalkanHafalanLama,
+  tandaiHafalanLama,
   type Keterangan,
   type Makna,
   type Rekaman,
   type TandaSurah,
   type TandaTertukar,
 } from '../db';
-import { rentangMurojaah, type EntriHafalan, type EntriJadwal } from '../jadwal';
+import { adaTandaLama, rentangMurojaah, type EntriHafalan, type EntriJadwal } from '../jadwal';
 import { hashPotongan, pergi } from '../navigasi';
 import Kepala from '../komponen/Kepala';
 import TeksAyat from '../komponen/TeksAyat';
@@ -137,6 +139,25 @@ export default function LayarSurah({
     await muat();
   };
 
+  // K-27: rukuk yang sudah hafal sebelum memakai aplikasi.
+  const tandaiLalu = async (nomor: number, langsungMurojaah: boolean) => {
+    const r = daftarRukuk.find((x) => x.nomor === nomor)!;
+    const tanya = langsungMurojaah
+      ? `Rukuk ayat ${r.ayatAwal}–${r.ayatAkhir} belum tercatat hafal. Tandai sebagai hafalan lama lalu murojaah sekarang?`
+      : `Tandai seluruh rukuk ayat ${r.ayatAwal}–${r.ayatAkhir} sebagai sudah hafal?`;
+    if (!window.confirm(tanya)) return;
+    await tandaiHafalanLama([nomor]);
+    if (langsungMurojaah) pergi(hashPotongan('rekam', r, nomor));
+    else await muat();
+  };
+
+  const batalTanda = async (nomor: number) => {
+    if (!window.confirm('Batalkan tanda hafalan lama rukuk ini? Bagian yang dihafal lewat Hafalan baru tetap tercatat.'))
+      return;
+    await batalkanHafalanLama([nomor]);
+    await muat();
+  };
+
   const daftarRukuk = rukukSurah(surah.nomor);
   const potongan = potonganSurah(surah.nomor);
 
@@ -180,11 +201,27 @@ export default function LayarSurah({
                 {daftarRukuk.length > 1 ? `Rukuk ${iRukuk + 1} · ` : ''}ayat {r.ayatAwal}–{r.ayatAkhir} · Juz{' '}
                 {juzAyat(r.surah, r.ayatAwal)}
               </span>
-              {rentang && (
-                <button className="tombol kecil utama" onClick={() => pergi(hashPotongan('rekam', rentang, r.nomor))}>
-                  🎙 Murojaah rukuk
-                </button>
-              )}
+              <div className="aksi-rukuk">
+                {j && !j.lengkap && (
+                  <button className="tautan kecil" onClick={() => tandaiLalu(r.nomor, false)}>
+                    Tandai hafal semua
+                  </button>
+                )}
+                {j && adaTandaLama(r.nomor, hafalan) && (
+                  <button className="tautan kecil" onClick={() => batalTanda(r.nomor)}>
+                    Batal tanda
+                  </button>
+                )}
+                {rentang ? (
+                  <button className="tombol kecil utama" onClick={() => pergi(hashPotongan('rekam', rentang, r.nomor))}>
+                    🎙 Murojaah rukuk
+                  </button>
+                ) : (
+                  <button className="tombol kecil sekunder" onClick={() => tandaiLalu(r.nomor, true)}>
+                    🎙 Murojaah rukuk
+                  </button>
+                )}
+              </div>
             </div>
 
             {potongan

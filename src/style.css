@@ -932,3 +932,79 @@ textarea:focus {
   margin: 4px 0;
   text-align: center;
 }
+
+/* ---------- Tandai hafalan lama (K-27) ---------- */
+.tombol-ikon.lebar-teks {
+  width: auto;
+  padding: 0 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.petunjuk-tandai {
+  margin: 12px 16px 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--catatan);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.petunjuk-tandai p {
+  margin: 0;
+}
+
+.pesan-tandai {
+  margin-top: 8px !important;
+  font-weight: 650;
+  color: var(--teal);
+}
+
+button.judul-juz.tandai {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: calc(100% - 32px);
+  padding: 8px 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  min-height: 44px;
+}
+
+.tandai .kotak {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--garis);
+  border-radius: 8px;
+  background: var(--kartu);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.baris-surah.tandai .kotak {
+  margin: 0 6px;
+}
+
+.tandai.semua .kotak {
+  background: var(--teal);
+  border-color: var(--teal);
+}
+
+.tandai.sebagian .kotak {
+  background: var(--teal-muda);
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.aksi-rukuk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}

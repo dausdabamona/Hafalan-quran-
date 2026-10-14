@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { rukukAyat } from './data';
+import { rukukAyat, rukukSurah } from './data';
 import {
+  adaTandaLama,
+  batalkanLama,
   daftarUlangHafalan,
   jalurHafalan,
   kelompok,
@@ -11,6 +13,7 @@ import {
   setelahKoreksiPotongan,
   setelahMurojaahRukuk,
   tambahHari,
+  tandaiLama,
   type EntriHafalan,
   type EntriJadwal,
 } from './jadwal';
@@ -130,5 +133,65 @@ describe('migrasi jadwal per potongan', () => {
     expect(nas.tingkat).toBe(1);
     expect(nas.jatuhTempo).toBe('2026-10-18');
     expect(jadwal.find((j) => j.nomor === 555)!.lengkap).toBe(false);
+  });
+});
+
+describe('hafalan lama (K-27)', () => {
+  function tandai(k: Keadaan, nomor: number[], hari = AWAL) {
+    const t = tandaiLama(nomor, k.hafalan, k.jadwal, hari);
+    for (const h of t.hafalan) k.hafalan.set(h.kunci, h);
+    for (const j of t.jadwal) k.jadwal.set(j.nomor, j);
+    return t;
+  }
+  const juz30 = () => Array.from({ length: 556 - 517 + 1 }, (_, i) => 517 + i);
+
+  it('Juz 30 ditandai: hafalan baru tetap mulai Al-Fatihah dan tidak terhalang', () => {
+    const k = baru();
+    tandai(k, juz30());
+    const hb = pilihHafalanBaru(k.hafalan, AWAL);
+    expect(hb.status).toBe('baru');
+    if (hb.status === 'baru') expect(hb.potongan).toEqual({ surah: 1, ayatAwal: 1, ayatAkhir: 3 });
+  });
+
+  it('Al-Fatihah dan Al-Baqarah rukuk 1 ditandai: hafalan baru melompat ke rukuk 2', () => {
+    const k = baru();
+    tandai(k, [1, rukukSurah(2)[0].nomor]);
+    const hb = pilihHafalanBaru(k.hafalan, AWAL);
+    expect(hb.status === 'baru' && hb.potongan.ayatAwal).toBe(rukukSurah(2)[1].ayatAwal);
+  });
+
+  it('jadwal awal dicicil paling banyak 10 rukuk per hari, urut mushaf', () => {
+    const k = baru();
+    tandai(k, juz30());
+    const perHari = new Map<string, number>();
+    for (const j of k.jadwal.values()) perHari.set(j.jatuhTempo, (perHari.get(j.jatuhTempo) ?? 0) + 1);
+    expect([...perHari.entries()].sort()).toEqual([
+      [AWAL, 10],
+      [tambahHari(AWAL, 1), 10],
+      [tambahHari(AWAL, 2), 10],
+      [tambahHari(AWAL, 3), 10],
+    ]);
+    expect(k.jadwal.get(517)!.jatuhTempo).toBe(AWAL);
+    expect(daftarUlangHafalan(k.jadwal, AWAL)).toHaveLength(10);
+  });
+
+  it('murojaah pertama: lancar → 30 hari; salah → 1 hari', () => {
+    const k = baru();
+    tandai(k, [517, 518]);
+    const a = setelahMurojaahRukuk(k.jadwal.get(517)!, true, AWAL)!;
+    expect(selisihHari(AWAL, a.jatuhTempo)).toBe(30);
+    const b = setelahMurojaahRukuk(k.jadwal.get(518)!, false, AWAL)!;
+    expect(selisihHari(AWAL, b.jatuhTempo)).toBe(1);
+  });
+
+  it('rukuk yang sudah hafal lewat hafalan baru tidak ditandai ulang; batal tanda mengembalikan', () => {
+    const k = baru();
+    for (let i = 0; i < 3; i++) jalaniHari(k, tambahHari(AWAL, i));
+    expect(tandai(k, [1]).jadwal).toHaveLength(0);
+    tandai(k, [2]);
+    expect(adaTandaLama(2, k.hafalan)).toBe(true);
+    const b = batalkanLama(2, k.hafalan, k.jadwal, AWAL);
+    expect(b.hapusJadwal).toBe(true);
+    expect(b.hapusHafalan).toHaveLength(1);
   });
 });

@@ -11,6 +11,8 @@ import { daftarSurah, potonganSurah, rukukAyat, cariRukuk, type Potongan, type R
 //  P-02  setelah 30 hari tetap tiap 30 hari;  P-03 kesalahan baru → jarak 1 hari
 //  P-04  satu potongan hafalan baru per hari;  P-05 tanggungan menumpuk, yang paling lama di atas
 //  P-06  hafalan baru harus lancar dulu sebelum menambah yang baru
+//  K-27  hafalan lama (sudah hafal sebelum memakai aplikasi) langsung masuk murojaah;
+//        jadwal awalnya dicicil paling banyak BATAS_ULANG_MALAM rukuk per malam
 
 export const JARAK_HARI = [1, 3, 7, 14, 30];
 export const BATAS_ULANG_MALAM = 10;
@@ -24,6 +26,7 @@ export interface EntriHafalan {
   mulai: string; // hari pertama dihafal (YYYY-MM-DD)
   terakhir: string;
   sabaqLancar: boolean;
+  lama?: boolean; // K-27: ditandai sebagai hafalan lama, bukan hasil hafalan baru
 }
 
 // Jadwal murojaah satu rukuk.
@@ -112,6 +115,7 @@ export type HafalanBaru =
 export function pilihHafalanBaru(hafalan: Map<string, EntriHafalan>, hari: string): HafalanBaru {
   let terakhir: EntriHafalan | undefined;
   for (const e of hafalan.values()) {
+    if (e.lama) continue;
     if (!terakhir || e.mulai > terakhir.mulai || (e.mulai === terakhir.mulai && e.terakhir > terakhir.terakhir))
       terakhir = e;
   }
@@ -213,6 +217,100 @@ export function selesaiHariIni(jadwal: Map<number, EntriJadwal>, hari: string): 
 export function rentangMurojaah(j: EntriJadwal, hafalan: Map<string, EntriHafalan>): Potongan | null {
   const r = cariRukuk(j.nomor);
   return r ? rentangHafal(r, ayatHafal(hafalan)) : null;
+}
+
+// ---------- Hafalan lama (K-27) ----------
+
+// Tingkat awal hafalan lama: jarak 14 hari (kelompok Lama). Murojaah pertama menjadi uji:
+// lancar → naik ke 30 hari, ada salah → kembali ke 1 hari.
+export const TINGKAT_AWAL_LAMA = 3;
+
+export function kunciRukukLama(r: Rukuk): string {
+  return `${r.surah}:${r.ayatAwal}-${r.ayatAkhir}`;
+}
+
+// Rukuk yang dihitung "sudah hafal": seluruh ayatnya lancar.
+export function rukukSudahHafal(nomor: number, hafal: Set<string>): boolean {
+  const r = cariRukuk(nomor);
+  return !!r && rukukLengkap(r, hafal);
+}
+
+// Menandai rukuk sebagai hafalan lama. Jatuh tempo pertama dicicil mulai hari ini,
+// paling banyak `batas` rukuk per hari (termasuk jadwal yang sudah ada).
+export function tandaiLama(
+  nomor: number[],
+  hafalan: Map<string, EntriHafalan>,
+  jadwal: Map<number, EntriJadwal>,
+  hari: string,
+  batas = BATAS_ULANG_MALAM,
+): { hafalan: EntriHafalan[]; jadwal: EntriJadwal[] } {
+  const hafal = ayatHafal(hafalan);
+  const beban = new Map<string, number>();
+  for (const j of jadwal.values()) {
+    const h = j.jatuhTempo < hari ? hari : j.jatuhTempo;
+    beban.set(h, (beban.get(h) ?? 0) + 1);
+  }
+  let hariCicil = hari;
+  const hasil = { hafalan: [] as EntriHafalan[], jadwal: [] as EntriJadwal[] };
+  for (const n of [...new Set(nomor)].sort((a, b) => a - b)) {
+    const r = cariRukuk(n);
+    if (!r || rukukLengkap(r, hafal)) continue;
+    while ((beban.get(hariCicil) ?? 0) >= batas) hariCicil = tambahHari(hariCicil, 1);
+    beban.set(hariCicil, (beban.get(hariCicil) ?? 0) + 1);
+    hasil.hafalan.push({
+      kunci: kunciRukukLama(r),
+      surah: r.surah,
+      ayatAwal: r.ayatAwal,
+      ayatAkhir: r.ayatAkhir,
+      mulai: hari,
+      terakhir: hari,
+      sabaqLancar: true,
+      lama: true,
+    });
+    const j = jadwal.get(n);
+    hasil.jadwal.push({
+      nomor: n,
+      lengkap: true,
+      tingkat: TINGKAT_AWAL_LAMA,
+      jatuhTempo: hariCicil,
+      mulai: j?.mulai ?? hari,
+      terakhir: j?.terakhir ?? hari,
+    });
+  }
+  return hasil;
+}
+
+// Membatalkan tanda hafalan lama satu rukuk. Hafalan dari alur hafalan baru tetap.
+export function batalkanLama(
+  nomor: number,
+  hafalan: Map<string, EntriHafalan>,
+  jadwal: Map<number, EntriJadwal>,
+  hari: string,
+): { hapusHafalan: string[]; jadwal: EntriJadwal | null; hapusJadwal: boolean } {
+  const r = cariRukuk(nomor)!;
+  const hapusHafalan = [...hafalan.values()]
+    .filter((e) => e.lama && e.surah === r.surah && e.ayatAwal >= r.ayatAwal && e.ayatAkhir <= r.ayatAkhir)
+    .map((e) => e.kunci);
+  const sisa = new Map(hafalan);
+  for (const k of hapusHafalan) sisa.delete(k);
+  const hafal = ayatHafal(sisa);
+  const j = jadwal.get(nomor);
+  if (!rentangHafal(r, hafal)) return { hapusHafalan, jadwal: null, hapusJadwal: !!j };
+  const lengkap = rukukLengkap(r, hafal);
+  if (!j) return { hapusHafalan, jadwal: null, hapusJadwal: false };
+  return {
+    hapusHafalan,
+    jadwal: lengkap ? j : { ...j, lengkap: false, tingkat: 0, jatuhTempo: tambahHari(hari, 1) },
+    hapusJadwal: false,
+  };
+}
+
+export function adaTandaLama(nomor: number, hafalan: Map<string, EntriHafalan>): boolean {
+  const r = cariRukuk(nomor);
+  if (!r) return false;
+  for (const e of hafalan.values())
+    if (e.lama && e.surah === r.surah && e.ayatAwal >= r.ayatAwal && e.ayatAkhir <= r.ayatAkhir) return true;
+  return false;
 }
 
 // ---------- Migrasi dari jadwal per potongan (versi ≤ 0.1.7) ----------

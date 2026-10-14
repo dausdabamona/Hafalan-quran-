@@ -1,12 +1,22 @@
-// Penyiapan data Juz 30 untuk aplikasi hafalan.
+// Penyiapan data Al-Qur'an 30 juz untuk aplikasi Saku Hati.
 //
 // Menggabungkan dua sumber:
 //   1. Teks Utsmani Mushaf Madinah dari Tanzil (tanzil.net, CC BY 3.0) — dipakai apa adanya, tidak diubah (K-18).
 //   2. Arti per kata bahasa Indonesia dari Quran.com (api.quran.com/api/v4) (K-19).
 //
-// Hasil: data/juz30.json. Skrip berhenti dengan galat bila ada ayat yang
-// jumlah katanya tidak cocok antara kedua sumber, agar data keliru tidak
-// pernah masuk ke aplikasi.
+// Hasil:
+//   data/quran.json        — 114 surah, 6236 ayat, format ringkas (lihat FORMAT di bawah)
+//   data/laporan-data.txt  — daftar ayat yang jumlah katanya berbeda antara kedua sumber
+//
+// FORMAT data/quran.json
+//   surah[]: { n, nama, arab, arti, jml, ayat[] }
+//   ayat[]:  { t: teks Tanzil apa adanya,
+//              b: 1 bila t diawali basmalah (ayat 1 selain Al-Fatihah dan At-Taubah),
+//              a: arti per kata, urut sesuai kata pada t (sesudah basmalah),
+//              w: (hanya bila jumlah kata berbeda) teks kata versi Quran.com, sejajar dengan a }
+//
+// Kata pada t tidak disimpan terpisah: aplikasi memecah t dengan aturan yang
+// sama (token berisi huruf Arab = kata; selain itu tanda waqaf/rubu'/sajdah).
 //
 // Dijalankan oleh GitHub Actions (.github/workflows/siapkan-data.yml) karena
 // server GitHub punya akses internet ke kedua sumber. Butuh Node 20+, tanpa dependensi.
@@ -15,9 +25,8 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
-export const SURAH_AWAL = 78;
-export const SURAH_AKHIR = 114;
-export const JUMLAH_AYAT_JUZ_30 = 564;
+export const JUMLAH_SURAH = 114;
+export const JUMLAH_AYAT = 6236;
 
 const URL_TANZIL =
   'https://tanzil.net/pub/download/index.php?quranType=uthmani&marks=true&sajdah=true&rub=true&alef=true&outType=txt-2&agree=true';
@@ -62,48 +71,39 @@ function diawaliBasmalah(tokenKata) {
 
 // Memasangkan kata Tanzil dengan arti Quran.com untuk satu ayat.
 // Pada Tanzil, ayat pertama tiap surah (kecuali Al-Fatihah dan At-Taubah)
-// diawali basmalah, sedangkan Quran.com tidak; basmalah dipisah ke kolom
-// tersendiri tanpa mengubah teks ayat aslinya.
+// diawali basmalah, sedangkan Quran.com tidak; basmalah ditandai tanpa
+// mengubah teks ayat. Bila jumlah kata tetap berbeda, hasil memuat `cocok: false`
+// beserta teks kata versi Quran.com agar arti tetap bisa ditampilkan.
 export function pasangkanKata({ surah, ayat, teksTanzil, kataQuranCom }) {
-  const token = teksTanzil.split(/\s+/).filter(Boolean);
-  const indeksKata = token
-    .map((t, i) => ({ t, i }))
-    .filter(({ t }) => adalahKata(t));
+  const kataTanzil = teksTanzil.split(/\s+/).filter((t) => t && adalahKata(t));
   const kataSumber = kataQuranCom.filter((k) => k.char_type_name === 'word');
 
-  let mulai = 0;
   let basmalah = false;
-  const selisih = indeksKata.length - kataSumber.length;
-  if (
-    ayat === 1 &&
-    surah !== 1 &&
-    surah !== 9 &&
-    selisih === KATA_BASMALAH &&
-    diawaliBasmalah(indeksKata.map(({ t }) => t))
-  ) {
-    basmalah = true;
-    mulai = KATA_BASMALAH;
-  } else if (selisih !== 0) {
-    throw new Error(
-      `Jumlah kata ${surah}:${ayat} tidak cocok — Tanzil ${indeksKata.length}, Quran.com ${kataSumber.length}`,
-    );
+  let jumlahTanzil = kataTanzil.length;
+  if (ayat === 1 && surah !== 1 && surah !== 9 && diawaliBasmalah(kataTanzil)) {
+    if (kataTanzil.length - kataSumber.length === KATA_BASMALAH) {
+      basmalah = true;
+      jumlahTanzil -= KATA_BASMALAH;
+    }
   }
 
-  const kata = indeksKata.slice(mulai).map(({ t }, i) => ({
-    urutan: i + 1,
-    teks: t,
-    arti: (kataSumber[i].translation?.text ?? '').trim(),
-  }));
-
-  return { surah, ayat, teks: teksTanzil, basmalah, kata };
+  const arti = kataSumber.map((k) => (k.translation?.text ?? '').trim());
+  const cocok = jumlahTanzil === kataSumber.length;
+  return {
+    basmalah,
+    arti,
+    cocok,
+    jumlahTanzil,
+    kataSumber: kataSumber.map((k) => k.text_uthmani ?? ''),
+  };
 }
 
 async function ambilJson(url) {
-  for (let percobaan = 1; percobaan <= 3; percobaan++) {
+  for (let percobaan = 1; percobaan <= 4; percobaan++) {
     const res = await fetch(url, { headers: { accept: 'application/json' } });
     if (res.ok) return res.json();
-    if (percobaan === 3) throw new Error(`Gagal mengambil ${url}: HTTP ${res.status}`);
-    await new Promise((r) => setTimeout(r, 2000 * percobaan));
+    if (percobaan === 4) throw new Error(`Gagal mengambil ${url}: HTTP ${res.status}`);
+    await new Promise((r) => setTimeout(r, 3000 * percobaan));
   }
 }
 
@@ -127,16 +127,17 @@ async function utama() {
   const resTanzil = await fetch(URL_TANZIL);
   if (!resTanzil.ok) throw new Error(`Gagal mengunduh Tanzil: HTTP ${resTanzil.status}`);
   const { ayat: teksTanzil, lisensi } = uraiTanzil(await resTanzil.text());
-  if (teksTanzil.size !== 6236) {
-    throw new Error(`Teks Tanzil tidak lengkap: ${teksTanzil.size} ayat (seharusnya 6236)`);
+  if (teksTanzil.size !== JUMLAH_AYAT) {
+    throw new Error(`Teks Tanzil tidak lengkap: ${teksTanzil.size} ayat (seharusnya ${JUMLAH_AYAT})`);
   }
 
   console.log('Mengunduh nama surah…');
   const { chapters } = await ambilJson(`${URL_QURAN_COM}/chapters?language=id`);
 
   const surahList = [];
+  const laporan = [];
   let totalAyat = 0;
-  for (let s = SURAH_AWAL; s <= SURAH_AKHIR; s++) {
+  for (let s = 1; s <= JUMLAH_SURAH; s++) {
     const info = chapters.find((c) => c.id === s);
     console.log(`Surah ${s} ${info.name_simple}…`);
     const ayatQc = await ambilSurahQuranCom(s);
@@ -145,33 +146,36 @@ async function utama() {
     }
     const ayatSurah = ayatQc.map((v) => {
       const nomor = v.verse_number;
-      const teks = teksTanzil.get(`${s}:${nomor}`);
-      if (!teks) throw new Error(`Ayat ${s}:${nomor} tidak ada di Tanzil`);
-      const { basmalah, kata } = pasangkanKata({
-        surah: s,
-        ayat: nomor,
-        teksTanzil: teks,
-        kataQuranCom: v.words,
-      });
-      return { ayat: nomor, teks, basmalah, kata };
+      const t = teksTanzil.get(`${s}:${nomor}`);
+      if (!t) throw new Error(`Ayat ${s}:${nomor} tidak ada di Tanzil`);
+      const h = pasangkanKata({ surah: s, ayat: nomor, teksTanzil: t, kataQuranCom: v.words });
+      const baris = { t, a: h.arti };
+      if (h.basmalah) baris.b = 1;
+      if (!h.cocok) {
+        baris.w = h.kataSumber;
+        laporan.push(
+          `${s}:${nomor}\tTanzil ${h.jumlahTanzil} kata, Quran.com ${h.kataSumber.length} kata\n` +
+            `  Tanzil   : ${t}\n  Quran.com: ${h.kataSumber.join(' ')}`,
+        );
+      }
+      return baris;
     });
     totalAyat += ayatSurah.length;
     surahList.push({
-      nomor: s,
+      n: s,
       nama: info.name_simple,
-      namaArab: info.name_arabic,
+      arab: info.name_arabic,
       arti: info.translated_name?.name ?? '',
-      jumlahAyat: info.verses_count,
+      jml: info.verses_count,
       ayat: ayatSurah,
     });
+    await new Promise((r) => setTimeout(r, 150));
   }
 
-  if (totalAyat !== JUMLAH_AYAT_JUZ_30) {
-    throw new Error(`Total ayat ${totalAyat}, seharusnya ${JUMLAH_AYAT_JUZ_30}`);
-  }
+  if (totalAyat !== JUMLAH_AYAT) throw new Error(`Total ayat ${totalAyat}, seharusnya ${JUMLAH_AYAT}`);
 
   const hasil = {
-    versi: 1,
+    versi: 2,
     dibuat: new Date().toISOString(),
     sumber: {
       teks: 'Tanzil Quran Text (Uthmani), tanzil.net — CC BY 3.0, dipakai tanpa perubahan',
@@ -183,8 +187,14 @@ async function utama() {
 
   const folderData = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'data');
   await mkdir(folderData, { recursive: true });
-  await writeFile(path.join(folderData, 'juz30.json'), JSON.stringify(hasil, null, 1) + '\n', 'utf8');
-  console.log(`Selesai: ${surahList.length} surah, ${totalAyat} ayat → data/juz30.json`);
+  await writeFile(path.join(folderData, 'quran.json'), JSON.stringify(hasil) + '\n', 'utf8');
+  await writeFile(
+    path.join(folderData, 'laporan-data.txt'),
+    `Ayat dengan jumlah kata berbeda antara Tanzil dan Quran.com: ${laporan.length}\n\n${laporan.join('\n\n')}\n`,
+    'utf8',
+  );
+  console.log(`Selesai: ${surahList.length} surah, ${totalAyat} ayat; ${laporan.length} ayat berbeda jumlah kata`);
+  if (laporan.length) console.log(`::warning::${laporan.length} ayat berbeda jumlah kata; lihat data/laporan-data.txt`);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

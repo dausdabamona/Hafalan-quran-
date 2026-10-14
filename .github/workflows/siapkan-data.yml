@@ -1,8 +1,8 @@
-name: Siapkan data Juz 30
+name: Siapkan data Al-Quran
 
 # Berjalan otomatis bila skrip/workflow ini berubah, atau manual dari tab Actions.
-# Mengunduh teks Tanzil dan arti per kata Quran.com, memvalidasi 564 ayat,
-# lalu mengomit data/juz30.json.
+# Mengunduh teks Tanzil dan arti per kata Quran.com untuk 30 juz (6236 ayat),
+# lalu mengomit data/quran.json dan data/laporan-data.txt.
 on:
   workflow_dispatch:
   push:
@@ -31,10 +31,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/juz30.json
+          git add data/quran.json data/laporan-data.txt
           if git diff --cached --quiet; then
             echo "Data tidak berubah."
           else
-            git commit -m "Data Juz 30: teks Tanzil + arti per kata Quran.com"
+            git commit -m "Data 30 juz: teks Tanzil + arti per kata Quran.com"
             git push
           fi

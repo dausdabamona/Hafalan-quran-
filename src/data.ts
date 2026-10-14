@@ -38,7 +38,7 @@ export interface AwalJuz {
   ayat: number;
 }
 
-interface AyatMentah {
+export interface AyatMentah {
   t: string;
   b?: 1;
   a: string[];
@@ -107,8 +107,36 @@ function bentukAyat(m: AyatMentah, nomor: number): Ayat {
   return { ayat: nomor, teks: m.t, basmalah: !!m.b, kata };
 }
 
+// ---------- Hitungan ayat Al-Fatihah (K-26) ----------
+// Tanzil memakai hitungan Kufah: basmalah = ayat 1. Aplikasi memakai hitungan
+// Madinah/Basrah/Syam: basmalah menjadi pembuka tanpa nomor, Alhamdulillah = ayat 1,
+// dan ayat terakhir dibagi sesudah "أَنْعَمْتَ عَلَيْهِمْ". Huruf Tanzil tidak diubah;
+// yang berubah hanya batas dan nomor ayat.
+export const KATA_AYAT_6_FATIHAH = 4;
+
+function pecahKata(m: AyatMentah, jumlah: number): [AyatMentah, AyatMentah] {
+  const token = m.t.split(/\s+/).filter(Boolean);
+  let kata = 0;
+  let i = 0;
+  for (; i < token.length && kata < jumlah; i++) if (adalahKata(token[i])) kata++;
+  // Tanda (waqaf dsb.) yang menempel sesudah kata terakhir ikut ayat pertama.
+  while (i < token.length && !adalahKata(token[i])) i++;
+  return [
+    { t: token.slice(0, i).join(' '), a: m.a.slice(0, jumlah) },
+    { t: token.slice(i).join(' '), a: m.a.slice(jumlah) },
+  ];
+}
+
+export function ayatFatihahHitunganMadinah(ayat: AyatMentah[]): AyatMentah[] {
+  const [basmalah, hamd, ...tengah] = ayat;
+  const akhir = tengah.pop()!;
+  const [enam, tujuh] = pecahKata(akhir, KATA_AYAT_6_FATIHAH);
+  return [{ t: `${basmalah.t} ${hamd.t}`, b: 1, a: hamd.a }, ...tengah, enam, tujuh];
+}
+
 function bentukSurah(m: SurahMentah): Surah {
   let cache: Ayat[] | null = null;
+  const mentah = m.n === 1 ? ayatFatihahHitunganMadinah(m.ayat) : m.ayat;
   return {
     nomor: m.n,
     nama: m.nama,
@@ -116,7 +144,7 @@ function bentukSurah(m: SurahMentah): Surah {
     arti: m.arti,
     jumlahAyat: m.jml,
     get ayat() {
-      if (!cache) cache = m.ayat.map((a, i) => bentukAyat(a, i + 1));
+      if (!cache) cache = mentah.map((a, i) => bentukAyat(a, i + 1));
       return cache;
     },
   };

@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable, type Transaction } from 'dexie';
 import { rukukAyat } from './data';
+import { petaAyatFatihah, petaKataFatihah, petaRentangFatihah } from './fatihah';
 import {
   hariIni,
   migrasiJadwalLama,
@@ -111,6 +112,71 @@ db.version(5)
     await tx.table('jadwalRukuk').bulkPut(jadwal);
   });
 db.version(6).stores({ jadwal: null, deres: null });
+// Versi 7 (K-26): data Al-Fatihah dipindah ke hitungan Madinah (Alhamdulillah = ayat 1).
+db.version(7).upgrade(async (tx: Transaction) => {
+  // Catatan & tanda per kata: kunci "1:ayat:urutan".
+  for (const nama of ['keterangan', 'tandaSalah']) {
+    const t = tx.table(nama);
+    const lama = await t.where('surah').equals(1).toArray();
+    await t.bulkDelete(lama.map((x) => x.kunci));
+    const baru = new Map<string, Record<string, unknown>>();
+    for (const x of lama) {
+      const p = petaKataFatihah(x.ayat, x.urutan);
+      if (!p) continue;
+      const kunci = `1:${p.ayat}:${p.urutan}`;
+      // Keterangan ayat lama 7 (urutan 0) hanya pindah ke ayat 6; tanda tidak bertabrakan.
+      if (!baru.has(kunci)) baru.set(kunci, { ...x, kunci, ayat: p.ayat, urutan: p.urutan });
+    }
+    await t.bulkPut([...baru.values()]);
+  }
+  // Makna waqaf yang disunting: ayat lama 7 tidak lagi cocok dengan potongannya, jadi dilepas.
+  const makna = await tx.table('makna').where('surah').equals(1).toArray();
+  await tx.table('makna').bulkDelete(makna.map((x) => x.kunci));
+  await tx.table('makna').bulkPut(
+    makna
+      .filter((x) => x.ayat >= 2 && x.ayat <= 6)
+      .map((x) => ({ ...x, kunci: `1:${x.ayat - 1}:${x.segmen}`, ayat: x.ayat - 1 })),
+  );
+  // Rekaman per ayat: basmalah dilepas; rekaman ayat lama 7 menjadi rekaman ayat 6.
+  const rekaman = await tx.table('rekaman').where('surah').equals(1).toArray();
+  await tx.table('rekaman').bulkDelete(rekaman.map((x) => x.kunci));
+  await tx.table('rekaman').bulkPut(
+    rekaman.flatMap((x) => {
+      const a = petaAyatFatihah(x.ayat);
+      return a ? [{ ...x, kunci: `1:${a}`, ayat: a }] : [];
+    }),
+  );
+  // Sambungan tertukar: sambungan basmalah → Alhamdulillah dilepas.
+  const tukar = await tx.table('tandaTertukar').where('surah').equals(1).toArray();
+  await tx.table('tandaTertukar').bulkDelete(tukar.map((x) => x.kunci));
+  await tx.table('tandaTertukar').bulkPut(
+    tukar.flatMap((x) => {
+      if (x.ayatAsal < 2 || x.ayatAsal > 6) return [];
+      const asal = x.ayatAsal - 1;
+      return [{ ...x, kunci: `1:${asal}`, ayatAsal: asal, ayatKeliru: x.ayatKeliru ? (petaAyatFatihah(x.ayatKeliru) ?? 0) : 0 }];
+    }),
+  );
+  // Hafalan dan riwayat sesi: rentang ayat digeser.
+  const hafalan = await tx.table('hafalan').where('surah').equals(1).toArray();
+  await tx.table('hafalan').bulkDelete(hafalan.map((x) => x.kunci));
+  const hafalanBaru = new Map<string, EntriHafalan>();
+  for (const x of hafalan as EntriHafalan[]) {
+    const r = petaRentangFatihah(x.ayatAwal, x.ayatAkhir);
+    if (!r) continue;
+    const kunci = `1:${r.awal}-${r.akhir}`;
+    hafalanBaru.set(kunci, { ...x, kunci, ayatAwal: r.awal, ayatAkhir: r.akhir });
+  }
+  await tx.table('hafalan').bulkPut([...hafalanBaru.values()]);
+  await tx
+    .table('sesi')
+    .where('surah')
+    .equals(1)
+    .modify((x: Sesi) => {
+      const r = petaRentangFatihah(x.ayatAwal, x.ayatAkhir) ?? { awal: 1, akhir: 1 };
+      x.ayatAwal = r.awal;
+      x.ayatAkhir = r.akhir;
+    });
+});
 
 export { db };
 

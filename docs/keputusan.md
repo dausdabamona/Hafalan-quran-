@@ -41,6 +41,7 @@ Di luar cakupan versi pertama: banyak pengguna, audio qari, pengenalan suara oto
 | K-23 | Murojaah per rukuk | Satuan ulang hafalan dan rekam-koreksi adalah rukuk (556 rukuk, quran-meta, Hafs). Rukuk yang belum lengkap ("berjalan") diulang setiap hari pada bagian yang sudah hafal; rukuk lengkap berjarak 1–3–7–14–30 hari; kesalahan baru kembali ke 1 hari. Hafalan baru tetap 1–3 ayat sehari, tidak melewati batas rukuk. Rekaman tetap disimpan per ayat (K-04) (14 Okt 2026) |
 | K-24 | Cakupan dan jalur | 30 juz lengkap; jalur hafalan Al-Fatihah → An-Nas. Jalur sesuai tema disembunyikan dulu (14 Okt 2026) |
 | K-25 | Makna per waqaf | Di bawah tiap ayat tampil makna per potongan sesuai tanda waqaf; bawaannya gabungan arti per kata, bisa disunting dan dikembalikan. Arti per kata tetap seperti semula dan tampil hanya saat kata diketuk; lembar arti kata punya tombol Berikutnya/Sebelumnya (14 Okt 2026) |
+| K-26 | Hitungan ayat Al-Fatihah | Alhamdulillah = ayat 1 (hitungan Madinah/Basrah/Syam). Basmalah tampil sebagai pembuka tanpa nomor seperti surah lain; ayat 6 berakhir di "an'amta 'alaihim", ayat 7 "ghairil-maghdubi ... wa lad-dallin". Pengecualian dari K-14 (Mushaf Madinah Hafs memakai hitungan Kufah, basmalah = ayat 1); huruf dan bacaan Hafs tidak berubah. Data lama Al-Fatihah dipindah otomatis: rekaman/tanda basmalah dilepas, ayat 2–6 menjadi 1–5, ayat 7 kata 1–4 → ayat 6, kata 5–9 → ayat 7 (14 Okt 2026) |
 
 ## Metode dan alur harian
 

@@ -13,6 +13,7 @@ Dicatat 14 Oktober 2026. Berkas `quran.json` dihasilkan oleh workflow **Siapkan 
 ## Pengolahan
 
 - Teks Tanzil tidak diubah. Pada ayat pertama tiap surah (kecuali Al-Fatihah dan At-Taubah), Tanzil menyertakan basmalah di awal teks; aplikasi memisahkannya saat tampil dan memasangkan arti mulai kata sesudah basmalah.
+- Al-Fatihah ditampilkan dengan hitungan Madinah (K-26): basmalah (ayat 1 Tanzil) menjadi pembuka tanpa nomor, ayat 7 Tanzil dibagi sesudah "أَنْعَمْتَ عَلَيْهِمْ". Huruf Tanzil tidak diubah; hanya batas dan nomor ayat.
 - Tanda waqaf, rubu' (۞), dan sajdah (۩) yang berdiri sendiri tidak dihitung sebagai kata. Tanda waqaf (U+06D6–U+06DC) dipakai sebagai batas potongan makna.
 - Pada 4 ayat (2:181, 8:6, 13:37, 37:130) Quran.com menggabungkan dua kata yang di Tanzil terpisah (mis. "بَعْدَ مَا"). Arti gabungan itu dipasang pada kedua kata. Rinciannya di `laporan-data.txt`.
 

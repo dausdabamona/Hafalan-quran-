@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import quranMentah from '../data/quran.json';
 import {
   bagiPotongan,
   daftarJuz,
@@ -34,8 +35,22 @@ describe('data 30 juz', () => {
     }
   });
 
-  it('basmalah hanya di ayat pertama surah selain Al-Fatihah dan At-Taubah', () => {
-    for (const a of semuaAyat) expect(a.basmalah, `${a.surah}:${a.ayat}`).toBe(a.ayat === 1 && a.surah !== 1 && a.surah !== 9);
+  it('basmalah menjadi pembuka di ayat pertama setiap surah kecuali At-Taubah', () => {
+    for (const a of semuaAyat) expect(a.basmalah, `${a.surah}:${a.ayat}`).toBe(a.ayat === 1 && a.surah !== 9);
+  });
+
+  it('Al-Fatihah memakai hitungan Madinah: Alhamdulillah ayat 1, ayat 6 berakhir di an\'amta \'alaihim', () => {
+    const f = daftarSurah[0];
+    expect(f.ayat.length).toBe(7);
+    const mentah = quranMentah.surah[0].ayat.map((a: { t: string }) => a.t.split(' '));
+    // Teks dibandingkan dengan Tanzil apa adanya (urutan harakat Tanzil dipertahankan).
+    expect(f.ayat[0].kata.map((k) => k.teks)).toEqual(mentah[1]);
+    expect(f.ayat[5].kata.map((k) => k.teks)).toEqual(mentah[6].slice(0, 4));
+    expect(f.ayat[6].kata.map((k) => k.teks)).toEqual(mentah[6].slice(4));
+    expect(f.ayat[5].kata[2].arti).toBe('diberi nikmat');
+    expect(f.ayat[6].kata[0].arti).toBe('bukan');
+    // Seluruh huruf Tanzil Al-Fatihah tetap utuh, hanya batas ayat yang bergeser.
+    expect(f.ayat.map((a) => a.teks).join(' ')).toBe(quranMentah.surah[0].ayat.map((a: { t: string }) => a.t).join(' '));
   });
 
   it('setiap kata tampil tepat sekali dan berurutan', () => {

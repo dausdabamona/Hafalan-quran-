@@ -6,8 +6,9 @@ export type Layar =
   | { nama: 'daftar' }
   | { nama: 'sambung' }
   | { nama: 'surah'; nomor: number }
-  | { nama: 'rekam'; potongan: Potongan }
-  | { nama: 'koreksi'; potongan: Potongan }
+  | { nama: 'rekam'; potongan: Potongan; rukuk?: number }
+  | { nama: 'koreksi'; potongan: Potongan; rukuk?: number }
+  | { nama: 'rukuk' }
   | { nama: 'tentang' };
 
 function bacaPotongan(nomor: string, awal: string, akhir: string): Potongan | null {
@@ -22,19 +23,21 @@ export function bacaHash(): Layar {
   const h = window.location.hash;
   let m = /^#\/surah\/(\d+)$/.exec(h);
   if (m && cariSurah(Number(m[1]))) return { nama: 'surah', nomor: Number(m[1]) };
-  m = /^#\/(rekam|koreksi)\/(\d+)\/(\d+)-(\d+)$/.exec(h);
+  // Akhiran /r<nomor> menandai deres per rukuk (K-22).
+  m = /^#\/(rekam|koreksi)\/(\d+)\/(\d+)-(\d+)(?:\/r(\d+))?$/.exec(h);
   if (m) {
     const p = bacaPotongan(m[2], m[3], m[4]);
-    if (p) return { nama: m[1] as 'rekam' | 'koreksi', potongan: p };
+    if (p) return { nama: m[1] as 'rekam' | 'koreksi', potongan: p, rukuk: m[5] ? Number(m[5]) : undefined };
   }
+  if (h === '#/rukuk') return { nama: 'rukuk' };
   if (h === '#/tentang') return { nama: 'tentang' };
   if (h === '#/semua') return { nama: 'daftar' };
   if (h === '#/sambung') return { nama: 'sambung' };
   return { nama: 'hari-ini' };
 }
 
-export function hashPotongan(jenis: 'rekam' | 'koreksi', p: Potongan): string {
-  return `#/${jenis}/${p.surah}/${p.ayatAwal}-${p.ayatAkhir}`;
+export function hashPotongan(jenis: 'rekam' | 'koreksi', p: Potongan, rukuk?: number): string {
+  return `#/${jenis}/${p.surah}/${p.ayatAwal}-${p.ayatAkhir}${rukuk ? `/r${rukuk}` : ''}`;
 }
 
 export function pergi(hash: string) {

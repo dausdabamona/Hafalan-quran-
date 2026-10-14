@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { cariSurah, labelPotongan, type Potongan } from '../data';
-import { ambilJadwal } from '../db';
+import { ambilCatatanDeres, ambilJadwal } from '../db';
+import { lengkap, pilihDeresHariIni, type CatatanDeres } from '../rukuk';
+import { keteranganTerakhir, namaRukuk } from './Rukuk';
 import {
   BATAS_ULANG_MALAM,
   daftarUlangHafalan,
@@ -45,9 +47,11 @@ export default function LayarHariIni() {
     baca('arahJalur') === 'dari-an-naba' ? 'dari-an-naba' : 'dari-an-nas',
   );
   const [lihatSemua, setLihatSemua] = useState(false);
+  const [catatanDeres, setCatatanDeres] = useState<Map<number, CatatanDeres>>(new Map());
 
   useEffect(() => {
     ambilJadwal().then(setJadwal);
+    ambilCatatanDeres().then(setCatatanDeres);
   }, []);
 
   const ubahArah = (a: ArahJalur) => {
@@ -123,6 +127,8 @@ export default function LayarHariIni() {
           </>
         )}
       </section>
+
+      <KartuDeresRukuk deres={pilihDeresHariIni(jadwal, catatanDeres, hari)} catatan={catatanDeres} hari={hari} />
 
       <section className="kartu">
         <h2>Latihan sambung ayat</h2>
@@ -202,6 +208,49 @@ function KartuHafalanBaru({ baru, hari }: { baru: ReturnType<typeof pilihHafalan
           </ol>
         </>
       )}
+    </section>
+  );
+}
+
+function KartuDeresRukuk({
+  deres,
+  catatan,
+  hari,
+}: {
+  deres: ReturnType<typeof pilihDeresHariIni>;
+  catatan: Map<number, CatatanDeres>;
+  hari: string;
+}) {
+  return (
+    <section className="kartu">
+      <h2>
+        Deres per rukuk <span className="istilah">satu rukuk sehari, bergilir</span>
+      </h2>
+      {deres.status === 'belum-ada' && (
+        <p className="kosong">Deres rukuk dimulai setelah ada minimal dua ayat berurutan yang lancar dihafal.</p>
+      )}
+      {deres.status === 'selesai' && <p className="kosong">✓ {namaRukuk(deres.rukuk)} sudah dideres hari ini.</p>}
+      {deres.status === 'deres' && (
+        <>
+          <p className="potongan-hari-ini">{namaRukuk(deres.rukuk)}</p>
+          <p className="kosong">
+            {lengkap(deres.rukuk, deres.rentang)
+              ? `Ayat ${deres.rentang.ayatAwal}–${deres.rentang.ayatAkhir}`
+              : `Bagian yang sudah hafal: ayat ${deres.rentang.ayatAwal}–${deres.rentang.ayatAkhir} dari ${deres.rukuk.ayatAwal}–${deres.rukuk.ayatAkhir}`}
+            {' · '}
+            {keteranganTerakhir(catatan.get(deres.rukuk.nomor), hari)}
+          </p>
+          <button
+            className="tombol utama lebar"
+            onClick={() => pergi(hashPotongan('rekam', deres.rentang, deres.rukuk.nomor))}
+          >
+            🎙 Deres rukuk ini
+          </button>
+        </>
+      )}
+      <button className="tautan" onClick={() => pergi('#/rukuk')}>
+        Pilih rukuk lain →
+      </button>
     </section>
   );
 }

@@ -803,3 +803,11 @@ textarea:focus {
   height: 20px;
   accent-color: var(--teal);
 }
+
+.baris-ulang:disabled {
+  opacity: 0.55;
+}
+
+.daftar-rukuk {
+  padding: 4px 12px 24px;
+}

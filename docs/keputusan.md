@@ -37,6 +37,7 @@ Di luar cakupan versi pertama: banyak pengguna, audio qari, pengenalan suara oto
 | K-19 | Makna | Arti per kata saja, tanpa terjemahan per ayat; ditambah keterangan pribadi yang bisa diisi sendiri |
 | K-20 | Perangkat | OPPO A7 Pro (ColorOS). APK memakai batas minimum Capacitor, Android 7 (API 24); versi Android persis dicek saat APK pertama dipasang |
 | K-21 | Istilah | Bahasa Indonesia sebagai istilah utama, istilah Arab kecil di bawahnya: Hafalan baru (Sabaq), Ulang hafalan — Dekat (Sabqi) dan Lama (Manzil); boleh ditinjau ulang kemudian |
+| K-22 | Deres per rukuk | Tambahan satu rukuk per hari di layar Hari ini, bergilir dari rukuk yang paling lama tidak dideres; rukuk yang belum lengkap dihafal dideres pada bagian yang sudah hafal (minimal dua ayat berurutan). Kesalahan baru menurunkan potongan yang memuatnya ke jarak 1 hari; tanda permanen sama dengan koreksi biasa. Data rukuk dari quran-meta (MIT, Hafs): 39 rukuk Juz 30 (14 Okt 2026) |
 
 ## Metode dan alur harian
 
@@ -125,6 +126,13 @@ Rincian pengolahan data ada di [data/SUMBER.md](../data/SUMBER.md).
 - Belum: **jalur sesuai tema** (P-08) menunggu pengelompokan tema Juz 30 disepakati.
 - Uji: simulasi 120 hari otomatis (potongan pertama diulang hari ke-1, 4, 11, 25, 55) dan uji alur 4 hari di peramban.
 - Gerbang Fase 3 (menunggu Firdaus): pakai beberapa hari di HP; pastikan daftar Hari ini sesuai harapan.
+
+## Tambahan: deres per rukuk (14 Okt 2026)
+
+- Kartu **Deres per rukuk** di Hari ini (satu rukuk sehari, bergilir) dan layar **daftar rukuk** untuk memilih rukuk lain secara manual.
+- Alurnya memakai layar Rekam dan Koreksi yang sama, mencakup seluruh ayat hafal dalam rukuk, dengan teks tertutup.
+- Hasil deres tidak membuat entri jadwal baru; hanya menambah tanda dan menurunkan potongan yang bermasalah (K-22).
+- Data: `data/rukuk-juz30.json`, dibuat oleh `npm run siapkan-rukuk` dari paket quran-meta. Catatan: tanda rukuk lazim di mushaf Indonesia/IndoPak; mushaf Madinah sendiri tidak mencantumkannya.
 
 ## Usulan arsitektur (belum dikunci)
 

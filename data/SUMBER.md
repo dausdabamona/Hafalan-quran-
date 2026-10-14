@@ -7,6 +7,7 @@ Dicatat 14 Oktober 2026 (Fase 0). Berkas `juz30.json` dihasilkan oleh workflow *
 | Teks Utsmani Mushaf Madinah | [Tanzil](https://tanzil.net) | CC BY 3.0. Boleh dipakai di aplikasi asal sumber disebut dan ditautkan ke tanzil.net; teks tidak boleh diubah; catatan hak cipta Tanzil disertakan di `juz30.json` (kolom `sumber.lisensiTanzil`) | Aman, dipakai apa adanya |
 | Arti per kata bahasa Indonesia | [Quran.com](https://quran.com), API v4 lama (`api.quran.com/api/v4`) | Ketentuan lisensi tidak tercantum di dokumentasi API; API baru Quran Foundation memakai kunci akses. Dipakai untuk keperluan pribadi non-komersial dengan atribusi | Belum jelas — repositori sebaiknya privat |
 | Nama surah | Quran.com API v4 | Sama seperti di atas | Belum jelas |
+| Pembagian rukuk (`rukuk-juz30.json`) | [quran-meta](https://www.npmjs.com/package/quran-meta), riwayat Hafs | MIT | Aman |
 
 ## Pengolahan
 

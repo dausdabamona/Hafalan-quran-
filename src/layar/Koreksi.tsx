@@ -5,6 +5,7 @@ import {
   ambilTandaSurah,
   kunciAyat,
   kunciKata,
+  simpanDeres,
   simpanKoreksi,
   type Rekaman,
   type Sesi,
@@ -17,7 +18,7 @@ import TombolPutar from '../komponen/TombolPutar';
 
 // Koreksi mandiri (F-03, F-06): dengarkan rekaman sambil melihat ayat, ketuk
 // kata yang salah, tandai sambungan yang tertukar, lalu simpan sebagai satu sesi.
-export default function LayarKoreksi({ potongan }: { potongan: Potongan }) {
+export default function LayarKoreksi({ potongan, rukuk }: { potongan: Potongan; rukuk?: number }) {
   const surah = cariSurah(potongan.surah)!;
   const daftarAyat = ayatPotongan(surah, potongan);
   const [rekaman, setRekaman] = useState<Map<string, Rekaman>>(new Map());
@@ -59,7 +60,7 @@ export default function LayarKoreksi({ potongan }: { potongan: Potongan }) {
 
   const simpan = async () => {
     setMenyimpan(true);
-    const sesi = await simpanKoreksi({
+    const isi = {
       surah: surah.nomor,
       ayatAwal: potongan.ayatAwal,
       ayatAkhir: potongan.ayatAkhir,
@@ -68,7 +69,9 @@ export default function LayarKoreksi({ potongan }: { potongan: Potongan }) {
         return { ayat, urutan };
       }),
       tertukar: [...tertukarSesi].map(([ayatAsal, ayatKeliru]) => ({ ayatAsal, ayatKeliru })),
-    });
+    };
+    // Deres rukuk tidak memasukkan rentangnya ke jadwal potongan (K-22).
+    const sesi = rukuk ? await simpanDeres({ ...isi, rukuk }) : await simpanKoreksi(isi);
     setMenyimpan(false);
     setHasil(sesi);
     window.scrollTo(0, 0);
@@ -77,7 +80,7 @@ export default function LayarKoreksi({ potongan }: { potongan: Potongan }) {
   if (hasil) {
     return (
       <>
-        <Kepala judul={`Koreksi · ${surah.nama}`} sub={`Potongan ${labelPotongan(potongan)}`} />
+        <Kepala judul={`Koreksi · ${surah.nama}`} sub={`${rukuk ? 'Deres rukuk' : 'Potongan'} ${labelPotongan(potongan)}`} />
         <div className="hasil-koreksi">
           {hasil.lancar ? (
             <>
@@ -89,16 +92,17 @@ export default function LayarKoreksi({ potongan }: { potongan: Potongan }) {
               <p className="hasil-besar">Koreksi tersimpan</p>
               <p>
                 {hasil.kataSalah} kata dan {hasil.sambunganTertukar} sambungan ditandai. Tandanya akan tetap tersorot
-                sebagai pengingat di sesi berikutnya.
+                sebagai pengingat di sesi berikutnya
+                {rukuk ? ', dan potongan yang memuatnya masuk ulang hafalan besok.' : '.'}
               </p>
             </>
           )}
           <div className="aksi-lembar">
-            <button className="tombol sekunder" onClick={() => ganti(hashPotongan('rekam', potongan))}>
+            <button className="tombol sekunder" onClick={() => ganti(hashPotongan('rekam', potongan, rukuk))}>
               Rekam ulang
             </button>
             <button className="tombol utama" onClick={() => history.back()}>
-              Kembali ke surah
+              Kembali
             </button>
           </div>
         </div>
@@ -108,7 +112,7 @@ export default function LayarKoreksi({ potongan }: { potongan: Potongan }) {
 
   return (
     <>
-      <Kepala judul={`Koreksi · ${surah.nama}`} sub={`Potongan ${labelPotongan(potongan)}`} />
+      <Kepala judul={`Koreksi · ${surah.nama}`} sub={`${rukuk ? 'Deres rukuk' : 'Potongan'} ${labelPotongan(potongan)}`} />
       <p className="petunjuk">
         Putar rekaman sambil melihat ayat. Ketuk kata yang salah; ketuk lagi untuk membatalkan. Bila urutan ayat
         tertukar, tandai pada sambungannya.

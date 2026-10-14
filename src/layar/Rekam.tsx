@@ -8,7 +8,7 @@ import TeksAyat from '../komponen/TeksAyat';
 
 // Rekam berurutan per ayat (K-12, K-14). Teks ayat yang sedang dibaca tertutup
 // sampai "Selesai ayat ini" ditekan (K-16); bisa dibuka untuk hafalan baru.
-export default function LayarRekam({ potongan }: { potongan: Potongan }) {
+export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; rukuk?: number }) {
   const surah = cariSurah(potongan.surah)!;
   const daftarAyat = ayatPotongan(surah, potongan);
   const { status, mulai, selesai, lepas } = usePerekam();
@@ -35,7 +35,7 @@ export default function LayarRekam({ potongan }: { potongan: Potongan }) {
     setMenyimpan(false);
     if (terakhir) {
       lepas();
-      ganti(hashPotongan('koreksi', potongan));
+      ganti(hashPotongan('koreksi', potongan, rukuk));
       return;
     }
     setIndeks((i) => i + 1);
@@ -50,7 +50,10 @@ export default function LayarRekam({ potongan }: { potongan: Potongan }) {
 
   return (
     <>
-      <Kepala judul={`Rekam · ${surah.nama}`} sub={`Potongan ${labelPotongan(potongan)}`} />
+      <Kepala
+        judul={`${rukuk ? 'Deres' : 'Rekam'} · ${surah.nama}`}
+        sub={`${rukuk ? 'Rukuk' : 'Potongan'} ${labelPotongan(potongan)}`}
+      />
 
       <div className="isi-rekam">
         <label className="saklar">

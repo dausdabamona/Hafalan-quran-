@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { hariIni, perbaruiJadwal, turunkanJadwal, type EntriJadwal } from './jadwal';
+import type { CatatanDeres } from './rukuk';
 
 // Keterangan pribadi (K-19). urutan = 0 berarti keterangan untuk satu ayat;
 // urutan >= 1 berarti keterangan untuk kata ke-n pada ayat itu.
@@ -63,6 +64,7 @@ const db = new Dexie('rabth') as Dexie & {
   tandaTertukar: EntityTable<TandaTertukar, 'kunci'>;
   sesi: EntityTable<Sesi, 'id'>;
   jadwal: EntityTable<EntriJadwal, 'kunci'>;
+  deres: EntityTable<CatatanDeres, 'nomor'>;
 };
 
 db.version(1).stores({
@@ -86,7 +88,22 @@ db.version(3).stores({
   jadwal: 'kunci, surah, jatuhTempo, mulai',
 });
 
+db.version(4).stores({
+  keterangan: 'kunci, surah, [surah+ayat]',
+  rekaman: 'kunci, surah',
+  tandaSalah: 'kunci, surah',
+  tandaTertukar: 'kunci, surah',
+  sesi: '++id, surah, tanggal',
+  jadwal: 'kunci, surah, jatuhTempo, mulai',
+  deres: 'nomor, terakhir',
+});
+
 export { db };
+
+export async function ambilCatatanDeres(): Promise<Map<number, CatatanDeres>> {
+  const daftar = await db.deres.toArray();
+  return new Map(daftar.map((c) => [c.nomor, c]));
+}
 
 export async function ambilJadwal(): Promise<Map<string, EntriJadwal>> {
   const daftar = await db.jadwal.toArray();
@@ -256,4 +273,65 @@ export async function mintaPenyimpananTetap() {
   } catch {
     // diabaikan: penyimpanan tetap berjalan tanpa izin ini
   }
+}
+
+// ---------- Deres per rukuk (K-22) ----------
+
+// Menyimpan hasil deres satu rukuk: tanda kata salah dan sambungan tertukar
+// bertambah seperti koreksi biasa; potongan yang memuat kesalahan baru kembali
+// ke jarak 1 hari; jadwal potongan lain tidak berubah.
+export async function simpanDeres(h: HasilKoreksi & { rukuk: number }): Promise<Sesi> {
+  const sekarang = new Date().toISOString();
+  const hari = h.hari ?? hariIni();
+  const sesi: Sesi = {
+    surah: h.surah,
+    ayatAwal: h.ayatAwal,
+    ayatAkhir: h.ayatAkhir,
+    tanggal: sekarang,
+    kataSalah: h.kataSalah.length,
+    sambunganTertukar: h.tertukar.length,
+    lancar: h.kataSalah.length === 0 && h.tertukar.length === 0,
+  };
+  await db.transaction('rw', [db.tandaSalah, db.tandaTertukar, db.sesi, db.jadwal, db.deres], async () => {
+    for (const k of h.kataSalah) {
+      const kunci = kunciKata(h.surah, k.ayat, k.urutan);
+      const lama = await db.tandaSalah.get(kunci);
+      await db.tandaSalah.put({
+        kunci,
+        surah: h.surah,
+        ayat: k.ayat,
+        urutan: k.urutan,
+        pertama: lama?.pertama ?? sekarang,
+        terakhir: sekarang,
+        jumlah: (lama?.jumlah ?? 0) + 1,
+      });
+    }
+    for (const t of h.tertukar) {
+      const kunci = kunciAyat(h.surah, t.ayatAsal);
+      const lama = await db.tandaTertukar.get(kunci);
+      await db.tandaTertukar.put({
+        kunci,
+        surah: h.surah,
+        ayatAsal: t.ayatAsal,
+        ayatKeliru: t.ayatKeliru,
+        pertama: lama?.pertama ?? sekarang,
+        terakhir: sekarang,
+        jumlah: (lama?.jumlah ?? 0) + 1,
+      });
+    }
+    sesi.id = await db.sesi.add(sesi);
+
+    const ayatBermasalah = new Set([...h.kataSalah.map((k) => k.ayat), ...h.tertukar.map((t) => t.ayatAsal)]);
+    if (ayatBermasalah.size) {
+      const entri = await db.jadwal.where('surah').equals(h.surah).toArray();
+      for (const e of entri) {
+        const kena = [...ayatBermasalah].some((a) => e.ayatAwal <= a && a <= e.ayatAkhir);
+        if (kena) await db.jadwal.put(turunkanJadwal(e, hari));
+      }
+    }
+
+    const lama = await db.deres.get(h.rukuk);
+    await db.deres.put({ nomor: h.rukuk, terakhir: hari, jumlah: (lama?.jumlah ?? 0) + 1 });
+  });
+  return sesi;
 }

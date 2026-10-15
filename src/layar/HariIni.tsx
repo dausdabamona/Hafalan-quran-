@@ -151,6 +151,14 @@ export default function LayarHariIni() {
       </section>
 
       <section className="kartu">
+        <h2>Pengingat ayat</h2>
+        <p className="kosong">Ayat hafalan tampil sebagai kartu kecil saat Anda membuka media sosial.</p>
+        <button className="tombol sekunder lebar" onClick={() => pergi('#/pengingat')}>
+          Atur pengingat ayat
+        </button>
+      </section>
+
+      <section className="kartu">
         <h2>Jelajah mushaf</h2>
         <p className="kosong">Urutan hafalan: Al-Fatihah → An-Nas.</p>
         <button className="tombol sekunder lebar" onClick={() => pergi('#/semua')}>

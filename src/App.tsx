@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { cariSurah } from './data';
-import { bacaHash, type Layar } from './navigasi';
+import { bacaHash, pergi, type Layar } from './navigasi';
 import LayarDaftar from './layar/Daftar';
 import LayarSurah from './layar/Surah';
 import LayarRekam from './layar/Rekam';
@@ -11,6 +11,8 @@ import LayarSambung from './layar/Sambung';
 import LayarRukuk from './layar/Rukuk';
 import LayarMurotal, { BilahPemutar, LayarPilihMurotal } from './layar/Murotal';
 import { hashMurotal } from './murotal';
+import LayarPengingat from './layar/Pengingat';
+import { Pengingat, pengingatTersedia, sinkronAyatKartu } from './pengingat';
 
 // ---------- Ukuran huruf Arab (P-15) ----------
 
@@ -39,6 +41,27 @@ export default function App() {
     };
     window.addEventListener('hashchange', ubah);
     return () => window.removeEventListener('hashchange', ubah);
+  }, []);
+
+  // K-32: buka ayat dari kartu pengingat; perbarui daftar ayat kartu saat aplikasi ditinggalkan.
+  useEffect(() => {
+    if (!pengingatTersedia()) return;
+    const cekTujuan = () =>
+      Pengingat.ambilTujuan()
+        .then((t) => t.tujuan && pergi(t.tujuan))
+        .catch(() => undefined);
+    const ubah = () => {
+      if (document.visibilityState === 'visible') cekTujuan();
+      else
+        Pengingat.cekIzin()
+          .then(async (s) => {
+            if (s.aktif) await sinkronAyatKartu();
+          })
+          .catch(() => undefined);
+    };
+    cekTujuan();
+    document.addEventListener('visibilitychange', ubah);
+    return () => document.removeEventListener('visibilitychange', ubah);
   }, []);
 
   const aturUkuran = (selisih: number) => {
@@ -75,6 +98,7 @@ export default function App() {
       {layar.nama === 'rukuk' && <LayarRukuk />}
       {layar.nama === 'tentang' && <LayarTentang />}
       {layar.nama === 'pilih-murotal' && <LayarPilihMurotal />}
+      {layar.nama === 'pengingat' && <LayarPengingat />}
       {layar.nama === 'murotal' && <LayarMurotal key={hashMurotal(layar.rentang)} rentang={layar.rentang} />}
       <BilahPemutar layarHash={layar.nama === 'murotal' ? hashMurotal(layar.rentang) : ''} />
     </div>

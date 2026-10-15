@@ -1252,3 +1252,23 @@ button.judul-juz.tandai {
   max-height: 90vh;
   overflow-y: auto;
 }
+
+/* ---------- Pengingat ayat (K-32) ---------- */
+.baris-izin {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 48px;
+  border-bottom: 1px solid var(--garis);
+}
+
+.baris-aplikasi {
+  min-height: 44px;
+}
+
+.sakelar-besar {
+  font-weight: 650;
+  font-size: 1.05rem;
+  margin-bottom: 10px;
+}

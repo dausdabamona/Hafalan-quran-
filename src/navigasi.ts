@@ -12,6 +12,7 @@ export type Layar =
   | { nama: 'rukuk' }
   | { nama: 'tentang' }
   | { nama: 'pilih-murotal' }
+  | { nama: 'pengingat' }
   | { nama: 'murotal'; rentang: Rentang };
 
 function bacaPotongan(nomor: string, awal: string, akhir: string): Potongan | null {
@@ -34,6 +35,7 @@ export function bacaHash(): Layar {
   }
   // Murotal (K-28): #/murotal, #/murotal/hafalan, #/murotal/juz/N, #/murotal/S/A-B
   if (h === '#/murotal') return { nama: 'pilih-murotal' };
+  if (h === '#/pengingat') return { nama: 'pengingat' };
   if (h === '#/murotal/hafalan') return { nama: 'murotal', rentang: { jenis: 'hafalan' } };
   m = /^#\/murotal\/juz\/(\d+)$/.exec(h);
   if (m && Number(m[1]) >= 1 && Number(m[1]) <= 30) return { nama: 'murotal', rentang: { jenis: 'juz', nomor: Number(m[1]) } };

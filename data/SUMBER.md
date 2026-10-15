@@ -9,6 +9,7 @@ Dicatat 14 Oktober 2026. Berkas `quran.json` dihasilkan oleh workflow **Siapkan 
 | Nama surah | Quran.com API v4 | Sama seperti di atas | Belum jelas |
 | Pembagian rukuk (556) dan awal juz (30) | [quran-meta](https://www.npmjs.com/package/quran-meta), riwayat Hafs | MIT | Aman |
 | Pemutar latar belakang (kode) | [@capgo/capacitor-media-session](https://github.com/Cap-go/capacitor-media-session) | MPL-2.0 (dipakai tanpa diubah) | Aman |
+| Huruf Arab kartu pengingat (Android) | [Amiri Quran 1.003](https://github.com/aliftype/amiri) | SIL Open Font License 1.1 (berkas lisensi disertakan di android/app/src/main/assets/fonts/OFL-Amiri.txt) | Aman |
 | Makna per potongan waqaf | Disusun aplikasi dari gabungan arti per kata; dapat disunting pemakai | — | Bukan terjemahan resmi |
 
 ## Pengolahan

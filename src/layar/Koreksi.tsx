@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { gulirKe } from '../komponen/gulir';
 import { cariSurah, labelPotongan, type Potongan } from '../data';
 import { labelDaftarAyat, useAyatMurojaah } from '../komponen/useAyatMurojaah';
 import {
@@ -28,6 +29,7 @@ export default function LayarKoreksi({ potongan, rukuk }: { potongan: Potongan; 
   const [tertukarSesi, setTertukarSesi] = useState<Map<number, number>>(new Map()); // ayatAsal → ayatKeliru
   const [hasil, setHasil] = useState<Sesi | null>(null);
   const [menyimpan, setMenyimpan] = useState(false);
+  const [diputar, setDiputar] = useState<number | null>(null); // nomor ayat yang sedang diputar
 
   useEffect(() => {
     ambilRekamanSurah(surah.nomor).then(setRekaman);
@@ -128,8 +130,8 @@ export default function LayarKoreksi({ potongan, rukuk }: { potongan: Potongan; 
           const rek = rekaman.get(kunciAyat(surah.nomor, a.ayat));
           const berikut = daftarAyat[i + 1];
           return (
-            <li key={a.ayat}>
-              <div className="ayat">
+            <li key={a.ayat} id={`koreksi-${a.ayat}`}>
+              <div className={'ayat' + (diputar === a.ayat ? ' diputar' : '')}>
                 <div className="kepala-ayat">
                   <span>Ayat {a.ayat}</span>
                   {rek ? <TombolPutar audio={rek.audio} /> : <span className="redup">Belum ada rekaman</span>}
@@ -160,7 +162,14 @@ export default function LayarKoreksi({ potongan, rukuk }: { potongan: Potongan; 
       </ol>
 
       <div className="bilah-aksi">
-        <PutarSemua daftar={audioSemua} />
+        <PutarSemua
+          daftar={audioSemua}
+          ayat={daftarAyat.map((a) => a.ayat)}
+          saatPutar={(n) => {
+            setDiputar(n);
+            if (n !== null) gulirKe(document.getElementById(`koreksi-${n}`));
+          }}
+        />
         <button className="tombol utama besar" onClick={simpan} disabled={menyimpan}>
           {menyimpan ? 'Menyimpan…' : 'Simpan koreksi'}
         </button>
@@ -217,22 +226,34 @@ function Sambungan({
 }
 
 // Memutar rekaman semua ayat potongan secara berurutan (F-02).
-function PutarSemua({ daftar }: { daftar: (Blob | undefined)[] }) {
+function PutarSemua({
+  daftar,
+  ayat,
+  saatPutar,
+}: {
+  daftar: (Blob | undefined)[];
+  ayat: number[];
+  saatPutar: (ayat: number | null) => void;
+}) {
   const el = useRef<HTMLAudioElement>(null);
   const urutan = useRef<string[]>([]);
+  const nomor = useRef<number[]>([]); // nomor ayat untuk tiap rekaman di urutan
   const [main, setMain] = useState(false);
 
   useEffect(() => {
     urutan.current = daftar.filter((b): b is Blob => !!b).map((b) => URL.createObjectURL(b));
+    nomor.current = ayat.filter((_, i) => !!daftar[i]);
     return () => urutan.current.forEach((u) => URL.revokeObjectURL(u));
-  }, [daftar]);
+  }, [daftar]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const putarDari = (i: number) => {
     const a = el.current;
     if (!a || i >= urutan.current.length) {
       setMain(false);
+      saatPutar(null);
       return;
     }
+    saatPutar(nomor.current[i]);
     a.src = urutan.current[i];
     a.onended = () => putarDari(i + 1);
     a.play().catch(() => setMain(false));
@@ -242,6 +263,7 @@ function PutarSemua({ daftar }: { daftar: (Blob | undefined)[] }) {
     if (main) {
       el.current?.pause();
       setMain(false);
+      saatPutar(null);
     } else {
       setMain(true);
       putarDari(0);

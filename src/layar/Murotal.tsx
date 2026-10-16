@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { gulirDalam, gulirKe } from '../komponen/gulir';
 import { cariAyat, cariSurah, daftarJuz, daftarSurah } from '../data';
 import { ambilBahanMurotal, ambilHafalan, ambilJadwal, kunciAyat, type BahanSurah } from '../db';
 import { ayatHafal, type EntriJadwal } from '../jadwal';
@@ -115,6 +116,8 @@ export default function LayarMurotal({ rentang }: { rentang: Rentang }) {
   const [lihatSemua, setLihatSemua] = useState(false);
   const [versi, setVersi] = useState(0);
   const [perbaikan, setPerbaikan] = useState<LetakAyat | null>(null);
+  const refPemutar = useRef<HTMLElement>(null);
+  const refDaftar = useRef<HTMLOListElement>(null);
   const [lanjutDari, setLanjutDari] = useState<LetakAyat | null>(null);
 
   useEffect(() => {
@@ -158,6 +161,19 @@ export default function LayarMurotal({ rentang }: { rentang: Rentang }) {
     if (keadaanMain()) putarJeda();
     setPerbaikan(l);
   };
+
+  // Gulir otomatis: kartu pemutar tampil saat murotal dimulai, dan baris daftar putar
+  // mengikuti ayat yang sedang diputar.
+  const indeksDiputar = pemutar && pemutar.asal === hash ? pemutar.indeks : -1;
+  const sedangAktif = indeksDiputar >= 0;
+  useEffect(() => {
+    if (sedangAktif) gulirKe(refPemutar.current, 'start');
+  }, [sedangAktif]);
+  useEffect(() => {
+    if (indeksDiputar < 0) return;
+    const item = refDaftar.current?.children[indeksDiputar] as HTMLElement | undefined;
+    gulirDalam(refDaftar.current, item ?? null);
+  }, [indeksDiputar]);
 
   const jumlah = useMemo(() => {
     const n = { perbaiki: 0, 'belum-koreksi': 0, 'belum-rekam': 0 };
@@ -204,7 +220,7 @@ export default function LayarMurotal({ rentang }: { rentang: Rentang }) {
       </section>
 
       {aktif && kini && ayatKini && (
-        <section className="kartu pemutar">
+        <section className="kartu pemutar" ref={refPemutar}>
           <p className="lokasi-putar">
             {namaAyat(kini)} <span className="redup">({aktif.indeks + 1} dari {aktif.daftar.length})</span>
           </p>
@@ -251,7 +267,7 @@ export default function LayarMurotal({ rentang }: { rentang: Rentang }) {
       {hasil.siap.length > 0 && (
         <section className="kartu">
           <h2>Daftar putar</h2>
-          <ol className="daftar-putar">
+          <ol className="daftar-putar" ref={refDaftar}>
             {hasil.siap.map((x, i) => (
               <li key={`${x.surah}:${x.ayat}`}>
                 <button

@@ -1272,3 +1272,14 @@ button.judul-juz.tandai {
   font-size: 1.05rem;
   margin-bottom: 10px;
 }
+
+/* ---------- Gulir otomatis ---------- */
+.daftar-putar {
+  position: relative;
+}
+
+.ayat.diputar {
+  outline: 3px solid var(--teal);
+  outline-offset: 2px;
+  background: var(--teal-muda);
+}

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { gulirKe } from '../komponen/gulir';
 import { cariSurah, type Ayat, type Surah } from '../data';
 import { ambilHafalan, db, tandaiTertukarLatihan } from '../db';
 import { ayatHafal } from '../jadwal';
@@ -43,6 +44,12 @@ export default function LayarSambung() {
   const [modeTertukar, setModeTertukar] = useState(false);
   const [keliru, setKeliru] = useState(0);
   const [hasil, setHasil] = useState({ lancar: 0, tertukar: 0 });
+  const refJawaban = useRef<HTMLDivElement>(null);
+
+  // Jawaban yang baru dibuka langsung tampil di tengah layar.
+  useEffect(() => {
+    if (terbuka) gulirKe(refJawaban.current);
+  }, [terbuka]);
 
   useEffect(() => {
     susunSoal().then(setSoal);
@@ -55,7 +62,7 @@ export default function LayarSambung() {
     setTerbuka(false);
     setModeTertukar(false);
     setKeliru(0);
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const kini = soal[indeks];
@@ -97,7 +104,7 @@ export default function LayarSambung() {
 
           <p className="status-ayat">Ayat sesudahnya ({kini.berikut.ayat})?</p>
           {terbuka ? (
-            <div className="ayat kini">
+            <div className="ayat kini" ref={refJawaban}>
               <TeksAyat ayat={kini.berikut} />
             </div>
           ) : (

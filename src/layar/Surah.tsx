@@ -105,6 +105,39 @@ export default function LayarSurah({
     muat();
   }, [muat]);
 
+  // Posisi gulir surah diingat selama aplikasi terbuka, lalu dipulihkan saat kembali
+  // dari layar Rekam, Koreksi, atau Murotal.
+  useEffect(() => {
+    const kunci = `gulir:surah:${surah.nomor}`;
+    let tunggu = 0;
+    const simpan = () => {
+      cancelAnimationFrame(tunggu);
+      tunggu = requestAnimationFrame(() => {
+        try {
+          sessionStorage.setItem(kunci, String(Math.round(window.scrollY)));
+        } catch {
+          // abaikan
+        }
+      });
+    };
+    let pulih: ReturnType<typeof setTimeout>[] = [];
+    if (!ayatTuju) {
+      let posisi = 0;
+      try {
+        posisi = Number(sessionStorage.getItem(kunci)) || 0;
+      } catch {
+        // abaikan
+      }
+      if (posisi > 0) pulih = [80, 400].map((ms) => setTimeout(() => window.scrollTo(0, posisi), ms));
+    }
+    window.addEventListener('scroll', simpan, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', simpan);
+      cancelAnimationFrame(tunggu);
+      pulih.forEach(clearTimeout);
+    };
+  }, [surah.nomor]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!ayatTuju) return;
     // Digulir dua kali: ayat sebelumnya baru diukur tingginya setelah tampil (content-visibility).

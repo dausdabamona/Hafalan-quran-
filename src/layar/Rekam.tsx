@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { gulirKe } from '../komponen/gulir';
 import { cariSurah, labelPotongan, type Potongan } from '../data';
 import { labelDaftarAyat, useAyatMurojaah } from '../komponen/useAyatMurojaah';
 import { simpanRekaman } from '../db';
@@ -18,10 +19,17 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
   const [tampilkanTeks, setTampilkanTeks] = useState(false);
   const [detik, setDetik] = useState(0);
   const [menyimpan, setMenyimpan] = useState(false);
+  const refKini = useRef<HTMLDivElement>(null);
 
   const ayatKini = daftarAyat[indeks];
   const terakhir = indeks === daftarAyat.length - 1;
   const merekam = status === 'merekam';
+
+  // Ayat yang sedang direkam selalu tampil di tengah layar.
+  useEffect(() => {
+    const t = setTimeout(() => gulirKe(refKini.current), 60);
+    return () => clearTimeout(t);
+  }, [indeks, daftarMuat, merekam, tampilkanTeks]);
 
   useEffect(() => {
     if (!merekam) return;
@@ -72,7 +80,7 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
           </div>
         ))}
 
-        <div className={'ayat kini' + (merekam ? ' sedang-rekam' : '')}>
+        <div ref={refKini} className={'ayat kini' + (merekam ? ' sedang-rekam' : '')}>
           <p className="status-ayat">
             Ayat {ayatKini.ayat} · {indeks + 1} dari {daftarAyat.length}
             {merekam && <span className="indikator-rekam"> ● {detik} dtk</span>}

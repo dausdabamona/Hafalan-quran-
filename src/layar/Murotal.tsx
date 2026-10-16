@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { gulirDalam, gulirKe } from '../komponen/gulir';
 import { cariAyat, cariSurah, daftarJuz, daftarSurah } from '../data';
-import { ambilBahanMurotal, ambilHafalan, ambilJadwal, kunciAyat, type BahanSurah } from '../db';
-import { ayatHafal, type EntriJadwal } from '../jadwal';
+import type { EntriJadwal } from '../jadwal';
+import { susunMurotal } from '../murotalData';
 import {
-  daftarAyatRentang,
   hashMurotal,
   judulRentang,
-  statusRekaman,
   tujuanPerbaikan,
   type LetakAyat,
   type Rentang,
@@ -123,24 +121,8 @@ export default function LayarMurotal({ rentang }: { rentang: Rentang }) {
   useEffect(() => {
     let batal = false;
     (async () => {
-      const [hafalan, jadwal] = await Promise.all([ambilHafalan(), ambilJadwal()]);
-      const daftar = daftarAyatRentang(rentang, ayatHafal(hafalan));
-      const bahan: Map<number, BahanSurah> = await ambilBahanMurotal(daftar.map((l) => l.surah));
-      const siap: ItemMurotal[] = [];
-      const lain: Hasil['lain'] = [];
-      for (const l of daftar) {
-        const b = bahan.get(l.surah)!;
-        const rekaman = b.rekaman.get(kunciAyat(l.surah, l.ayat));
-        const status = statusRekaman(l.ayat, {
-          rekaman,
-          sesi: b.sesi,
-          tandaSalah: b.tandaSalah.filter((t) => t.ayat === l.ayat),
-          tertukar: b.tertukar.get(kunciAyat(l.surah, l.ayat - 1)),
-        });
-        if (status === 'siap') siap.push({ surah: l.surah, ayat: l.ayat, audio: rekaman!.audio });
-        else lain.push({ letak: l, status });
-      }
-      if (!batal) setHasil({ siap, lain, jadwal });
+      const h = await susunMurotal(rentang);
+      if (!batal) setHasil(h);
     })();
     return () => {
       batal = true;

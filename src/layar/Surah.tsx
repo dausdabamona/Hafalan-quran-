@@ -41,7 +41,10 @@ import { hashPotongan, pergi } from '../navigasi';
 import { hashMurotal } from '../murotal';
 import Kepala from '../komponen/Kepala';
 import TeksAyat from '../komponen/TeksAyat';
-import TombolPutar from '../komponen/TombolPutar';
+import { gulirKe } from '../komponen/gulir';
+import { susunMurotal } from '../murotalData';
+import { mulai, putarJeda } from '../pemutar';
+import { usePemutar } from './Murotal';
 
 export function tanggalPendek(iso: string): string {
   return new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -238,6 +241,27 @@ export default function LayarSurah({
     await muat();
   };
 
+  // Putar rekaman dari satu ayat lalu berlanjut ke ayat-ayat sesudahnya (satu suara saja).
+  // Ayat yang diketuk selalu diputar; ayat sesudahnya mengikuti aturan murotal (K-28).
+  const asalPutar = `#/surah/${surah.nomor}`;
+  const pemutar = usePemutar();
+  const kiniPutar = pemutar && pemutar.asal === asalPutar ? pemutar.daftar[pemutar.indeks] : null;
+  const ayatDiputar = kiniPutar ? kiniPutar.ayat : null;
+
+  const putarDariSini = async (ayat: number, audio: Blob) => {
+    if (ayatDiputar === ayat) {
+      putarJeda();
+      return;
+    }
+    const h = await susunMurotal({ jenis: 'ayat', surah: surah.nomor, ayatAwal: ayat, ayatAkhir: surah.jumlahAyat });
+    const sesudah = h.siap.filter((x) => x.ayat > ayat);
+    mulai(`${surah.nama} dari ayat ${ayat}`, [{ surah: surah.nomor, ayat, audio }, ...sesudah], asalPutar);
+  };
+
+  useEffect(() => {
+    if (ayatDiputar) gulirKe(document.getElementById(`ayat-${ayatDiputar}`));
+  }, [ayatDiputar]);
+
   const daftarRukuk = rukukSurah(surah.nomor);
   const potongan = potonganSurah(surah.nomor);
 
@@ -387,7 +411,7 @@ export default function LayarSurah({
                                     : ''}
                               </button>
                             )}
-                            <div className="ayat">
+                            <div className={'ayat' + (ayatDiputar === a.ayat ? ' diputar' : '')}>
                               <TeksAyat ayat={a} kelasKata={kelasKata(a)} ketukKata={(k) => bukaKata(a, k)} />
                               {tampilMakna && (
                                 <ol className="daftar-makna">
@@ -411,7 +435,14 @@ export default function LayarSurah({
                                 <button className="tautan" onClick={() => setLembar({ jenis: 'ayat', ayat: a })}>
                                   {ketAyat ? 'Keterangan ayat ✎' : '+ Keterangan ayat'}
                                 </button>
-                                {rek && <TombolPutar audio={rek.audio} label="Rekaman saya" />}
+                                {rek && (
+                                  <button
+                                    className={'tombol-putar' + (ayatDiputar === a.ayat ? ' aktif' : '')}
+                                    onClick={() => putarDariSini(a.ayat, rek.audio)}
+                                  >
+                                    {ayatDiputar === a.ayat && pemutar?.main ? '❚❚ Jeda' : '▶ Putar dari sini'}
+                                  </button>
+                                )}
                               </div>
                               {ketAyat && <p className="catatan-ayat">{ketAyat.isi}</p>}
                             </div>

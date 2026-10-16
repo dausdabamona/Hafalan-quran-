@@ -4,8 +4,10 @@ import '@fontsource/amiri-quran/arabic-400.css';
 import './style.css';
 import App from './App';
 import { mintaPenyimpananTetap } from './db';
+import { pasangSatuSuara } from './pemutar';
 
 mintaPenyimpananTetap();
+pasangSatuSuara();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

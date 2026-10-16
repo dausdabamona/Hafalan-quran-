@@ -65,6 +65,8 @@ function elemen(): HTMLAudioElement {
       }
     });
     audio.addEventListener('play', () => {
+      // Hanya satu suara: rekaman lain yang sedang diputar dihentikan.
+      jedaAudioLain(audio);
       if (keadaan && !keadaan.main) {
         keadaan.main = true;
         sesi('playing');
@@ -146,6 +148,30 @@ export function berhenti() {
   keadaan = null;
   sesi('none');
   kabari();
+}
+
+// ---------- Satu suara dalam satu waktu ----------
+
+function jedaAudioLain(kecuali: HTMLMediaElement | null) {
+  document.querySelectorAll('audio, video').forEach((el) => {
+    const m = el as HTMLMediaElement;
+    if (m !== kecuali && !m.paused) m.pause();
+  });
+}
+
+// Dipasang sekali saat aplikasi dimulai: setiap kali satu rekaman mulai diputar
+// (tombol putar ayat, Putar semua, dll.), rekaman lain dan murotal dijeda.
+export function pasangSatuSuara() {
+  document.addEventListener(
+    'play',
+    (e) => {
+      const el = e.target as HTMLMediaElement;
+      if (el === audio) return;
+      jedaAudioLain(el);
+      if (audio && !audio.paused) audio.pause();
+    },
+    true,
+  );
 }
 
 // ---------- Notifikasi pemutar & layanan latar depan ----------

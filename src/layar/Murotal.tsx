@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { gulirDalam, gulirKe } from '../komponen/gulir';
-import { cariAyat, cariSurah, daftarJuz, daftarSurah } from '../data';
+import { cariAyat, cariSurah, daftarJuz, daftarSurah, segmenAyat } from '../data';
+import { ambilMaknaSurah, type Makna } from '../db';
 import type { EntriJadwal } from '../jadwal';
 import { susunMurotal } from '../murotalData';
 import {
@@ -36,6 +37,18 @@ export function usePemutar(): KeadaanPemutar | null {
   const [k, setK] = useState<KeadaanPemutar | null>(null);
   useEffect(() => dengarkan(setK), []);
   return k;
+}
+
+type Tampilan = 'ayat' | 'arti' | 'tutup';
+
+function bacaTampilan(): Tampilan {
+  try {
+    const t = localStorage.getItem('tampilanMurotal');
+    if (t === 'ayat' || t === 'arti' || t === 'tutup') return t;
+  } catch {
+    // abaikan
+  }
+  return 'ayat';
 }
 
 function namaAyat(l: LetakAyat): string {
@@ -110,7 +123,21 @@ export default function LayarMurotal({ rentang }: { rentang: Rentang }) {
   const judul = judulRentang(rentang);
   const pemutar = usePemutar();
   const [hasil, setHasil] = useState<Hasil | null>(null);
-  const [tutupTeks, setTutupTeks] = useState(false);
+  // K-35: saat diputar, tampil ayat (teks Arab), arti (makna per waqaf), atau tertutup.
+  const [tampilan, setTampilan] = useState<Tampilan>(bacaTampilan);
+  const [maknaEdit, setMaknaEdit] = useState<Map<string, Makna>>(new Map());
+  const pilihTampilan = (t: Tampilan) => {
+    setTampilan(t);
+    try {
+      localStorage.setItem('tampilanMurotal', t);
+    } catch {
+      // abaikan
+    }
+  };
+  const surahDiputar = pemutar && pemutar.asal === hash ? pemutar.daftar[pemutar.indeks]?.surah : undefined;
+  useEffect(() => {
+    if (surahDiputar) ambilMaknaSurah(surahDiputar).then(setMaknaEdit);
+  }, [surahDiputar]);
   const [lihatSemua, setLihatSemua] = useState(false);
   const [versi, setVersi] = useState(0);
   const [perbaikan, setPerbaikan] = useState<LetakAyat | null>(null);
@@ -206,10 +233,25 @@ export default function LayarMurotal({ rentang }: { rentang: Rentang }) {
           <p className="lokasi-putar">
             {namaAyat(kini)} <span className="redup">({aktif.indeks + 1} dari {aktif.daftar.length})</span>
           </p>
-          {tutupTeks ? (
+          <div className="pilih-tampilan" role="group" aria-label="Tampilan saat diputar">
+            {(['ayat', 'arti', 'tutup'] as Tampilan[]).map((t) => (
+              <button key={t} className={'chip' + (tampilan === t ? ' aktif' : '')} onClick={() => pilihTampilan(t)}>
+                {t === 'ayat' ? 'Ayat' : t === 'arti' ? 'Arti' : 'Tertutup'}
+              </button>
+            ))}
+          </div>
+          {tampilan === 'ayat' && <TeksAyat ayat={ayatKini} />}
+          {tampilan === 'arti' && (
+            <ol className="daftar-makna arti-putar">
+              {segmenAyat(ayatKini).map((g) => (
+                <li key={g.indeks} className="makna">
+                  {maknaEdit.get(`${kini.surah}:${kini.ayat}:${g.indeks}`)?.isi ?? g.maknaBawaan}
+                </li>
+              ))}
+            </ol>
+          )}
+          {tampilan === 'tutup' && (
             <div className="teks-tertutup">Teks tertutup — simak dan ikuti dari hafalan</div>
-          ) : (
-            <TeksAyat ayat={ayatKini} />
           )}
           <div className="kendali-putar">
             {/* Arah mengikuti mushaf: ayat berikutnya di kiri. */}
@@ -228,10 +270,6 @@ export default function LayarMurotal({ rentang }: { rentang: Rentang }) {
           </button>
           {aktif.selesai && <p className="kosong">Murotal selesai. Ketuk ▶ untuk mengulang dari awal.</p>}
           <div className="pilihan-putar">
-            <label className="saklar">
-              <input type="checkbox" checked={tutupTeks} onChange={(e) => setTutupTeks(e.target.checked)} />
-              <span>Tutup teks</span>
-            </label>
             <div className="kecepatan">
               {[0.75, 1, 1.25].map((k) => (
                 <button key={k} className={'chip' + (aktif.kecepatan === k ? ' aktif' : '')} onClick={() => aturKecepatan(k)}>

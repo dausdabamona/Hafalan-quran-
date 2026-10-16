@@ -1283,3 +1283,24 @@ button.judul-juz.tandai {
   outline-offset: 2px;
   background: var(--teal-muda);
 }
+
+/* ---------- Tampilan murotal: ayat / arti / tertutup (K-35) ---------- */
+.pilih-tampilan {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0 10px;
+}
+
+.pilih-tampilan .chip {
+  flex: 1;
+}
+
+.arti-putar .makna {
+  font-size: 1.05rem;
+  line-height: 1.55;
+  padding: 10px 12px;
+}
+
+.kartu.pemutar {
+  scroll-margin-top: 84px;
+}

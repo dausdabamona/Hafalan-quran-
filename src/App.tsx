@@ -86,6 +86,7 @@ export default function App() {
           key={layar.nomor}
           surah={cariSurah(layar.nomor)!}
           ayatTuju={layar.ayat}
+          tandaiAwal={layar.tandai}
           aturUkuran={aturUkuran}
         />
       )}

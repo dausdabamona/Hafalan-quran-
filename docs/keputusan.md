@@ -51,6 +51,7 @@ Di luar cakupan versi pertama: banyak pengguna, audio qari, pengenalan suara oto
 | K-33 | Gulir otomatis | Layar mengikuti bagian yang aktif tanpa gulir manual: Rekam (ayat yang sedang direkam di tengah layar), Koreksi ("Putar semua" menyorot dan menggulir ke ayat yang diputar), Murotal (kartu pemutar tampil saat mulai, daftar putar mengikuti ayat), Sambung ayat (jawaban yang dibuka), dan layar surah (posisi dipulihkan saat kembali dari Rekam/Koreksi/Murotal) (16 Okt 2026) |
 | K-34 | Satu suara & putar berlanjut | Hanya satu rekaman berbunyi dalam satu waktu: memutar rekaman mana pun menjeda murotal dan rekaman lain. Di layar surah, tombol "▶ Putar dari sini" memutar rekaman ayat yang diketuk lalu berlanjut ke ayat-ayat sesudahnya (yang siap menurut K-28), dengan sorotan dan gulir otomatis (16 Okt 2026) |
 | K-35 | Tampilan saat murotal | Kartu pemutar punya pilihan tampilan: Ayat (teks Arab), Arti (makna per potongan waqaf, termasuk makna yang disunting), atau Tertutup (pilihan lama tetap dipertahankan). Pilihan diingat (16 Okt 2026) |
+| K-36 | Tandai hafal per ayat dari daftar surah | Di Semua surah → Tandai hafal, mengetuk surah tidak lagi menandai seluruh surah; layar surah terbuka langsung dalam mode tandai per ayat (kotak per ayat atau rentang dari–sampai). Daftar menampilkan jumlah ayat hafal per surah. Centang per juz tetap ada untuk menandai satu juz penuh (16 Okt 2026) |
 
 ## Metode dan alur harian
 

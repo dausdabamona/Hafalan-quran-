@@ -6,7 +6,7 @@ export type Layar =
   | { nama: 'hari-ini' }
   | { nama: 'daftar' }
   | { nama: 'sambung' }
-  | { nama: 'surah'; nomor: number; ayat?: number }
+  | { nama: 'surah'; nomor: number; ayat?: number; tandai?: boolean }
   | { nama: 'rekam'; potongan: Potongan; rukuk?: number }
   | { nama: 'koreksi'; potongan: Potongan; rukuk?: number }
   | { nama: 'rukuk' }
@@ -25,7 +25,10 @@ function bacaPotongan(nomor: string, awal: string, akhir: string): Potongan | nu
 
 export function bacaHash(): Layar {
   const h = window.location.hash;
-  let m = /^#\/surah\/(\d+)(?:\/(\d+))?$/.exec(h);
+  // #/surah/N/tandai membuka layar surah langsung dalam mode tandai hafal per ayat (K-36).
+  let m = /^#\/surah\/(\d+)\/tandai$/.exec(h);
+  if (m && cariSurah(Number(m[1]))) return { nama: 'surah', nomor: Number(m[1]), tandai: true };
+  m = /^#\/surah\/(\d+)(?:\/(\d+))?$/.exec(h);
   if (m && cariSurah(Number(m[1]))) return { nama: 'surah', nomor: Number(m[1]), ayat: m[2] ? Number(m[2]) : undefined };
   // Akhiran /r<nomor> menandai murojaah per rukuk (K-23).
   m = /^#\/(rekam|koreksi)\/(\d+)\/(\d+)-(\d+)(?:\/r(\d+))?$/.exec(h);

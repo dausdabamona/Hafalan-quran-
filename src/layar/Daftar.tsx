@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { daftarJuz, daftarRukuk, daftarSurah, juzAyat, rukukSurah } from '../data';
+import { daftarJuz, daftarRukuk, daftarSurah, juzAyat } from '../data';
 import { ambilHafalan, batalkanHafalanLama, tandaiHafalanLama } from '../db';
 import { adaTandaLama, ayatHafal, rukukSudahHafal, type EntriHafalan } from '../jadwal';
 import { pergi } from '../navigasi';
@@ -18,7 +18,24 @@ for (const r of daftarRukuk) {
 // Mode "Tandai hafalan lama" (K-27): centang per juz atau per surah.
 export default function LayarDaftar() {
   const [hafalan, setHafalan] = useState<Map<string, EntriHafalan> | null>(null);
-  const [modeTandai, setModeTandai] = useState(false);
+  // Mode tandai tetap aktif saat kembali dari layar surah (K-36).
+  const [modeTandai, setModeTandaiAsli] = useState(() => {
+    try {
+      return sessionStorage.getItem('modeTandaiDaftar') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const setModeTandai = (f: (v: boolean) => boolean) =>
+    setModeTandaiAsli((v) => {
+      const baru = f(v);
+      try {
+        sessionStorage.setItem('modeTandaiDaftar', baru ? '1' : '0');
+      } catch {
+        // abaikan
+      }
+      return baru;
+    });
   const [sibuk, setSibuk] = useState(false);
   const [pesan, setPesan] = useState('');
 
@@ -27,10 +44,11 @@ export default function LayarDaftar() {
     muat();
   }, [muat]);
 
+  const ayatHafalSemua = useMemo(() => ayatHafal(hafalan ?? new Map()), [hafalan]);
   const hafal = useMemo(() => {
-    const ayat = ayatHafal(hafalan ?? new Map());
+    const ayat = ayatHafalSemua;
     return new Set(daftarRukuk.filter((r) => rukukSudahHafal(r.nomor, ayat)).map((r) => r.nomor));
-  }, [hafalan]);
+  }, [ayatHafalSemua]);
 
   const status = (nomor: number[]): Status => {
     const n = nomor.filter((x) => hafal.has(x)).length;
@@ -80,9 +98,9 @@ export default function LayarDaftar() {
       {modeTandai && (
         <div className="petunjuk-tandai">
           <p>
-            Centang juz atau surah yang <strong>sudah Anda hafal sebelumnya</strong>. Bagian ini langsung masuk Ulang
-            hafalan, dan Hafalan baru akan melompatinya. Untuk surah yang baru hafal sebagian, buka surahnya lalu
-            tandai per rukuk.
+            Ketuk <strong>surah</strong> untuk menandai ayat-ayat yang sudah Anda hafal satu per satu (atau rentang
+            ayat). Centang <strong>juz</strong> untuk menandai satu juz penuh sekaligus. Ayat yang ditandai langsung
+            masuk Ulang hafalan, dan Hafalan baru akan melompatinya.
           </p>
           {pesan && <p className="pesan-tandai">{pesan}</p>}
         </div>
@@ -90,8 +108,9 @@ export default function LayarDaftar() {
       <ul className="daftar-surah">
         {daftarSurah.map((s) => {
           const juzMulai = daftarJuz.filter((j) => j.surah === s.nomor);
-          const rukukIni = rukukSurah(s.nomor).map((r) => r.nomor);
-          const st = status(rukukIni);
+          let jumlahHafal = 0;
+          for (let n = 1; n <= s.jumlahAyat; n++) if (ayatHafalSemua.has(`${s.nomor}:${n}`)) jumlahHafal++;
+          const st: Status = jumlahHafal === 0 ? 'belum' : jumlahHafal === s.jumlahAyat ? 'semua' : 'sebagian';
           return (
             <li key={s.nomor}>
               {juzMulai.map((j) => {
@@ -119,8 +138,7 @@ export default function LayarDaftar() {
               })}
               <button
                 className={'baris-surah' + (modeTandai ? ' tandai ' + st : '')}
-                onClick={() => (modeTandai ? ubah(rukukIni, s.nama) : pergi(`#/surah/${s.nomor}`))}
-                disabled={modeTandai && sibuk}
+                onClick={() => pergi(modeTandai ? `#/surah/${s.nomor}/tandai` : `#/surah/${s.nomor}`)}
               >
                 {modeTandai ? (
                   <span className="kotak" aria-hidden="true">
@@ -134,7 +152,7 @@ export default function LayarDaftar() {
                   <span className="detail">{s.arti}</span>
                   <span className="detail">
                     {s.jumlahAyat} ayat
-                    {st === 'semua' ? ' · hafal' : st === 'sebagian' ? ' · hafal sebagian' : ''}
+                    {st === 'semua' ? ' · hafal semua' : st === 'sebagian' ? ` · ${jumlahHafal} ayat hafal` : ''}
                   </span>
                 </span>
                 <span className="nama-arab" lang="ar" dir="rtl">

@@ -66,10 +66,12 @@ type Lembar =
 export default function LayarSurah({
   surah,
   ayatTuju,
+  tandaiAwal,
   aturUkuran,
 }: {
   surah: Surah;
   ayatTuju?: number;
+  tandaiAwal?: boolean;
   aturUkuran: (s: number) => void;
 }) {
   const [keterangan, setKeterangan] = useState<Map<string, Keterangan>>(new Map());
@@ -80,7 +82,7 @@ export default function LayarSurah({
   const [jadwal, setJadwal] = useState<Map<number, EntriJadwal>>(new Map());
   const [lembar, setLembar] = useState<Lembar | null>(null);
   const [tampilMakna, setTampilMakna] = useState(bacaTampilMakna);
-  const [modeTandai, setModeTandai] = useState(false);
+  const [modeTandai, setModeTandai] = useState(!!tandaiAwal);
   const [dari, setDari] = useState('');
   const [sampai, setSampai] = useState('');
   const [pesanTandai, setPesanTandai] = useState('');

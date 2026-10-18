@@ -209,7 +209,7 @@ Terjawab: P-13 (arti per kata + keterangan pribadi), P-14 (Madinah), P-16 (OPPO 
 - [x] P-12 Visibilitas repositori — dijawab 14 Okt 2026: tetap publik; data gabungan ikut dikomit (keputusan Firdaus, risiko lisensi Quran.com diterima).
 - [ ] P-15 Ukuran huruf — usulan: besar dan bisa diperbesar.
 - [x] P-18 Pengingat — ditunda; versi pertama memakai alarm HP (ColorOS agresif mematikan aplikasi latar belakang).
-- [x] P-19 Nama aplikasi — dijawab 14 Okt 2026: **Saku Hati** (SAKU = Sedikit Ayat, Kuat Ulangnya). ID paket tetap `id.dabamona.rabth` agar pembaruan bisa menimpa APK lama.
+- [x] P-19 Nama aplikasi — dijawab 14 Okt 2026: **Saku Hati** (SAKU = Sedikit Ayat, Kuat Ulangnya; HATI = Hafalkan Arti, Tekun Ingat — dilengkapi 19 Okt 2026). ID paket tetap `id.dabamona.rabth` agar pembaruan bisa menimpa APK lama.
 - [ ] P-21 Kunci tanda tangan APK — usulan: secret di GitHub + salinan di Drive pribadi.
 - [ ] P-22 Kebiasaan cadangan — usulan: pengingat ekspor tiap pekan.
 

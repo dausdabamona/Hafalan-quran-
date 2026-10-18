@@ -8,7 +8,8 @@ export default function LayarTentang() {
       <section className="tentang">
         <h2>Saku Hati</h2>
         <p>
-          <strong>S</strong>edikit <strong>A</strong>yat, <strong>K</strong>uat <strong>U</strong>langnya. Aplikasi
+          <strong>S</strong>edikit <strong>A</strong>yat, <strong>K</strong>uat <strong>U</strong>langnya ·{' '}
+          <strong>H</strong>afalkan <strong>A</strong>rti, <strong>T</strong>ekun <strong>I</strong>ngat. Aplikasi
           pribadi untuk menghafal dan merawat hafalan Al-Qur'an 30 juz, berjalan tanpa internet. Semua catatan, makna
           yang Anda edit, tanda, dan rekaman tersimpan di HP ini.
         </p>

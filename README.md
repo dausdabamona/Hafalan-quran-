@@ -1,6 +1,6 @@
 # Saku Hati
 
-*Sedikit Ayat, Kuat Ulangnya*
+*Sedikit Ayat, Kuat Ulangnya — Hafalkan Arti, Tekun Ingat*
 
 Aplikasi Android pribadi untuk menghafal Al-Qur'an, 30 juz, dari Al-Fatihah sampai An-Nas. Berjalan penuh tanpa internet; rekaman murojaah dan data hafalan tersimpan di HP.
 

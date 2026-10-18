@@ -93,7 +93,7 @@ export default function LayarHariIni() {
       <header className="kepala">
         <div className="judul-surah">
           <h1>Saku Hati</h1>
-          <p className="sub">Sedikit Ayat, Kuat Ulangnya</p>
+          <p className="sub">Sedikit Ayat, Kuat Ulangnya · Hafalkan Arti, Tekun Ingat</p>
         </div>
         <button
           className="tombol-ikon"

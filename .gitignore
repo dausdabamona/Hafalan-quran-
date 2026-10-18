@@ -9,3 +9,9 @@ android/.gradle/
 
 # Kunci sementara sengaja dikomit agar setiap build ditandatangani sama (lihat docs/keputusan.md, P-21)
 !android/kunci-sementara.jks
+
+# Aplikasi Windows (K-37)
+desktop/node_modules
+desktop/app
+desktop/keluaran
+desktop/ikon.png

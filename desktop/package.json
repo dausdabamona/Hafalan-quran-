@@ -1,0 +1,43 @@
+{
+  "name": "saku-hati-windows",
+  "productName": "Saku Hati",
+  "version": "0.1.0",
+  "description": "Saku Hati untuk Windows — menghafal Al-Qur'an, sinkron dengan HP lewat Wi-Fi",
+  "author": "Firdaus Dabamona",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "mulai": "electron .",
+    "bangun": "electron-builder --win nsis --publish never"
+  },
+  "devDependencies": {
+    "electron": "44.9.0",
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "appId": "id.dabamona.sakuhati",
+    "productName": "Saku Hati",
+    "copyright": "Firdaus Dabamona",
+    "directories": {
+      "output": "keluaran"
+    },
+    "files": [
+      "main.js",
+      "app/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "ikon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Saku Hati",
+      "artifactName": "saku-hati-setup.exe",
+      "language": "1057"
+    }
+  }
+}

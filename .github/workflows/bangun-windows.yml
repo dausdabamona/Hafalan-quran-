@@ -1,0 +1,78 @@
+name: Bangun Windows
+
+# Membangun penginstal Saku Hati untuk Windows (K-37) setiap kali kode aplikasi
+# berubah, lalu menaruhnya di GitHub Releases dengan tag "windows-terbaru".
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - src/**
+      - data/quran.json
+      - data/rukuk.json
+      - desktop/**
+      - aset/**
+      - index.html
+      - package.json
+      - package-lock.json
+      - vite.config.ts
+      - .github/workflows/bangun-windows.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bangun-windows
+  cancel-in-progress: true
+
+jobs:
+  bangun:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Pasang dependensi aplikasi
+        run: npm ci
+
+      - name: Uji
+        run: npm test
+
+      - name: Bangun web
+        run: npm run build
+
+      - name: Siapkan berkas aplikasi Windows
+        shell: bash
+        run: |
+          rm -rf desktop/app
+          cp -r dist desktop/app
+          cp aset/ikon-512.png desktop/app/ikon.png
+          cp aset/ikon-512.png desktop/ikon.png
+          cd desktop
+          npm pkg set version="0.1.${{ github.run_number }}"
+
+      - name: Pasang Electron
+        working-directory: desktop
+        run: npm install --no-audit --no-fund
+
+      - name: Bangun penginstal
+        working-directory: desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run bangun
+
+      - name: Terbitkan ke GitHub Releases
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete windows-terbaru --yes --cleanup-tag || true
+          gh release create windows-terbaru desktop/keluaran/saku-hati-setup.exe \
+            --target "$GITHUB_SHA" \
+            --title "Saku Hati Windows 0.1.${{ github.run_number }}" \
+            --notes "Penginstal Windows dari commit ${GITHUB_SHA::7}. Unduh saku-hati-setup.exe lalu jalankan. Bila muncul 'Windows protected your PC', klik More info → Run anyway." \
+            --latest=false

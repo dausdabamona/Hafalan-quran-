@@ -12,7 +12,7 @@
   },
   "devDependencies": {
     "electron": "44.9.0",
-    "electron-builder": "26.0.12"
+    "electron-builder": "26.15.3"
   },
   "build": {
     "appId": "id.dabamona.sakuhati",
@@ -37,8 +37,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Saku Hati",
-      "artifactName": "saku-hati-setup.exe",
-      "language": "1057"
+      "artifactName": "saku-hati-setup.exe"
     }
   }
 }

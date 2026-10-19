@@ -69,6 +69,18 @@ export interface TandaTertukar {
   jumlah: number;
 }
 
+// Tanda latihan tebak ayat dari arti (K-41): ayat yang pernah salah ditebak didahulukan
+// sampai berhasil ditebak benar. Tidak memengaruhi jadwal murojaah.
+export interface TandaArti {
+  kunci: string; // "surah:ayat"
+  surah: number;
+  ayat: number;
+  jumlah: number; // berapa kali salah ditebak
+  pertama: string; // ISO salah pertama
+  terakhir: string; // ISO salah terakhir
+  benar?: string; // ISO tebakan benar terakhir
+}
+
 // Satu kali koreksi (potongan) atau murojaah (rukuk).
 export interface Sesi {
   id?: number;
@@ -89,6 +101,7 @@ export type SakuDB = Dexie & {
   rekaman: EntityTable<Rekaman, 'kunci'>;
   tandaSalah: EntityTable<TandaSalah, 'kunci'>;
   tandaTertukar: EntityTable<TandaTertukar, 'kunci'>;
+  tandaArti: EntityTable<TandaArti, 'kunci'>;
   sesi: EntityTable<Sesi, 'id'>;
   hafalan: EntityTable<EntriHafalan, 'kunci'>;
   jadwalRukuk: EntityTable<EntriJadwal, 'nomor'>;
@@ -142,11 +155,13 @@ function siapkanSkema(db: SakuDB) {
     // Makna waqaf yang disunting: ayat lama 7 tidak lagi cocok dengan potongannya, jadi dilepas.
     const makna = await tx.table('makna').where('surah').equals(1).toArray();
     await tx.table('makna').bulkDelete(makna.map((x) => x.kunci));
-    await tx.table('makna').bulkPut(
-      makna
-        .filter((x) => x.ayat >= 2 && x.ayat <= 6)
-        .map((x) => ({ ...x, kunci: `1:${x.ayat - 1}:${x.segmen}`, ayat: x.ayat - 1 })),
-    );
+    await tx
+      .table('makna')
+      .bulkPut(
+        makna
+          .filter((x) => x.ayat >= 2 && x.ayat <= 6)
+          .map((x) => ({ ...x, kunci: `1:${x.ayat - 1}:${x.segmen}`, ayat: x.ayat - 1 })),
+      );
     // Rekaman per ayat: basmalah dilepas; rekaman ayat lama 7 menjadi rekaman ayat 6.
     const rekaman = await tx.table('rekaman').where('surah').equals(1).toArray();
     await tx.table('rekaman').bulkDelete(rekaman.map((x) => x.kunci));
@@ -163,7 +178,14 @@ function siapkanSkema(db: SakuDB) {
       tukar.flatMap((x) => {
         if (x.ayatAsal < 2 || x.ayatAsal > 6) return [];
         const asal = x.ayatAsal - 1;
-        return [{ ...x, kunci: `1:${asal}`, ayatAsal: asal, ayatKeliru: x.ayatKeliru ? (petaAyatFatihah(x.ayatKeliru) ?? 0) : 0 }];
+        return [
+          {
+            ...x,
+            kunci: `1:${asal}`,
+            ayatAsal: asal,
+            ayatKeliru: x.ayatKeliru ? (petaAyatFatihah(x.ayatKeliru) ?? 0) : 0,
+          },
+        ];
       }),
     );
     // Hafalan dan riwayat sesi: rentang ayat digeser.
@@ -225,6 +247,9 @@ function siapkanSkema(db: SakuDB) {
           });
       }
     });
+
+  // Versi 9 (K-41): tanda latihan tebak ayat dari arti.
+  db.version(9).stores({ tandaArti: 'kunci, surah, terimaMs' });
 }
 
 // Penanda sinkron otomatis untuk setiap penulisan lokal (K-37).
@@ -259,6 +284,7 @@ export const TABEL_SINKRON = [
   'rekaman',
   'tandaSalah',
   'tandaTertukar',
+  'tandaArti',
   'sesi',
   'hafalan',
   'jadwalRukuk',
@@ -288,7 +314,14 @@ const db = buatDb('rabth');
 export async function catatHapus(d: SakuDB, tabel: TabelSinkron, kunci: (string | number)[]) {
   const kini = Date.now();
   await d.hapus.bulkPut(
-    kunci.map((k) => ({ kunci: `${tabel}|${k}`, tabel, kunciRekaman: String(k), ubahMs: kini, terimaMs: kini, asal: '' })),
+    kunci.map((k) => ({
+      kunci: `${tabel}|${k}`,
+      tabel,
+      kunciRekaman: String(k),
+      ubahMs: kini,
+      terimaMs: kini,
+      asal: '',
+    })),
   );
 }
 
@@ -415,7 +448,12 @@ export async function tandaiHafalanLama(nomor: number[], hari = hariIni()): Prom
 // K-30: tanda hafalan lama per ayat.
 export async function tandaiAyatHafalanLama(surah: number, ayat: number[], hari = hariIni()): Promise<void> {
   await db.transaction('rw', db.hafalan, db.jadwalRukuk, db.hapus, async () => {
-    const t = tandaiAyatLama(ayat.map((a) => ({ surah, ayat: a })), await ambilHafalan(), await ambilJadwal(), hari);
+    const t = tandaiAyatLama(
+      ayat.map((a) => ({ surah, ayat: a })),
+      await ambilHafalan(),
+      await ambilJadwal(),
+      hari,
+    );
     await db.hafalan.bulkPut(t.hafalan);
     await db.jadwalRukuk.bulkPut(t.jadwal);
   });
@@ -442,8 +480,7 @@ export async function batalkanHafalanLama(nomor: number[], hari = hariIni()): Pr
       if (b.hapusJadwal) {
         await db.jadwalRukuk.delete(n);
         await catatHapus(db, 'jadwalRukuk', [n]);
-      }
-      else if (b.jadwal) await db.jadwalRukuk.put(b.jadwal);
+      } else if (b.jadwal) await db.jadwalRukuk.put(b.jadwal);
     }
   });
 }
@@ -523,6 +560,28 @@ export async function simpanKoreksi(h: HasilKoreksi): Promise<Sesi> {
     if (ubah.jadwal.length) await db.jadwalRukuk.bulkPut(ubah.jadwal);
   });
   return sesi;
+}
+
+// Hasil satu soal latihan tebak ayat dari arti (K-41).
+export async function catatTebakArti(surah: number, ayat: number, benar: boolean) {
+  const kunci = kunciAyat(surah, ayat);
+  const sekarang = new Date().toISOString();
+  await db.transaction('rw', db.tandaArti, async () => {
+    const lama = await db.tandaArti.get(kunci);
+    if (benar) {
+      if (lama) await db.tandaArti.put({ ...lama, benar: sekarang });
+      return;
+    }
+    await db.tandaArti.put({
+      kunci,
+      surah,
+      ayat,
+      jumlah: (lama?.jumlah ?? 0) + 1,
+      pertama: lama?.pertama ?? sekarang,
+      terakhir: sekarang,
+      ...(lama?.benar ? { benar: lama.benar } : {}),
+    });
+  });
 }
 
 // Sambungan tertukar dari latihan Sambung ayat (K-15, K-17): tanda bertambah dan

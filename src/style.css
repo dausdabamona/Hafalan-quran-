@@ -2613,3 +2613,32 @@ button.teks-tertutup {
     animation: none;
   }
 }
+
+/* K-41: latihan tebak ayat dari arti */
+.arti-soal {
+  background: var(--color-surface);
+  border-left: 3px solid var(--color-accent);
+  padding: var(--space-3) var(--space-4);
+  margin: var(--space-2) 0 var(--space-4);
+}
+.arti-soal .kicker {
+  margin: 0 0 var(--space-2);
+}
+.arti-soal ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.arti-soal li {
+  font-style: italic;
+  font-size: 19px;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+.arti-soal li + li::before {
+  content: '· ';
+  color: var(--color-muted);
+}
+.bilah-aksi .tombol.sekunder {
+  white-space: nowrap;
+}

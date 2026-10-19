@@ -12,6 +12,7 @@ import {
   Microphone,
   MoonStars,
   SunHorizon,
+  Translate,
 } from '@phosphor-icons/react';
 import {
   angkaArab,
@@ -144,6 +145,13 @@ export default function LayarHariIni() {
       ikon: <Link size={34} weight="duotone" className="ikon" />,
       buka: () => pergi('#/sambung'),
       mati: jumlahHafal < 2,
+    },
+    {
+      judul: 'Tebak ayat dari arti',
+      isi: 'Arti satu ayat tampil, Anda menebak ayatnya dan membacanya sambil direkam, lalu periksa sendiri.',
+      ikon: <Translate size={34} weight="duotone" className="ikon" />,
+      buka: () => pergi('#/tebak-arti'),
+      mati: jumlahHafal < 1,
     },
     {
       judul: 'Murotal',

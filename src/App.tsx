@@ -8,6 +8,7 @@ import LayarKoreksi from './layar/Koreksi';
 import LayarTentang from './layar/Tentang';
 import LayarHariIni from './layar/HariIni';
 import LayarSambung from './layar/Sambung';
+import LayarTebakArti from './layar/TebakArti';
 import LayarRukuk from './layar/Rukuk';
 import LayarMurotal, { BilahPemutar, LayarPilihMurotal } from './layar/Murotal';
 import { hashMurotal } from './murotal';
@@ -89,6 +90,7 @@ export default function App() {
       {layar.nama === 'hari-ini' && <LayarHariIni />}
       {layar.nama === 'daftar' && <LayarDaftar />}
       {layar.nama === 'sambung' && <LayarSambung />}
+      {layar.nama === 'tebak-arti' && <LayarTebakArti />}
       {layar.nama === 'surah' && (
         <LayarSurah
           key={layar.nomor}

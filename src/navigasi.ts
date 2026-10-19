@@ -6,6 +6,7 @@ export type Layar =
   | { nama: 'hari-ini' }
   | { nama: 'daftar' }
   | { nama: 'sambung' }
+  | { nama: 'tebak-arti' }
   | { nama: 'surah'; nomor: number; ayat?: number; tandai?: boolean }
   | { nama: 'rekam'; potongan: Potongan; rukuk?: number }
   | { nama: 'koreksi'; potongan: Potongan; rukuk?: number }
@@ -53,6 +54,7 @@ export function bacaHash(): Layar {
   if (h === '#/tentang') return { nama: 'tentang' };
   if (h === '#/semua') return { nama: 'daftar' };
   if (h === '#/sambung') return { nama: 'sambung' };
+  if (h === '#/tebak-arti') return { nama: 'tebak-arti' };
   return { nama: 'hari-ini' };
 }
 

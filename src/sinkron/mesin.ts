@@ -115,7 +115,11 @@ function sama(tabel: string, a: Rekaman, b: Rekaman): boolean {
   if (tabel === 'rekaman') return a.direkam === b.direkam && a.ubahMs === b.ubahMs;
   const bersih = (x: Rekaman) => {
     const { terimaMs: _t, asal: _a, id: _i, ...sisa } = x;
-    return JSON.stringify(Object.keys(sisa).sort().map((k) => [k, sisa[k]]));
+    return JSON.stringify(
+      Object.keys(sisa)
+        .sort()
+        .map((k) => [k, sisa[k]]),
+    );
   };
   return bersih(a) === bersih(b);
 }
@@ -132,6 +136,18 @@ export function gabung(tabel: TabelSinkron, lokal: Rekaman, jauh: Rekaman): Reka
       jumlah: Math.max(angka(lokal.jumlah), angka(jauh.jumlah)),
       pertama: [String(lokal.pertama), String(jauh.pertama)].sort()[0],
       terakhir: [String(lokal.terakhir), String(jauh.terakhir)].sort()[1],
+      ubahMs: Math.max(angka(lokal.ubahMs), angka(jauh.ubahMs)),
+    };
+  }
+  if (tabel === 'tandaArti') {
+    const baru = angka(jauh.ubahMs) > angka(lokal.ubahMs) ? jauh : lokal;
+    const benar = [String(lokal.benar ?? ''), String(jauh.benar ?? '')].sort()[1];
+    return {
+      ...baru,
+      jumlah: Math.max(angka(lokal.jumlah), angka(jauh.jumlah)),
+      pertama: [String(lokal.pertama), String(jauh.pertama)].sort()[0],
+      terakhir: [String(lokal.terakhir), String(jauh.terakhir)].sort()[1],
+      ...(benar ? { benar } : {}),
       ubahMs: Math.max(angka(lokal.ubahMs), angka(jauh.ubahMs)),
     };
   }
@@ -167,9 +183,11 @@ export async function terapkan(d: SakuDB, pengirim: string, paket: Paket): Promi
           const tabel = t.tabel as TabelSinkron;
           const tab = d.table(tabel);
           const kunci = String(t.kunciRekaman);
-          const lokal = (tabel === 'sesi'
-            ? await tab.where('uid').equals(kunci).first()
-            : await tab.get(tabel === 'jadwalRukuk' ? Number(kunci) : kunci)) as Rekaman | undefined;
+          const lokal = (
+            tabel === 'sesi'
+              ? await tab.where('uid').equals(kunci).first()
+              : await tab.get(tabel === 'jadwalRukuk' ? Number(kunci) : kunci)
+          ) as Rekaman | undefined;
           if (lokal && angka(lokal.ubahMs) > angka(t.ubahMs)) {
             // Data di sini lebih baru daripada penghapusannya: dipertahankan dan dikirim balik.
             await tab.put({ ...lokal, terimaMs: kini, asal: '' });
@@ -199,9 +217,11 @@ export async function terapkan(d: SakuDB, pengirim: string, paket: Paket): Promi
           await d.hapus.put({ ...nisan, terimaMs: kini, asal: '' } as never);
           continue;
         }
-        const lokal = (tabel === 'sesi'
-          ? await tab.where('uid').equals(kunci).first()
-          : await tab.get(tabel === 'jadwalRukuk' ? Number(kunci) : kunci)) as Rekaman | undefined;
+        const lokal = (
+          tabel === 'sesi'
+            ? await tab.where('uid').equals(kunci).first()
+            : await tab.get(tabel === 'jadwalRukuk' ? Number(kunci) : kunci)
+        ) as Rekaman | undefined;
 
         if (!lokal) {
           await tab.put({ ...jauh, terimaMs: kini });

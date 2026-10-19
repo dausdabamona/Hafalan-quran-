@@ -1,7 +1,8 @@
 // Saku Hati untuk Windows (K-37). Membungkus aplikasi web yang sama dengan APK.
 // Halaman dimuat lewat skema app:// agar asal (origin) tetap sama di setiap
 // pembukaan — penting karena seluruh data tersimpan di IndexedDB asal tersebut.
-const { app, BrowserWindow, Menu, net, protocol, session, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, net, protocol, session, shell } = require('electron');
+const os = require('node:os');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 
@@ -30,6 +31,7 @@ function buatJendela() {
     webPreferences: {
       contextIsolation: true,
       sandbox: true,
+      preload: path.join(__dirname, 'preload.js'),
       // Murotal tetap berputar saat jendela diperkecil.
       backgroundThrottling: false,
     },
@@ -78,3 +80,64 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => app.quit());
+
+// ---------- Sinkron dengan HP (K-37) ----------
+
+// Hanya alamat jaringan lokal yang boleh dihubungi.
+function alamatLokal(alamat) {
+  const host = String(alamat).split(':')[0];
+  return /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.)/.test(host);
+}
+
+async function minta(alamat, jalur, isi, batasMs = 120000) {
+  if (!alamatLokal(alamat)) throw new Error('Alamat HP harus di jaringan Wi-Fi lokal.');
+  const r = await fetch(`http://${alamat}${jalur}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(isi ?? {}),
+    signal: AbortSignal.timeout(batasMs),
+  });
+  return { status: r.status, teks: await r.text() };
+}
+
+ipcMain.handle('saku:minta', async (_e, { alamat, jalur, isi }) => {
+  try {
+    return await minta(alamat, jalur, isi);
+  } catch (e) {
+    return { status: 0, teks: JSON.stringify({ pesan: String(e && e.message ? e.message : e) }) };
+  }
+});
+
+ipcMain.handle('saku:nama-komputer', () => os.hostname());
+
+// Mencari HP pasangan di jaringan yang sama bila alamatnya berubah: semua alamat /24
+// di setiap kartu jaringan dicoba dengan /halo, lalu dicocokkan id pusatnya.
+ipcMain.handle('saku:cari-pusat', async (_e, { port, idPusat }) => {
+  const awalan = new Set();
+  for (const daftar of Object.values(os.networkInterfaces())) {
+    for (const a of daftar || []) {
+      if (a.family === 'IPv4' && !a.internal && alamatLokal(a.address)) {
+        awalan.add(a.address.split('.').slice(0, 3).join('.'));
+      }
+    }
+  }
+  for (const pre of awalan) {
+    const calon = Array.from({ length: 254 }, (_, i) => `${pre}.${i + 1}:${port}`);
+    for (let i = 0; i < calon.length; i += 64) {
+      const hasil = await Promise.all(
+        calon.slice(i, i + 64).map(async (alamat) => {
+          try {
+            const r = await minta(alamat, '/halo', {}, 700);
+            const j = JSON.parse(r.teks);
+            return j.aplikasi === 'saku-hati' && j.id === idPusat ? alamat : null;
+          } catch {
+            return null;
+          }
+        }),
+      );
+      const ketemu = hasil.find(Boolean);
+      if (ketemu) return ketemu;
+    }
+  }
+  return null;
+});

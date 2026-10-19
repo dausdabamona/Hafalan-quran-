@@ -8,6 +8,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         // Plugin lokal didaftarkan sebelum jembatan Capacitor dibuat.
         registerPlugin(PengingatAyatPlugin.class);
+        registerPlugin(PusatSinkronPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

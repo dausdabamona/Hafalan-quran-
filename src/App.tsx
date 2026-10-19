@@ -12,6 +12,8 @@ import LayarRukuk from './layar/Rukuk';
 import LayarMurotal, { BilahPemutar, LayarPilihMurotal } from './layar/Murotal';
 import { hashMurotal } from './murotal';
 import LayarPengingat from './layar/Pengingat';
+import LayarSinkron from './layar/Sinkron';
+import { mulaiPusatOtomatis, mulaiSinkronOtomatis } from './sinkron/peran';
 import { Pengingat, pengingatTersedia, sinkronAyatKartu } from './pengingat';
 
 // ---------- Ukuran huruf Arab (P-15) ----------
@@ -41,6 +43,12 @@ export default function App() {
     };
     window.addEventListener('hashchange', ubah);
     return () => window.removeEventListener('hashchange', ubah);
+  }, []);
+
+  // K-37: pusat sinkron (HP) dan sinkron otomatis (Windows).
+  useEffect(() => {
+    mulaiPusatOtomatis();
+    return mulaiSinkronOtomatis();
   }, []);
 
   // K-32: buka ayat dari kartu pengingat; perbarui daftar ayat kartu saat aplikasi ditinggalkan.
@@ -100,6 +108,7 @@ export default function App() {
       {layar.nama === 'tentang' && <LayarTentang />}
       {layar.nama === 'pilih-murotal' && <LayarPilihMurotal />}
       {layar.nama === 'pengingat' && <LayarPengingat />}
+      {layar.nama === 'sinkron' && <LayarSinkron />}
       {layar.nama === 'murotal' && <LayarMurotal key={hashMurotal(layar.rentang)} rentang={layar.rentang} />}
       <BilahPemutar layarHash={layar.nama === 'murotal' ? hashMurotal(layar.rentang) : ''} />
     </div>

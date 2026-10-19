@@ -83,7 +83,7 @@ export interface Sesi {
   lancar: boolean; // P-01
 }
 
-const db = new Dexie('rabth') as Dexie & {
+export type SakuDB = Dexie & {
   keterangan: EntityTable<Keterangan, 'kunci'>;
   makna: EntityTable<Makna, 'kunci'>;
   rekaman: EntityTable<Rekaman, 'kunci'>;
@@ -92,96 +92,205 @@ const db = new Dexie('rabth') as Dexie & {
   sesi: EntityTable<Sesi, 'id'>;
   hafalan: EntityTable<EntriHafalan, 'kunci'>;
   jadwalRukuk: EntityTable<EntriJadwal, 'nomor'>;
+  hapus: EntityTable<Penghapusan, 'kunci'>;
+  meta: EntityTable<{ kunci: string; nilai: unknown }, 'kunci'>;
+  /** true selama perubahan dari perangkat lain diterapkan (penanda waktu tidak diubah) */
+  _terapkan?: boolean;
 };
 
-db.version(1).stores({ keterangan: 'kunci, surah, [surah+ayat]' });
-db.version(2).stores({
-  rekaman: 'kunci, surah',
-  tandaSalah: 'kunci, surah',
-  tandaTertukar: 'kunci, surah',
-  sesi: '++id, surah, tanggal',
-});
-db.version(3).stores({ jadwal: 'kunci, surah, jatuhTempo, mulai' });
-db.version(4).stores({ deres: 'nomor, terakhir' });
-// Versi 5 (30 juz, K-23): jadwal per potongan dipindah ke hafalan + jadwal per rukuk.
-db.version(5)
-  .stores({
-    makna: 'kunci, surah, [surah+ayat]',
-    hafalan: 'kunci, surah, mulai',
-    jadwalRukuk: 'nomor, jatuhTempo',
-  })
-  .upgrade(async (tx: Transaction) => {
-    const lama = (await tx.table('jadwal').toArray()) as JadwalPotonganLama[];
-    const { hafalan, jadwal } = migrasiJadwalLama(lama);
-    await tx.table('hafalan').bulkPut(hafalan);
-    await tx.table('jadwalRukuk').bulkPut(jadwal);
+function siapkanSkema(db: SakuDB) {
+  db.version(1).stores({ keterangan: 'kunci, surah, [surah+ayat]' });
+  db.version(2).stores({
+    rekaman: 'kunci, surah',
+    tandaSalah: 'kunci, surah',
+    tandaTertukar: 'kunci, surah',
+    sesi: '++id, surah, tanggal',
   });
-db.version(6).stores({ jadwal: null, deres: null });
-// Versi 7 (K-26): data Al-Fatihah dipindah ke hitungan Madinah (Alhamdulillah = ayat 1).
-db.version(7).upgrade(async (tx: Transaction) => {
-  // Catatan & tanda per kata: kunci "1:ayat:urutan".
-  for (const nama of ['keterangan', 'tandaSalah']) {
-    const t = tx.table(nama);
-    const lama = await t.where('surah').equals(1).toArray();
-    await t.bulkDelete(lama.map((x) => x.kunci));
-    const baru = new Map<string, Record<string, unknown>>();
-    for (const x of lama) {
-      const p = petaKataFatihah(x.ayat, x.urutan);
-      if (!p) continue;
-      const kunci = `1:${p.ayat}:${p.urutan}`;
-      // Keterangan ayat lama 7 (urutan 0) hanya pindah ke ayat 6; tanda tidak bertabrakan.
-      if (!baru.has(kunci)) baru.set(kunci, { ...x, kunci, ayat: p.ayat, urutan: p.urutan });
-    }
-    await t.bulkPut([...baru.values()]);
-  }
-  // Makna waqaf yang disunting: ayat lama 7 tidak lagi cocok dengan potongannya, jadi dilepas.
-  const makna = await tx.table('makna').where('surah').equals(1).toArray();
-  await tx.table('makna').bulkDelete(makna.map((x) => x.kunci));
-  await tx.table('makna').bulkPut(
-    makna
-      .filter((x) => x.ayat >= 2 && x.ayat <= 6)
-      .map((x) => ({ ...x, kunci: `1:${x.ayat - 1}:${x.segmen}`, ayat: x.ayat - 1 })),
-  );
-  // Rekaman per ayat: basmalah dilepas; rekaman ayat lama 7 menjadi rekaman ayat 6.
-  const rekaman = await tx.table('rekaman').where('surah').equals(1).toArray();
-  await tx.table('rekaman').bulkDelete(rekaman.map((x) => x.kunci));
-  await tx.table('rekaman').bulkPut(
-    rekaman.flatMap((x) => {
-      const a = petaAyatFatihah(x.ayat);
-      return a ? [{ ...x, kunci: `1:${a}`, ayat: a }] : [];
-    }),
-  );
-  // Sambungan tertukar: sambungan basmalah → Alhamdulillah dilepas.
-  const tukar = await tx.table('tandaTertukar').where('surah').equals(1).toArray();
-  await tx.table('tandaTertukar').bulkDelete(tukar.map((x) => x.kunci));
-  await tx.table('tandaTertukar').bulkPut(
-    tukar.flatMap((x) => {
-      if (x.ayatAsal < 2 || x.ayatAsal > 6) return [];
-      const asal = x.ayatAsal - 1;
-      return [{ ...x, kunci: `1:${asal}`, ayatAsal: asal, ayatKeliru: x.ayatKeliru ? (petaAyatFatihah(x.ayatKeliru) ?? 0) : 0 }];
-    }),
-  );
-  // Hafalan dan riwayat sesi: rentang ayat digeser.
-  const hafalan = await tx.table('hafalan').where('surah').equals(1).toArray();
-  await tx.table('hafalan').bulkDelete(hafalan.map((x) => x.kunci));
-  const hafalanBaru = new Map<string, EntriHafalan>();
-  for (const x of hafalan as EntriHafalan[]) {
-    const r = petaRentangFatihah(x.ayatAwal, x.ayatAkhir);
-    if (!r) continue;
-    const kunci = `1:${r.awal}-${r.akhir}`;
-    hafalanBaru.set(kunci, { ...x, kunci, ayatAwal: r.awal, ayatAkhir: r.akhir });
-  }
-  await tx.table('hafalan').bulkPut([...hafalanBaru.values()]);
-  await tx
-    .table('sesi')
-    .where('surah')
-    .equals(1)
-    .modify((x: Sesi) => {
-      const r = petaRentangFatihah(x.ayatAwal, x.ayatAkhir) ?? { awal: 1, akhir: 1 };
-      x.ayatAwal = r.awal;
-      x.ayatAkhir = r.akhir;
+  db.version(3).stores({ jadwal: 'kunci, surah, jatuhTempo, mulai' });
+  db.version(4).stores({ deres: 'nomor, terakhir' });
+  // Versi 5 (30 juz, K-23): jadwal per potongan dipindah ke hafalan + jadwal per rukuk.
+  db.version(5)
+    .stores({
+      makna: 'kunci, surah, [surah+ayat]',
+      hafalan: 'kunci, surah, mulai',
+      jadwalRukuk: 'nomor, jatuhTempo',
+    })
+    .upgrade(async (tx: Transaction) => {
+      const lama = (await tx.table('jadwal').toArray()) as JadwalPotonganLama[];
+      const { hafalan, jadwal } = migrasiJadwalLama(lama);
+      await tx.table('hafalan').bulkPut(hafalan);
+      await tx.table('jadwalRukuk').bulkPut(jadwal);
     });
-});
+  db.version(6).stores({ jadwal: null, deres: null });
+  // Versi 7 (K-26): data Al-Fatihah dipindah ke hitungan Madinah (Alhamdulillah = ayat 1).
+  db.version(7).upgrade(async (tx: Transaction) => {
+    // Catatan & tanda per kata: kunci "1:ayat:urutan".
+    for (const nama of ['keterangan', 'tandaSalah']) {
+      const t = tx.table(nama);
+      const lama = await t.where('surah').equals(1).toArray();
+      await t.bulkDelete(lama.map((x) => x.kunci));
+      const baru = new Map<string, Record<string, unknown>>();
+      for (const x of lama) {
+        const p = petaKataFatihah(x.ayat, x.urutan);
+        if (!p) continue;
+        const kunci = `1:${p.ayat}:${p.urutan}`;
+        // Keterangan ayat lama 7 (urutan 0) hanya pindah ke ayat 6; tanda tidak bertabrakan.
+        if (!baru.has(kunci)) baru.set(kunci, { ...x, kunci, ayat: p.ayat, urutan: p.urutan });
+      }
+      await t.bulkPut([...baru.values()]);
+    }
+    // Makna waqaf yang disunting: ayat lama 7 tidak lagi cocok dengan potongannya, jadi dilepas.
+    const makna = await tx.table('makna').where('surah').equals(1).toArray();
+    await tx.table('makna').bulkDelete(makna.map((x) => x.kunci));
+    await tx.table('makna').bulkPut(
+      makna
+        .filter((x) => x.ayat >= 2 && x.ayat <= 6)
+        .map((x) => ({ ...x, kunci: `1:${x.ayat - 1}:${x.segmen}`, ayat: x.ayat - 1 })),
+    );
+    // Rekaman per ayat: basmalah dilepas; rekaman ayat lama 7 menjadi rekaman ayat 6.
+    const rekaman = await tx.table('rekaman').where('surah').equals(1).toArray();
+    await tx.table('rekaman').bulkDelete(rekaman.map((x) => x.kunci));
+    await tx.table('rekaman').bulkPut(
+      rekaman.flatMap((x) => {
+        const a = petaAyatFatihah(x.ayat);
+        return a ? [{ ...x, kunci: `1:${a}`, ayat: a }] : [];
+      }),
+    );
+    // Sambungan tertukar: sambungan basmalah → Alhamdulillah dilepas.
+    const tukar = await tx.table('tandaTertukar').where('surah').equals(1).toArray();
+    await tx.table('tandaTertukar').bulkDelete(tukar.map((x) => x.kunci));
+    await tx.table('tandaTertukar').bulkPut(
+      tukar.flatMap((x) => {
+        if (x.ayatAsal < 2 || x.ayatAsal > 6) return [];
+        const asal = x.ayatAsal - 1;
+        return [{ ...x, kunci: `1:${asal}`, ayatAsal: asal, ayatKeliru: x.ayatKeliru ? (petaAyatFatihah(x.ayatKeliru) ?? 0) : 0 }];
+      }),
+    );
+    // Hafalan dan riwayat sesi: rentang ayat digeser.
+    const hafalan = await tx.table('hafalan').where('surah').equals(1).toArray();
+    await tx.table('hafalan').bulkDelete(hafalan.map((x) => x.kunci));
+    const hafalanBaru = new Map<string, EntriHafalan>();
+    for (const x of hafalan as EntriHafalan[]) {
+      const r = petaRentangFatihah(x.ayatAwal, x.ayatAkhir);
+      if (!r) continue;
+      const kunci = `1:${r.awal}-${r.akhir}`;
+      hafalanBaru.set(kunci, { ...x, kunci, ayatAwal: r.awal, ayatAkhir: r.akhir });
+    }
+    await tx.table('hafalan').bulkPut([...hafalanBaru.values()]);
+    await tx
+      .table('sesi')
+      .where('surah')
+      .equals(1)
+      .modify((x: Sesi) => {
+        const r = petaRentangFatihah(x.ayatAwal, x.ayatAkhir) ?? { awal: 1, akhir: 1 };
+        x.ayatAwal = r.awal;
+        x.ayatAkhir = r.akhir;
+      });
+  });
+
+  // Versi 8 (K-37): penanda sinkron di setiap tabel. ubahMs = waktu perubahan oleh penulisnya
+  // (dipakai untuk menentukan yang terbaru), terimaMs = waktu diterima di perangkat ini (dipakai
+  // untuk mencari perubahan sejak sinkron terakhir), asal = '' bila dibuat di perangkat ini.
+  db.version(8)
+    .stores({
+      keterangan: 'kunci, surah, [surah+ayat], terimaMs',
+      makna: 'kunci, surah, [surah+ayat], terimaMs',
+      rekaman: 'kunci, surah, terimaMs',
+      tandaSalah: 'kunci, surah, terimaMs',
+      tandaTertukar: 'kunci, surah, terimaMs',
+      sesi: '++id, surah, tanggal, uid, terimaMs',
+      hafalan: 'kunci, surah, mulai, terimaMs',
+      jadwalRukuk: 'nomor, jatuhTempo, terimaMs',
+      hapus: 'kunci, terimaMs',
+      meta: 'kunci',
+    })
+    .upgrade(async (tx: Transaction) => {
+      const sekarang = Date.now();
+      const waktu = (...isi: unknown[]) => {
+        for (const x of isi) {
+          const t = typeof x === 'string' ? Date.parse(x) : NaN;
+          if (!Number.isNaN(t)) return t;
+        }
+        return sekarang;
+      };
+      for (const nama of TABEL_SINKRON) {
+        await tx
+          .table(nama)
+          .toCollection()
+          .modify((x: Record<string, unknown>) => {
+            x.ubahMs = waktu(x.diubah, x.direkam, x.terakhir, x.tanggal);
+            x.terimaMs = sekarang;
+            x.asal = '';
+            if (nama === 'sesi' && !x.uid) x.uid = idAcak();
+          });
+      }
+    });
+}
+
+// Penanda sinkron otomatis untuk setiap penulisan lokal (K-37).
+function pasangPenanda(db: SakuDB) {
+  for (const nama of TABEL_SINKRON) {
+    const t = db.table(nama);
+    t.hook('creating', (_kunci, obj: Record<string, unknown>) => {
+      if (nama === 'sesi' && !obj.uid) obj.uid = idAcak();
+      if (db._terapkan) return;
+      const kini = Date.now();
+      obj.ubahMs = kini;
+      obj.terimaMs = kini;
+      obj.asal = '';
+    });
+    t.hook('updating', () => {
+      if (db._terapkan) return undefined;
+      const kini = Date.now();
+      return { ubahMs: kini, terimaMs: kini, asal: '' };
+    });
+  }
+}
+
+export function idAcak(): string {
+  const c = globalThis.crypto as Crypto | undefined;
+  if (c?.randomUUID) return c.randomUUID();
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+}
+
+export const TABEL_SINKRON = [
+  'keterangan',
+  'makna',
+  'rekaman',
+  'tandaSalah',
+  'tandaTertukar',
+  'sesi',
+  'hafalan',
+  'jadwalRukuk',
+] as const;
+export type TabelSinkron = (typeof TABEL_SINKRON)[number];
+
+// Catatan penghapusan agar penghapusan ikut tersinkron (mis. hapus tanda salah manual).
+export interface Penghapusan {
+  kunci: string; // "tabel|kunci rekaman"
+  tabel: TabelSinkron;
+  kunciRekaman: string;
+  ubahMs: number;
+  terimaMs: number;
+  asal: string;
+}
+
+export function buatDb(nama: string): SakuDB {
+  const d = new Dexie(nama) as SakuDB;
+  siapkanSkema(d);
+  pasangPenanda(d);
+  return d;
+}
+
+const db = buatDb('rabth');
+
+// Mencatat penghapusan lokal; dipanggil di dalam transaksi yang menyertakan db.hapus.
+export async function catatHapus(d: SakuDB, tabel: TabelSinkron, kunci: (string | number)[]) {
+  const kini = Date.now();
+  await d.hapus.bulkPut(
+    kunci.map((k) => ({ kunci: `${tabel}|${k}`, tabel, kunciRekaman: String(k), ubahMs: kini, terimaMs: kini, asal: '' })),
+  );
+}
 
 export { db };
 
@@ -204,7 +313,11 @@ export async function ambilKeteranganSurah(surah: number): Promise<Map<string, K
 export async function simpanKeterangan(surah: number, ayat: number, urutan: number, isi: string) {
   const kunci = kunciKeterangan(surah, ayat, urutan);
   const bersih = isi.trim();
-  if (!bersih) return db.keterangan.delete(kunci);
+  if (!bersih)
+    return db.transaction('rw', db.keterangan, db.hapus, async () => {
+      await db.keterangan.delete(kunci);
+      await catatHapus(db, 'keterangan', [kunci]);
+    });
   await db.keterangan.put({ kunci, surah, ayat, urutan, isi: bersih, diubah: new Date().toISOString() });
 }
 
@@ -217,7 +330,11 @@ export async function ambilMaknaSurah(surah: number): Promise<Map<string, Makna>
 export async function simpanMakna(surah: number, ayat: number, segmen: number, isi: string) {
   const kunci = `${surah}:${ayat}:${segmen}`;
   const bersih = isi.trim();
-  if (!bersih) return db.makna.delete(kunci);
+  if (!bersih)
+    return db.transaction('rw', db.makna, db.hapus, async () => {
+      await db.makna.delete(kunci);
+      await catatHapus(db, 'makna', [kunci]);
+    });
   await db.makna.put({ kunci, surah, ayat, segmen, isi: bersih, diubah: new Date().toISOString() });
 }
 
@@ -259,10 +376,16 @@ export async function ambilTandaSurah(surah: number): Promise<TandaSurah> {
 
 // Penghapusan tanda hanya lewat tindakan manual pengguna (K-13, K-15).
 export async function hapusTandaSalah(kunci: string) {
-  await db.tandaSalah.delete(kunci);
+  await db.transaction('rw', db.tandaSalah, db.hapus, async () => {
+    await db.tandaSalah.delete(kunci);
+    await catatHapus(db, 'tandaSalah', [kunci]);
+  });
 }
 export async function hapusTandaTertukar(kunci: string) {
-  await db.tandaTertukar.delete(kunci);
+  await db.transaction('rw', db.tandaTertukar, db.hapus, async () => {
+    await db.tandaTertukar.delete(kunci);
+    await catatHapus(db, 'tandaTertukar', [kunci]);
+  });
 }
 
 // ---------- Hafalan & jadwal ----------
@@ -281,7 +404,7 @@ export async function ambilJadwal(): Promise<Map<number, EntriJadwal>> {
 
 // Menandai rukuk sebagai hafalan lama; mengembalikan jumlah rukuk yang baru ditandai.
 export async function tandaiHafalanLama(nomor: number[], hari = hariIni()): Promise<number> {
-  return db.transaction('rw', db.hafalan, db.jadwalRukuk, async () => {
+  return db.transaction('rw', db.hafalan, db.jadwalRukuk, db.hapus, async () => {
     const t = tandaiLama(nomor, await ambilHafalan(), await ambilJadwal(), hari);
     await db.hafalan.bulkPut(t.hafalan);
     await db.jadwalRukuk.bulkPut(t.jadwal);
@@ -291,7 +414,7 @@ export async function tandaiHafalanLama(nomor: number[], hari = hariIni()): Prom
 
 // K-30: tanda hafalan lama per ayat.
 export async function tandaiAyatHafalanLama(surah: number, ayat: number[], hari = hariIni()): Promise<void> {
-  await db.transaction('rw', db.hafalan, db.jadwalRukuk, async () => {
+  await db.transaction('rw', db.hafalan, db.jadwalRukuk, db.hapus, async () => {
     const t = tandaiAyatLama(ayat.map((a) => ({ surah, ayat: a })), await ambilHafalan(), await ambilJadwal(), hari);
     await db.hafalan.bulkPut(t.hafalan);
     await db.jadwalRukuk.bulkPut(t.jadwal);
@@ -299,21 +422,27 @@ export async function tandaiAyatHafalanLama(surah: number, ayat: number[], hari 
 }
 
 export async function batalkanAyatHafalanLama(surah: number, ayat: number[]): Promise<void> {
-  await db.transaction('rw', db.hafalan, db.jadwalRukuk, async () => {
+  await db.transaction('rw', db.hafalan, db.jadwalRukuk, db.hapus, async () => {
     const b = batalkanAyatLama(surah, ayat, await ambilHafalan(), await ambilJadwal());
     await db.hafalan.bulkDelete(b.hapusHafalan);
+    await catatHapus(db, 'hafalan', b.hapusHafalan);
     await db.hafalan.bulkPut(b.tambahHafalan);
     await db.jadwalRukuk.bulkPut(b.jadwal);
     await db.jadwalRukuk.bulkDelete(b.hapusJadwal);
+    await catatHapus(db, 'jadwalRukuk', b.hapusJadwal);
   });
 }
 
 export async function batalkanHafalanLama(nomor: number[], hari = hariIni()): Promise<void> {
-  await db.transaction('rw', db.hafalan, db.jadwalRukuk, async () => {
+  await db.transaction('rw', db.hafalan, db.jadwalRukuk, db.hapus, async () => {
     for (const n of nomor) {
       const b = batalkanLama(n, await ambilHafalan(), await ambilJadwal(), hari);
       await db.hafalan.bulkDelete(b.hapusHafalan);
-      if (b.hapusJadwal) await db.jadwalRukuk.delete(n);
+      await catatHapus(db, 'hafalan', b.hapusHafalan);
+      if (b.hapusJadwal) {
+        await db.jadwalRukuk.delete(n);
+        await catatHapus(db, 'jadwalRukuk', [n]);
+      }
       else if (b.jadwal) await db.jadwalRukuk.put(b.jadwal);
     }
   });

@@ -2556,3 +2556,60 @@ button.judul-juz.tandai {
 .tombol {
   gap: 6px;
 }
+
+/* K-39: sakelar teks selalu terlihat di bilah bawah layar rekam */
+.bilah-aksi.bilah-rekam {
+  flex-wrap: wrap;
+}
+.bilah-rekam .saklar-teks {
+  flex: 1 0 100%;
+  margin: 0 0 var(--space-1);
+  font-size: 15px;
+}
+.bilah-rekam .saklar-teks svg {
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.2em;
+}
+button.teks-tertutup {
+  display: block;
+  width: 100%;
+  font-family: inherit;
+  cursor: pointer;
+}
+.teks-tertutup .buka-teks {
+  display: block;
+  margin-top: var(--space-2);
+  font-style: normal;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-accent-700);
+}
+.teks-tertutup .buka-teks svg {
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.2em;
+}
+.isi-rekam {
+  padding-bottom: 170px;
+}
+.titik-rekam {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-left: 8px;
+  border-radius: 50%;
+  background: #d32f2f;
+  vertical-align: 0.1em;
+  animation: kedip-rekam 1s ease-in-out infinite;
+}
+@keyframes kedip-rekam {
+  50% {
+    opacity: 0.15;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .titik-rekam {
+    animation: none;
+  }
+}

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import Plat from '../komponen/Plat';
-import { Check, Microphone } from '@phosphor-icons/react';
+import { Check, Eye, EyeSlash, Microphone } from '@phosphor-icons/react';
 import { gulirKe } from '../komponen/gulir';
 import { cariSurah, labelPotongan, type Potongan } from '../data';
 import { labelDaftarAyat, useAyatMurojaah } from '../komponen/useAyatMurojaah';
@@ -12,6 +11,7 @@ import TeksAyat from '../komponen/TeksAyat';
 
 // Rekam berurutan per ayat (K-12, K-14). Teks ayat yang sedang dibaca tertutup
 // sampai "Selesai ayat ini" ditekan (K-16); bisa dibuka untuk hafalan baru.
+// Sakelar teks ada di bilah bawah agar tetap terjangkau selama merekam (K-39).
 export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; rukuk?: number }) {
   const surah = cariSurah(potongan.surah)!;
   const daftarMuat = useAyatMurojaah(potongan, rukuk);
@@ -19,7 +19,6 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
   const { status, mulai, selesai, lepas } = usePerekam();
   const [indeks, setIndeks] = useState(0);
   const [tampilkanTeks, setTampilkanTeks] = useState(false);
-  const [detik, setDetik] = useState(0);
   const [menyimpan, setMenyimpan] = useState(false);
   const refKini = useRef<HTMLDivElement>(null);
 
@@ -32,13 +31,6 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
     const t = setTimeout(() => gulirKe(refKini.current), 60);
     return () => clearTimeout(t);
   }, [indeks, daftarMuat, merekam, tampilkanTeks]);
-
-  useEffect(() => {
-    if (!merekam) return;
-    setDetik(0);
-    const t = setInterval(() => setDetik((d) => d + 1), 1000);
-    return () => clearInterval(t);
-  }, [merekam, indeks]);
 
   const selesaiAyat = async () => {
     setMenyimpan(true);
@@ -70,11 +62,6 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
       />
 
       <div className="isi-rekam">
-        <label className="saklar">
-          <input type="checkbox" checked={tampilkanTeks} onChange={(e) => setTampilkanTeks(e.target.checked)} />
-          <span>Tampilkan teks saat merekam (untuk hafalan baru)</span>
-        </label>
-
         {daftarAyat.slice(0, indeks).map((a) => (
           <div key={a.ayat} className="ayat selesai">
             <p className="status-ayat">
@@ -88,18 +75,20 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
 
         <div ref={refKini} className={'ayat kini' + (merekam ? ' sedang-rekam' : '')}>
           <p className="status-ayat">
-            Ayat {ayatKini.ayat} · {indeks + 1} dari {daftarAyat.length}
+            <span>
+              Ayat {ayatKini.ayat} · {indeks + 1} dari {daftarAyat.length}
+              {merekam && <span className="titik-rekam" role="img" aria-label="Sedang merekam" />}
+            </span>
           </p>
-          {merekam && (
-            <div className="detik-rekam" aria-live="polite">
-              <Plat teks={String(detik)} as="span" />
-              <span className="kicker">● merekam · detik</span>
-            </div>
-          )}
           {tampilkanTeks ? (
             <TeksAyat ayat={ayatKini} />
           ) : (
-            <div className="teks-tertutup">Teks tertutup — bacalah dari hafalan</div>
+            <button type="button" className="teks-tertutup" onClick={() => setTampilkanTeks(true)}>
+              Teks tertutup — bacalah dari hafalan
+              <span className="buka-teks">
+                <Eye weight="duotone" /> Lupa? Ketuk untuk melihat ayat
+              </span>
+            </button>
           )}
         </div>
 
@@ -111,7 +100,11 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
         {status === 'tidak-didukung' && <p className="pesan-galat">Perangkat ini belum mendukung perekaman.</p>}
       </div>
 
-      <div className="bilah-aksi">
+      <div className="bilah-aksi bilah-rekam">
+        <label className="saklar saklar-teks">
+          <input type="checkbox" checked={tampilkanTeks} onChange={(e) => setTampilkanTeks(e.target.checked)} />
+          <span>{tampilkanTeks ? <Eye weight="duotone" /> : <EyeSlash weight="duotone" />} Tampilkan teks ayat</span>
+        </label>
         {!merekam ? (
           <button
             className="tombol utama besar"

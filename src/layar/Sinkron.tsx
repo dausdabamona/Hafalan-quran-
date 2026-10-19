@@ -1,10 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ArrowsClockwise, Camera } from '@phosphor-icons/react';
 import QRCode from 'qrcode';
 import jsQR from 'jsqr';
 import { db } from '../db';
 import Kepala from '../komponen/Kepala';
 import { bacaMeta } from '../sinkron/mesin';
-import { buatKodePasang, daftarAnggota, lepasAnggota, type Anggota, type HasilSinkron, type Pusat } from '../sinkron/protokol';
+import {
+  buatKodePasang,
+  daftarAnggota,
+  lepasAnggota,
+  type Anggota,
+  type HasilSinkron,
+  type Pusat,
+} from '../sinkron/protokol';
 import {
   amatiPusat,
   amatiSinkron,
@@ -103,7 +111,10 @@ function SisiPusat() {
               {qr && <img className="gambar-qr" src={qr} alt="Kode QR pemasangan" />}
               <p className="kosong">Tanpa kamera? Ketik di laptop:</p>
               <p className="data-pasang">
-                Alamat <strong>{alamat.alamat}:{alamat.port}</strong>
+                Alamat{' '}
+                <strong>
+                  {alamat.alamat}:{alamat.port}
+                </strong>
                 <br />
                 Kode <strong>{kode}</strong>
               </p>
@@ -223,7 +234,7 @@ function SisiAnggota() {
             />
           ) : (
             <button className="tombol utama lebar" onClick={() => setPindai(true)} disabled={sibuk}>
-              📷 Pindai kode QR dari HP
+              <Camera weight="duotone" /> Pindai kode QR dari HP
             </button>
           )}
         </section>
@@ -274,7 +285,13 @@ function SisiAnggota() {
           Sinkron otomatis saat aplikasi dibuka, ditinggalkan, dan setiap 2 menit selama HP terjangkau.
         </p>
         <button className="tombol utama lebar" onClick={sinkron} disabled={sibuk}>
-          {sibuk ? 'Menyinkronkan…' : '⟳ Sinkron sekarang'}
+          {sibuk ? (
+            'Menyinkronkan…'
+          ) : (
+            <>
+              <ArrowsClockwise weight="duotone" /> Sinkron sekarang
+            </>
+          )}
         </button>
         {status && <p className="pesan-tandai">{status}</p>}
         <p className="kosong">
@@ -347,7 +364,11 @@ function PemindaiQr({ saatTerbaca, tutup }: { saatTerbaca: (teks: string) => voi
 
   return (
     <div className="pemindai">
-      {galat ? <p className="pesan-galat">{galat}</p> : <video ref={video} muted playsInline className="video-pindai" />}
+      {galat ? (
+        <p className="pesan-galat">{galat}</p>
+      ) : (
+        <video ref={video} muted playsInline className="video-pindai" />
+      )}
       <canvas ref={kanvas} hidden />
       <p className="kosong">Arahkan kode QR di layar HP ke kamera laptop.</p>
       <button className="tombol sekunder lebar" onClick={tutup}>

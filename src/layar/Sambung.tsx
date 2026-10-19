@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Check } from '@phosphor-icons/react';
 import { gulirKe } from '../komponen/gulir';
 import { cariSurah, type Ayat, type Surah } from '../data';
 import { ambilHafalan, db, tandaiTertukarLatihan } from '../db';
@@ -149,7 +150,7 @@ export default function LayarSambung() {
                   lanjut();
                 }}
               >
-                Lancar ✓
+                <Check weight="duotone" /> Lancar
               </button>
             </>
           ) : (

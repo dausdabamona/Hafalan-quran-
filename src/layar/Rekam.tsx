@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import Plat from '../komponen/Plat';
+import { Check, Microphone } from '@phosphor-icons/react';
 import { gulirKe } from '../komponen/gulir';
 import { cariSurah, labelPotongan, type Potongan } from '../data';
 import { labelDaftarAyat, useAyatMurojaah } from '../komponen/useAyatMurojaah';
@@ -75,7 +77,11 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
 
         {daftarAyat.slice(0, indeks).map((a) => (
           <div key={a.ayat} className="ayat selesai">
-            <p className="status-ayat">✓ Ayat {a.ayat} tersimpan</p>
+            <p className="status-ayat">
+              <span>
+                <Check weight="duotone" /> Ayat {a.ayat} tersimpan
+              </span>
+            </p>
             <TeksAyat ayat={a} />
           </div>
         ))}
@@ -83,8 +89,13 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
         <div ref={refKini} className={'ayat kini' + (merekam ? ' sedang-rekam' : '')}>
           <p className="status-ayat">
             Ayat {ayatKini.ayat} · {indeks + 1} dari {daftarAyat.length}
-            {merekam && <span className="indikator-rekam"> ● {detik} dtk</span>}
           </p>
+          {merekam && (
+            <div className="detik-rekam" aria-live="polite">
+              <Plat teks={String(detik)} as="span" />
+              <span className="kicker">● merekam · detik</span>
+            </div>
+          )}
           {tampilkanTeks ? (
             <TeksAyat ayat={ayatKini} />
           ) : (
@@ -107,7 +118,13 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
             onClick={mulai}
             disabled={status === 'meminta-izin' || status === 'tidak-didukung' || menyimpan}
           >
-            {status === 'meminta-izin' ? 'Meminta izin mikrofon…' : `🎙 Mulai rekam ayat ${ayatKini.ayat}`}
+            {status === 'meminta-izin' ? (
+              'Meminta izin mikrofon…'
+            ) : (
+              <>
+                <Microphone weight="duotone" /> Mulai rekam ayat {ayatKini.ayat}
+              </>
+            )}
           </button>
         ) : (
           <>

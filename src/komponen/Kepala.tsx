@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
+import { ArrowLeft } from '@phosphor-icons/react';
 
+// Kepala layar turunan (Broadsheet): sticky di atas kertas, tombol kembali ghost.
 export default function Kepala({
   judul,
   sub,
@@ -15,7 +17,7 @@ export default function Kepala({
     <header className="kepala">
       {kembali && (
         <button className="tombol-ikon" onClick={() => history.back()} aria-label="Kembali">
-          ‹
+          <ArrowLeft weight="duotone" />
         </button>
       )}
       <div className="judul-surah">

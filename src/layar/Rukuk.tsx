@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react';
+import { Microphone } from '@phosphor-icons/react';
 import { cariRukuk, juzAyat } from '../data';
 import { ambilHafalan, ambilJadwal } from '../db';
-import { hariIni, kelompok, labelAyatHafal, rentangMurojaah, selisihHari, type EntriHafalan, type EntriJadwal } from '../jadwal';
+import {
+  hariIni,
+  kelompok,
+  labelAyatHafal,
+  rentangMurojaah,
+  selisihHari,
+  type EntriHafalan,
+  type EntriJadwal,
+} from '../jadwal';
 import { hashPotongan, pergi } from '../navigasi';
 import Kepala from '../komponen/Kepala';
 import { namaRukuk } from './HariIni';
@@ -50,7 +59,9 @@ export default function LayarRukuk() {
                   </span>
                   <span className="redup">{keteranganJadwal(j, hari)}</span>
                 </span>
-                <span className="panah">🎙</span>
+                <span className="panah">
+                  <Microphone weight="duotone" />
+                </span>
               </button>
             </li>
           );

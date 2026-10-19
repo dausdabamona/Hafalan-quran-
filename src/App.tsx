@@ -20,7 +20,7 @@ import { Pengingat, pengingatTersedia, sinkronAyatKartu } from './pengingat';
 
 const UKURAN_MIN = 22;
 const UKURAN_MAX = 48;
-const UKURAN_AWAL = 32;
+const UKURAN_AWAL = 34;
 
 function bacaUkuran(): number {
   try {

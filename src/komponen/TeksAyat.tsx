@@ -29,7 +29,7 @@ export default function TeksAyat({
           </span>
         ),
       )}
-      <span className="nomor-ayat">{angkaArab(ayat.ayat)}</span>
+      <span className="nomor-ayat">﴿{angkaArab(ayat.ayat)}﴾</span>
     </div>
   );
 }

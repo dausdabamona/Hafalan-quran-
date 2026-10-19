@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Play, Stop } from '@phosphor-icons/react';
 import { gulirKe } from '../komponen/gulir';
 import { cariSurah, labelPotongan, type Potongan } from '../data';
 import { labelDaftarAyat, useAyatMurojaah } from '../komponen/useAyatMurojaah';
@@ -73,7 +74,9 @@ export default function LayarKoreksi({ potongan, rukuk }: { potongan: Potongan; 
       }),
       tertukar: [...tertukarSesi].map(([ayatAsal, ayatKeliru]) => ({ ayatAsal, ayatKeliru })),
       // Ayat tidak berurutan (hafalan lama per ayat): catat ayat yang benar-benar dikoreksi.
-      ...(daftarAyat.length !== potongan.ayatAkhir - potongan.ayatAwal + 1 ? { ayat: daftarAyat.map((a) => a.ayat) } : {}),
+      ...(daftarAyat.length !== potongan.ayatAkhir - potongan.ayatAwal + 1
+        ? { ayat: daftarAyat.map((a) => a.ayat) }
+        : {}),
     };
     // Murojaah rukuk memperbarui jadwal rukuk, bukan jadwal potongan (K-23).
     const sesi = await simpanKoreksi({ ...isi, rukuk });
@@ -85,7 +88,10 @@ export default function LayarKoreksi({ potongan, rukuk }: { potongan: Potongan; 
   if (hasil) {
     return (
       <>
-        <Kepala judul={`Koreksi · ${surah.nama}`} sub={`${rukuk ? 'Murojaah rukuk' : 'Potongan'} ${rukuk && daftarAyat.length ? labelDaftarAyat(daftarAyat) : labelPotongan(potongan)}`} />
+        <Kepala
+          judul={`Koreksi · ${surah.nama}`}
+          sub={`${rukuk ? 'Murojaah rukuk' : 'Potongan'} ${rukuk && daftarAyat.length ? labelDaftarAyat(daftarAyat) : labelPotongan(potongan)}`}
+        />
         <div className="hasil-koreksi">
           {hasil.lancar ? (
             <>
@@ -119,7 +125,10 @@ export default function LayarKoreksi({ potongan, rukuk }: { potongan: Potongan; 
 
   return (
     <>
-      <Kepala judul={`Koreksi · ${surah.nama}`} sub={`${rukuk ? 'Murojaah rukuk' : 'Potongan'} ${rukuk && daftarAyat.length ? labelDaftarAyat(daftarAyat) : labelPotongan(potongan)}`} />
+      <Kepala
+        judul={`Koreksi · ${surah.nama}`}
+        sub={`${rukuk ? 'Murojaah rukuk' : 'Potongan'} ${rukuk && daftarAyat.length ? labelDaftarAyat(daftarAyat) : labelPotongan(potongan)}`}
+      />
       <p className="petunjuk">
         Putar rekaman sambil melihat ayat. Ketuk kata yang salah; ketuk lagi untuk membatalkan. Bila urutan ayat
         tertukar, tandai pada sambungannya.
@@ -275,7 +284,15 @@ function PutarSemua({
     <>
       <audio ref={el} />
       <button className="tombol sekunder" onClick={tekan}>
-        {main ? '■ Berhenti' : '▶ Putar semua'}
+        {main ? (
+          <>
+            <Stop weight="duotone" /> Berhenti
+          </>
+        ) : (
+          <>
+            <Play weight="duotone" /> Putar semua
+          </>
+        )}
       </button>
     </>
   );

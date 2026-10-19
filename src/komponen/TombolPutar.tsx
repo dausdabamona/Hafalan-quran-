@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Pause, Play } from '@phosphor-icons/react';
 import { useUrlAudio } from '../perekam';
 
 // Tombol putar/berhenti untuk satu rekaman ayat.
@@ -28,7 +29,9 @@ export default function TombolPutar({ audio, label = 'Putar' }: { audio?: Blob; 
       a.pause();
     } else {
       a.currentTime = 0;
-      a.play().then(() => setMain(true)).catch(() => setMain(false));
+      a.play()
+        .then(() => setMain(true))
+        .catch(() => setMain(false));
     }
   };
 
@@ -36,7 +39,15 @@ export default function TombolPutar({ audio, label = 'Putar' }: { audio?: Blob; 
     <>
       <audio ref={el} src={url} preload="auto" />
       <button className={'tombol-putar' + (main ? ' aktif' : '')} onClick={tekan}>
-        {main ? '■ Berhenti' : `▶ ${label}`}
+        {main ? (
+          <>
+            <Pause weight="duotone" /> Jeda
+          </>
+        ) : (
+          <>
+            <Play weight="duotone" /> {label}
+          </>
+        )}
       </button>
     </>
   );

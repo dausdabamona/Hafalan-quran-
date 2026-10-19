@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Check, Microphone, Pause, Play, Stop, Warning } from '@phosphor-icons/react';
 import { gulirDalam, gulirKe } from '../komponen/gulir';
 import { cariAyat, cariSurah, daftarJuz, daftarSurah, segmenAyat } from '../data';
 import { ambilMaknaSurah, type Makna } from '../db';
@@ -64,11 +65,11 @@ export function LayarPilihMurotal() {
       <Kepala judul="Murotal" sub="Dari rekaman murojaah Anda sendiri" />
       <section className="kartu">
         <p className="kosong">
-          Hanya ayat yang rekamannya sudah dikoreksi dan bersih dari kesalahan yang diputar. Murotal tetap berputar
-          saat layar dimatikan.
+          Hanya ayat yang rekamannya sudah dikoreksi dan bersih dari kesalahan yang diputar. Murotal tetap berputar saat
+          layar dimatikan.
         </p>
         <button className="tombol utama lebar" onClick={() => pergi(hashMurotal({ jenis: 'hafalan' }))}>
-          ▶ Semua hafalan
+          <Play weight="duotone" /> Semua hafalan
         </button>
       </section>
       <section className="kartu">
@@ -88,13 +89,17 @@ export function LayarPilihMurotal() {
         >
           Buka murotal surah ini
         </button>
-        <p className="kosong">Murotal per rukuk: buka surahnya, lalu ketuk ▶ Murotal di kepala rukuk.</p>
+        <p className="kosong">Murotal per rukuk: buka surahnya, lalu ketuk Murotal di kepala rukuk.</p>
       </section>
       <section className="kartu">
         <h2>Per juz</h2>
         <div className="kisi-juz">
           {daftarJuz.map((j) => (
-            <button key={j.nomor} className="tombol sekunder" onClick={() => pergi(hashMurotal({ jenis: 'juz', nomor: j.nomor }))}>
+            <button
+              key={j.nomor}
+              className="tombol sekunder"
+              onClick={() => pergi(hashMurotal({ jenis: 'juz', nomor: j.nomor }))}
+            >
               {j.nomor}
             </button>
           ))}
@@ -107,7 +112,7 @@ export function LayarPilihMurotal() {
 // ---------- Murotal satu rentang ----------
 
 const LABEL: Record<Exclude<StatusRekaman, 'siap'>, string> = {
-  perbaiki: '⚠ Perlu diperbaiki',
+  perbaiki: 'Perlu diperbaiki',
   'belum-koreksi': '○ Belum dikoreksi',
   'belum-rekam': '– Belum direkam',
 };
@@ -222,7 +227,7 @@ export default function LayarMurotal({ rentang }: { rentang: Rentang }) {
         ) : (
           !aktif && (
             <button className="tombol utama lebar" onClick={() => mulai(judul, hasil.siap, hash)}>
-              ▶ Putar murotal
+              <Play weight="duotone" /> Putar murotal
             </button>
           )
         )}
@@ -231,7 +236,10 @@ export default function LayarMurotal({ rentang }: { rentang: Rentang }) {
       {aktif && kini && ayatKini && (
         <section className="kartu pemutar" ref={refPemutar}>
           <p className="lokasi-putar">
-            {namaAyat(kini)} <span className="redup">({aktif.indeks + 1} dari {aktif.daftar.length})</span>
+            {namaAyat(kini)}{' '}
+            <span className="redup">
+              ({aktif.indeks + 1} dari {aktif.daftar.length})
+            </span>
           </p>
           <div className="pilih-tampilan" role="group" aria-label="Tampilan saat diputar">
             {(['ayat', 'arti', 'tutup'] as Tampilan[]).map((t) => (
@@ -250,36 +258,51 @@ export default function LayarMurotal({ rentang }: { rentang: Rentang }) {
               ))}
             </ol>
           )}
-          {tampilan === 'tutup' && (
-            <div className="teks-tertutup">Teks tertutup — simak dan ikuti dari hafalan</div>
-          )}
+          {tampilan === 'tutup' && <div className="teks-tertutup">Teks tertutup — simak dan ikuti dari hafalan</div>}
           <div className="kendali-putar">
             {/* Arah mengikuti mushaf: ayat berikutnya di kiri. */}
-            <button className="tombol-nav" onClick={() => lompat(1)} disabled={aktif.indeks >= aktif.daftar.length - 1} aria-label="Ayat berikutnya">
+            <button
+              className="tombol-nav"
+              onClick={() => lompat(1)}
+              disabled={aktif.indeks >= aktif.daftar.length - 1}
+              aria-label="Ayat berikutnya"
+            >
               ‹ Berikutnya
             </button>
             <button className="tombol utama bulat" onClick={putarJeda} aria-label={aktif.main ? 'Jeda' : 'Putar'}>
-              {aktif.main ? '❚❚' : '▶'}
+              {aktif.main ? <Pause weight="duotone" /> : <Play weight="duotone" />}
             </button>
-            <button className="tombol-nav" onClick={() => lompat(-1)} disabled={aktif.indeks === 0} aria-label="Ayat sebelumnya">
+            <button
+              className="tombol-nav"
+              onClick={() => lompat(-1)}
+              disabled={aktif.indeks === 0}
+              aria-label="Ayat sebelumnya"
+            >
               Sebelumnya ›
             </button>
           </div>
-          <button className="tombol sekunder lebar ada-salah" onClick={() => bukaPerbaikan({ surah: kini.surah, ayat: kini.ayat })}>
-            ⚠ Ada salah di ayat ini
+          <button
+            className="tombol sekunder lebar ada-salah"
+            onClick={() => bukaPerbaikan({ surah: kini.surah, ayat: kini.ayat })}
+          >
+            <Warning weight="duotone" /> Ada salah di ayat ini
           </button>
-          {aktif.selesai && <p className="kosong">Murotal selesai. Ketuk ▶ untuk mengulang dari awal.</p>}
+          {aktif.selesai && <p className="kosong">Murotal selesai. Ketuk putar untuk mengulang dari awal.</p>}
           <div className="pilihan-putar">
             <div className="kecepatan">
               {[0.75, 1, 1.25].map((k) => (
-                <button key={k} className={'chip' + (aktif.kecepatan === k ? ' aktif' : '')} onClick={() => aturKecepatan(k)}>
+                <button
+                  key={k}
+                  className={'chip' + (aktif.kecepatan === k ? ' aktif' : '')}
+                  onClick={() => aturKecepatan(k)}
+                >
                   {String(k).replace('.', ',')}×
                 </button>
               ))}
             </div>
           </div>
           <button className="tautan" onClick={berhenti}>
-            ■ Hentikan murotal
+            <Stop weight="duotone" /> Hentikan murotal
           </button>
         </section>
       )}
@@ -327,7 +350,15 @@ export default function LayarMurotal({ rentang }: { rentang: Rentang }) {
                   <span className={'status ' + status}>{LABEL[status]}</span> {namaAyat(letak)}
                 </span>
                 <button className="tombol kecil sekunder" onClick={() => perbaiki(letak, status)}>
-                  {status === 'belum-koreksi' ? '✓ Koreksi' : '🎙 Rekam ulang'}
+                  {status === 'belum-koreksi' ? (
+                    <>
+                      <Check weight="duotone" /> Koreksi
+                    </>
+                  ) : (
+                    <>
+                      <Microphone weight="duotone" /> Rekam ulang
+                    </>
+                  )}
                 </button>
               </li>
             ))}
@@ -356,7 +387,7 @@ export function BilahPemutar({ layarHash }: { layarHash: string }) {
         <span>{namaAyat(kini)}</span>
       </button>
       <button className="tombol-ikon" onClick={putarJeda} aria-label={k.main ? 'Jeda' : 'Putar'}>
-        {k.main ? '❚❚' : '▶'}
+        {k.main ? <Pause weight="duotone" /> : <Play weight="duotone" />}
       </button>
       <button className="tombol-ikon" onClick={berhenti} aria-label="Hentikan murotal">
         ✕

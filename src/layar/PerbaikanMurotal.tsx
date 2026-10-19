@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Check, Microphone, Play } from '@phosphor-icons/react';
 import { cariAyat, cariSurah } from '../data';
 import { ambilJadwal, ambilRekamanSurah, kunciAyat, simpanKoreksi, simpanRekaman, type Rekaman } from '../db';
 import { tujuanPerbaikan } from '../murotal';
@@ -31,8 +32,7 @@ export default function PerbaikanMurotal({
   const { status, mulai, selesai, lepas } = usePerekam();
   const merekam = status === 'merekam';
 
-  const muatRekaman = () =>
-    ambilRekamanSurah(surah).then((m) => setRekaman(m.get(kunciAyat(surah, ayat))));
+  const muatRekaman = () => ambilRekamanSurah(surah).then((m) => setRekaman(m.get(kunciAyat(surah, ayat))));
 
   useEffect(() => {
     muatRekaman();
@@ -132,7 +132,11 @@ export default function PerbaikanMurotal({
               <input type="checkbox" checked={tampilTeks} onChange={(e) => setTampilTeks(e.target.checked)} />
               <span>Tampilkan teks</span>
             </label>
-            {tampilTeks ? <TeksAyat ayat={a} /> : <div className="teks-tertutup">Teks tertutup — bacalah dari hafalan</div>}
+            {tampilTeks ? (
+              <TeksAyat ayat={a} />
+            ) : (
+              <div className="teks-tertutup">Teks tertutup — bacalah dari hafalan</div>
+            )}
             {status === 'ditolak' && <p className="pesan-galat">Izin mikrofon belum diberikan.</p>}
             <div className="aksi-lembar">
               {merekam ? (
@@ -141,7 +145,7 @@ export default function PerbaikanMurotal({
                 </button>
               ) : (
                 <button className="tombol utama besar" onClick={() => mulai()} disabled={status === 'meminta-izin'}>
-                  🎙 Mulai rekam ayat {ayat}
+                  <Microphone weight="duotone" /> Mulai rekam ayat {ayat}
                 </button>
               )}
             </div>
@@ -150,7 +154,9 @@ export default function PerbaikanMurotal({
 
         {tahap === 'koreksi-baru' && (
           <>
-            <p className="kosong">Dengarkan rekaman baru. Ketuk kata yang masih salah; bila semua benar, langsung simpan.</p>
+            <p className="kosong">
+              Dengarkan rekaman baru. Ketuk kata yang masih salah; bila semua benar, langsung simpan.
+            </p>
             {rekaman && <TombolPutar audio={rekaman.audio} label="Dengar rekaman baru" />}
             {teksDitandai}
             {ayat > 1 && (
@@ -165,7 +171,13 @@ export default function PerbaikanMurotal({
                 disabled={menyimpan}
                 onClick={async () => setTahap((await simpan()) ? 'bersih' : 'masih-salah')}
               >
-                {salah.size === 0 && !tertukar ? '✓ Benar semua, simpan' : 'Simpan koreksi'}
+                {salah.size === 0 && !tertukar ? (
+                  <>
+                    <Check weight="duotone" /> Benar semua, simpan
+                  </>
+                ) : (
+                  'Simpan koreksi'
+                )}
               </button>
             </div>
           </>
@@ -177,7 +189,7 @@ export default function PerbaikanMurotal({
             <p className="kosong">Rekaman baru ayat {ayat} masuk murotal. Rukuknya diulang lagi besok.</p>
             <div className="aksi-lembar">
               <button className="tombol utama" onClick={() => tutup(true)}>
-                ▶ Lanjutkan murotal
+                <Play weight="duotone" /> Lanjutkan murotal
               </button>
             </div>
           </>
@@ -192,7 +204,7 @@ export default function PerbaikanMurotal({
                 Nanti saja
               </button>
               <button className="tombol utama" onClick={rekamUlang}>
-                🎙 Rekam ulang
+                <Microphone weight="duotone" /> Rekam ulang
               </button>
             </div>
           </>

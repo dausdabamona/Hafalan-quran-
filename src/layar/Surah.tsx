@@ -1,5 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  CaretLeft,
+  CaretRight,
+  Check,
+  CheckSquare,
+  Headphones,
+  Microphone,
+  NotePencil,
+  Pause,
+  Play,
+  Warning,
+} from '@phosphor-icons/react';
+import {
   ayatPotongan,
   juzAyat,
   labelPotongan,
@@ -212,6 +224,7 @@ export default function LayarSurah({
     const kelas: string[] = [];
     if (keterangan.has(kunciKeterangan(surah.nomor, a.ayat, k.urutan))) kelas.push('ada-catatan');
     if (tanda.salah.has(kunciKata(surah.nomor, a.ayat, k.urutan))) kelas.push('tanda-lama');
+    if (lembar?.jenis === 'kata' && semuaKata[lembar.indeks]?.kata === k) kelas.push('dibuka');
     return kelas.join(' ');
   };
 
@@ -237,7 +250,9 @@ export default function LayarSurah({
   };
 
   const batalTanda = async (nomor: number) => {
-    if (!window.confirm('Batalkan tanda hafalan lama rukuk ini? Bagian yang dihafal lewat Hafalan baru tetap tercatat.'))
+    if (
+      !window.confirm('Batalkan tanda hafalan lama rukuk ini? Bagian yang dihafal lewat Hafalan baru tetap tercatat.')
+    )
       return;
     await batalkanHafalanLama([nomor]);
     await muat();
@@ -281,10 +296,10 @@ export default function LayarSurah({
             >
               Makna
             </button>
-            <button className="tombol-ikon kecil" onClick={() => aturUkuran(-2)} aria-label="Perkecil huruf">
+            <button className="tombol-ikon kecil" onClick={() => aturUkuran(-4)} aria-label="Perkecil huruf">
               A−
             </button>
-            <button className="tombol-ikon kecil" onClick={() => aturUkuran(2)} aria-label="Perbesar huruf">
+            <button className="tombol-ikon kecil" onClick={() => aturUkuran(4)} aria-label="Perbesar huruf">
               A+
             </button>
           </div>
@@ -295,27 +310,45 @@ export default function LayarSurah({
         {modeTandai ? (
           <>
             <p>
-              Ketuk <strong>kotak di atas ayat</strong> yang sudah Anda hafal, atau tandai sekaligus satu rentang.
-              Ayat yang ditandai masuk Ulang hafalan per rukuk; yang direkam hanya ayat yang hafal.
+              Ketuk <strong>kotak di atas ayat</strong> yang sudah Anda hafal, atau tandai sekaligus satu rentang. Ayat
+              yang ditandai masuk Ulang hafalan per rukuk; yang direkam hanya ayat yang hafal.
             </p>
             <div className="isi-rentang">
               <span>Ayat</span>
-              <input inputMode="numeric" value={dari} onChange={(e) => setDari(e.target.value.replace(/\D/g, ''))} aria-label="Dari ayat" placeholder="dari" />
+              <input
+                inputMode="numeric"
+                value={dari}
+                onChange={(e) => setDari(e.target.value.replace(/\D/g, ''))}
+                aria-label="Dari ayat"
+                placeholder="dari"
+              />
               <span>–</span>
-              <input inputMode="numeric" value={sampai} onChange={(e) => setSampai(e.target.value.replace(/\D/g, ''))} aria-label="Sampai ayat" placeholder="sampai" />
+              <input
+                inputMode="numeric"
+                value={sampai}
+                onChange={(e) => setSampai(e.target.value.replace(/\D/g, ''))}
+                aria-label="Sampai ayat"
+                placeholder="sampai"
+              />
               <button className="tombol kecil utama" onClick={tandaiRentang}>
                 Tandai
               </button>
             </div>
             {pesanTandai && <p className="pesan-tandai">{pesanTandai}</p>}
-            <button className="tombol sekunder lebar" onClick={() => { setModeTandai(false); setPesanTandai(''); }}>
+            <button
+              className="tombol sekunder lebar"
+              onClick={() => {
+                setModeTandai(false);
+                setPesanTandai('');
+              }}
+            >
               Selesai menandai
             </button>
           </>
         ) : (
           <button className="tautan" onClick={() => setModeTandai(true)}>
-            ✓ Tandai ayat yang sudah hafal ({[...hafalSet].filter((k) => k.startsWith(`${surah.nomor}:`)).length} dari{' '}
-            {surah.jumlahAyat} hafal)
+            <CheckSquare weight="duotone" /> Tandai ayat yang sudah hafal (
+            {[...hafalSet].filter((k) => k.startsWith(`${surah.nomor}:`)).length} dari {surah.jumlahAyat} hafal)
           </button>
         )}
       </div>
@@ -339,9 +372,11 @@ export default function LayarSurah({
               <div className="aksi-rukuk">
                 <button
                   className="tautan kecil"
-                  onClick={() => pergi(hashMurotal({ jenis: 'ayat', surah: r.surah, ayatAwal: r.ayatAwal, ayatAkhir: r.ayatAkhir }))}
+                  onClick={() =>
+                    pergi(hashMurotal({ jenis: 'ayat', surah: r.surah, ayatAwal: r.ayatAwal, ayatAkhir: r.ayatAkhir }))
+                  }
                 >
-                  ▶ Murotal
+                  <Headphones weight="duotone" /> Murotal
                 </button>
                 {j && !j.lengkap && (
                   <button className="tautan kecil" onClick={() => tandaiLalu(r.nomor, false)}>
@@ -355,11 +390,11 @@ export default function LayarSurah({
                 )}
                 {rentang ? (
                   <button className="tombol kecil utama" onClick={() => pergi(hashPotongan('rekam', rentang, r.nomor))}>
-                    🎙 Murojaah rukuk
+                    <Microphone weight="duotone" /> Murojaah rukuk
                   </button>
                 ) : (
                   <button className="tombol kecil sekunder" onClick={() => tandaiLalu(r.nomor, true)}>
-                    🎙 Murojaah rukuk
+                    <Microphone weight="duotone" /> Murojaah rukuk
                   </button>
                 )}
               </div>
@@ -376,14 +411,14 @@ export default function LayarSurah({
                       <span className="label-potongan">Potongan {labelPotongan(p)}</span>
                       <div className="aksi-potongan">
                         <button className="tombol kecil sekunder" onClick={() => pergi(hashPotongan('rekam', p))}>
-                          🎙 Rekam
+                          <Microphone weight="duotone" /> Rekam
                         </button>
                         <button
                           className="tombol kecil sekunder"
                           onClick={() => pergi(hashPotongan('koreksi', p))}
                           disabled={!terekam}
                         >
-                          ✓ Koreksi
+                          <Check weight="duotone" /> Koreksi
                         </button>
                       </div>
                     </div>
@@ -398,7 +433,11 @@ export default function LayarSurah({
                               <button
                                 className={
                                   'tandai-ayat tandai ' +
-                                  (lamaSet.has(a.ayat) ? 'semua' : hafalSet.has(`${surah.nomor}:${a.ayat}`) ? 'semua baru' : 'belum')
+                                  (lamaSet.has(a.ayat)
+                                    ? 'semua'
+                                    : hafalSet.has(`${surah.nomor}:${a.ayat}`)
+                                      ? 'semua baru'
+                                      : 'belum')
                                 }
                                 onClick={() => ubahAyat(a.ayat)}
                               >
@@ -414,6 +453,10 @@ export default function LayarSurah({
                               </button>
                             )}
                             <div className={'ayat' + (ayatDiputar === a.ayat ? ' diputar' : '')}>
+                              <p className="label-ayat kicker">
+                                Ayat {a.ayat}
+                                {rek ? ' · terekam' : ''}
+                              </p>
                               <TeksAyat ayat={a} kelasKata={kelasKata(a)} ketukKata={(k) => bukaKata(a, k)} />
                               {tampilMakna && (
                                 <ol className="daftar-makna">
@@ -426,7 +469,10 @@ export default function LayarSurah({
                                           onClick={() => setLembar({ jenis: 'makna', ayat: a, segmen: s })}
                                         >
                                           {m?.isi ?? s.maknaBawaan}
-                                          <span className="pena"> ✎</span>
+                                          <span className="pena">
+                                            {' '}
+                                            <NotePencil weight="duotone" />
+                                          </span>
                                         </button>
                                       </li>
                                     );
@@ -435,14 +481,22 @@ export default function LayarSurah({
                               )}
                               <div className="kaki-ayat">
                                 <button className="tautan" onClick={() => setLembar({ jenis: 'ayat', ayat: a })}>
-                                  {ketAyat ? 'Keterangan ayat ✎' : '+ Keterangan ayat'}
+                                  <NotePencil weight="duotone" /> {ketAyat ? 'Ubah keterangan' : 'Keterangan'}
                                 </button>
                                 {rek && (
                                   <button
-                                    className={'tombol-putar' + (ayatDiputar === a.ayat ? ' aktif' : '')}
+                                    className={'tombol sekunder kecil' + (ayatDiputar === a.ayat ? ' aktif' : '')}
                                     onClick={() => putarDariSini(a.ayat, rek.audio)}
                                   >
-                                    {ayatDiputar === a.ayat && pemutar?.main ? '❚❚ Jeda' : '▶ Putar dari sini'}
+                                    {ayatDiputar === a.ayat && pemutar?.main ? (
+                                      <>
+                                        <Pause weight="duotone" /> Jeda
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Play weight="duotone" /> Putar dari sini
+                                      </>
+                                    )}
                                   </button>
                                 )}
                               </div>
@@ -451,7 +505,8 @@ export default function LayarSurah({
                             {tertukar && (
                               <div className="sambungan-bertanda">
                                 <span>
-                                  ⚠ Sambungan ke ayat {tertukar.ayatAsal + 1} pernah tertukar {tertukar.jumlah}× (terbaca{' '}
+                                  <Warning weight="duotone" /> Sambungan ke ayat {tertukar.ayatAsal + 1} pernah tertukar{' '}
+                                  {tertukar.jumlah}× (terbaca{' '}
                                   {tertukar.ayatKeliru ? `ayat ${tertukar.ayatKeliru}` : 'ayat lain'})
                                 </span>
                                 <button className="tautan kecil" onClick={() => hapusTertukar(tertukar)}>
@@ -573,13 +628,18 @@ function LembarKata({
             disabled={indeks === daftar.length - 1}
             aria-label="Kata berikutnya"
           >
-            ‹ Berikutnya
+            <CaretLeft weight="duotone" />
           </button>
           <p className="kata-besar" lang="ar" dir="rtl">
             {kini.kata.teks}
           </p>
-          <button className="tombol-nav" onClick={() => pindah(-1)} disabled={indeks === 0} aria-label="Kata sebelumnya">
-            Sebelumnya ›
+          <button
+            className="tombol-nav"
+            onClick={() => pindah(-1)}
+            disabled={indeks === 0}
+            aria-label="Kata sebelumnya"
+          >
+            <CaretRight weight="duotone" />
           </button>
         </div>
         <p className="arti">{kini.kata.arti}</p>

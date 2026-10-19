@@ -16,9 +16,9 @@ export default function LayarTentang() {
         <h2>Teks Al-Qur'an</h2>
         <p>
           Teks Utsmani Mushaf Madinah dari Tanzil Project, dipakai tanpa perubahan di bawah lisensi Creative Commons
-          Attribution 3.0. Pembaruan teks dapat dipantau di <a href="https://tanzil.net">tanzil.net</a>.
-          Al-Fatihah diberi nomor menurut hitungan Madinah: Alhamdulillah ayat 1, basmalah sebagai pembuka, dan
-          ayat 6 berakhir pada <span lang="ar">أَنْعَمْتَ عَلَيْهِمْ</span>. Hurufnya tetap sama.
+          Attribution 3.0. Pembaruan teks dapat dipantau di <a href="https://tanzil.net">tanzil.net</a>. Al-Fatihah
+          diberi nomor menurut hitungan Madinah: Alhamdulillah ayat 1, basmalah sebagai pembuka, dan ayat 6 berakhir
+          pada <span lang="ar">أَنْعَمْتَ عَلَيْهِمْ</span>. Hurufnya tetap sama.
         </p>
         <h2>Arti per kata</h2>
         <p>

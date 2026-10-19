@@ -223,3 +223,7 @@ Terjawab: P-13 (arti per kata + keterangan pribadi), P-14 (Madinah), P-16 (OPPO 
 | Kunci tanda tangan APK hilang | Disimpan di dua tempat |
 | Teks salah karena salah olah data | Teks Tanzil apa adanya; sampel dicocokkan dengan mushaf cetak |
 | Fitur terus bertambah | Fitur baru menunggu setelah uji pakai 14 hari |
+
+## K-38 — Tampilan Broadsheet (19 Okt 2026)
+
+Seluruh aplikasi mengikuti sistem desain Broadsheet dari prototipe yang dikirim pengguna: kertas krem, huruf Source Serif 4, aksen teal, efek pelat cetak C/M/Y untuk angka dan judul besar (tidak untuk teks Arab), kartu diganti bagian bergaris seperti koran, dan semua emoji diganti ikon Phosphor duotone. Layar Hari ini disusun seperti halaman depan koran (tanggal Masehi dan Hijriah, angka hafalan besar, strip 30 juz, Hafalan baru dengan langkah bernomor, Ulang hafalan dengan tangga jarak 1·3·7·14·30). Layar surah: label "Ayat n", kata yang dibuka disorot; layar rekam: hitungan detik besar saat merekam. Fungsi tidak berubah.

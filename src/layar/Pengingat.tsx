@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { CheckCircle, Circle } from '@phosphor-icons/react';
 import Kepala from '../komponen/Kepala';
 import { APLIKASI_PEMICU, PAKET_BAWAAN, Pengingat, pengingatTersedia, sinkronAyatKartu } from '../pengingat';
 
@@ -97,7 +98,9 @@ export default function LayarPengingat() {
       <section className="kartu">
         <h2>1. Izin</h2>
         <div className="baris-izin">
-          <span>{k.overlay ? '✓' : '○'} Tampil di atas aplikasi lain</span>
+          <span>
+            {k.overlay ? <CheckCircle weight="duotone" /> : <Circle weight="duotone" />} Tampil di atas aplikasi lain
+          </span>
           {!k.overlay && (
             <button className="tombol kecil sekunder" onClick={() => Pengingat.bukaSetelanOverlay()}>
               Buka setelan
@@ -105,7 +108,7 @@ export default function LayarPengingat() {
           )}
         </div>
         <div className="baris-izin">
-          <span>{k.penggunaan ? '✓' : '○'} Akses penggunaan</span>
+          <span>{k.penggunaan ? <CheckCircle weight="duotone" /> : <Circle weight="duotone" />} Akses penggunaan</span>
           {!k.penggunaan && (
             <button className="tombol kecil sekunder" onClick={() => Pengingat.bukaSetelanPenggunaan()}>
               Buka setelan
@@ -119,8 +122,8 @@ export default function LayarPengingat() {
           </p>
         )}
         <p className="kosong">
-          Di HP Oppo, buka juga <strong>Setelan → Baterai → Saku Hati</strong> dan izinkan berjalan di latar belakang agar
-          pengingat tidak dihentikan sistem.
+          Di HP Oppo, buka juga <strong>Setelan → Baterai → Saku Hati</strong> dan izinkan berjalan di latar belakang
+          agar pengingat tidak dihentikan sistem.
         </p>
       </section>
 
@@ -139,7 +142,11 @@ export default function LayarPengingat() {
         <h2>3. Jeda minimal antarkartu</h2>
         <div className="kecepatan">
           {[15, 30, 60].map((m) => (
-            <button key={m} className={'chip' + (k.jedaMenit === m ? ' aktif' : '')} onClick={() => simpan({ ...k, jedaMenit: m })}>
+            <button
+              key={m}
+              className={'chip' + (k.jedaMenit === m ? ' aktif' : '')}
+              onClick={() => simpan({ ...k, jedaMenit: m })}
+            >
               {m === 60 ? '1 jam' : `${m} menit`}
             </button>
           ))}
@@ -148,7 +155,12 @@ export default function LayarPengingat() {
 
       <section className="kartu">
         <label className="saklar sakelar-besar">
-          <input type="checkbox" checked={k.aktif} disabled={!izinLengkap} onChange={(e) => nyalakan(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={k.aktif}
+            disabled={!izinLengkap}
+            onChange={(e) => nyalakan(e.target.checked)}
+          />
           <span>Pengingat ayat {k.aktif ? 'aktif' : 'mati'}</span>
         </label>
         {pesan && <p className="pesan-tandai">{pesan}</p>}

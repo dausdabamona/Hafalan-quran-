@@ -223,7 +223,7 @@ public class LayananPengingat extends Service {
 
         final int surah = ayat.optInt("surah");
         final int nomor = ayat.optInt("ayat");
-        int teal = Color.parseColor("#0F6E64");
+        int teal = Color.parseColor("#146B38");
 
         LinearLayout isi = new LinearLayout(this);
         isi.setOrientation(LinearLayout.VERTICAL);

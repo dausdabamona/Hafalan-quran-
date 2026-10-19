@@ -1,15 +1,15 @@
 /* Sistem desain Broadsheet (K-38): gaya koran — serif di atas kertas, aksen cyan/magenta kecil,
    tanpa kotak berbingkai. Sengaja tanpa mode gelap. Token lama dialihkan ke token baru. */
 :root {
-  --color-bg: #f3f2f2;
-  --color-surface: #eae9e9;
+  --color-bg: #f2f5f0;
+  --color-surface: #e4ece1;
   --color-text: #201e1d;
-  --color-accent: #0088b0;
-  --color-accent-100: #e9f8ff;
-  --color-accent-200: #cbeeff;
-  --color-accent-600: #1186ac;
-  --color-accent-700: #006786;
-  --color-accent-800: #004961;
+  --color-accent: #1e8a4c;
+  --color-accent-100: #e7f5ec;
+  --color-accent-200: #c6e8d2;
+  --color-accent-600: #1a7c43;
+  --color-accent-700: #146b38;
+  --color-accent-800: #0d4c27;
   --color-accent-2: #d6006c;
   --color-accent-2-100: #fff1f4;
   --color-accent-2-700: #aa0b56;

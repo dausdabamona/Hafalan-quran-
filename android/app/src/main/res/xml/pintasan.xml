@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shortcut saat ikon Saku Hati ditekan lama (K-42). -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="murotal"
+        android:enabled="true"
+        android:icon="@drawable/ikon_pintasan_murotal"
+        android:shortcutShortLabel="@string/pintasan_murotal_pendek"
+        android:shortcutLongLabel="@string/pintasan_murotal_panjang">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="sakuhati-pintasan://murotal"
+            android:targetPackage="id.dabamona.rabth"
+            android:targetClass="id.dabamona.rabth.MainActivity" />
+    </shortcut>
+</shortcuts>

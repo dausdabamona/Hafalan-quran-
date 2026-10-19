@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Microphone, Pause, Play, Stop, Warning } from '@phosphor-icons/react';
+import { Check, DeviceMobile, Microphone, Pause, Play, Stop, Warning } from '@phosphor-icons/react';
 import { gulirDalam, gulirKe } from '../komponen/gulir';
 import { cariAyat, cariSurah, daftarJuz, daftarSurah, segmenAyat } from '../data';
 import { ambilMaknaSurah, type Makna } from '../db';
@@ -13,7 +13,8 @@ import {
   type Rentang,
   type StatusRekaman,
 } from '../murotal';
-import { hashPotongan, pergi } from '../navigasi';
+import { ganti, hashPotongan, pergi } from '../navigasi';
+import { pasangIkonMurotal, pintasanTersedia } from '../pintasan';
 import {
   aturKecepatan,
   berhenti,
@@ -60,6 +61,7 @@ function namaAyat(l: LetakAyat): string {
 
 export function LayarPilihMurotal() {
   const [surah, setSurah] = useState(1);
+  const [pesanIkon, setPesanIkon] = useState('');
   return (
     <>
       <Kepala judul="Murotal" sub="Dari rekaman murojaah Anda sendiri" />
@@ -71,6 +73,17 @@ export function LayarPilihMurotal() {
         <button className="tombol utama lebar" onClick={() => pergi(hashMurotal({ jenis: 'hafalan' }))}>
           <Play weight="duotone" /> Semua hafalan
         </button>
+        {pintasanTersedia() && (
+          <>
+            <button className="tombol sekunder lebar" onClick={async () => setPesanIkon(await pasangIkonMurotal())}>
+              <DeviceMobile weight="duotone" /> Pasang ikon Murotal di layar utama
+            </button>
+            <p className="kosong">
+              {pesanIkon ||
+                'Sekali ketuk ikon itu, murotal semua hafalan langsung berputar. Bisa juga: tekan lama ikon Saku Hati → Murotal.'}
+            </p>
+          </>
+        )}
       </section>
       <section className="kartu">
         <h2>Per surah</h2>
@@ -123,7 +136,7 @@ interface Hasil {
   jadwal: Map<number, EntriJadwal>;
 }
 
-export default function LayarMurotal({ rentang }: { rentang: Rentang }) {
+export default function LayarMurotal({ rentang, putar }: { rentang: Rentang; putar?: boolean }) {
   const hash = hashMurotal(rentang);
   const judul = judulRentang(rentang);
   const pemutar = usePemutar();
@@ -160,6 +173,14 @@ export default function LayarMurotal({ rentang }: { rentang: Rentang }) {
       batal = true;
     };
   }, [hash, versi]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Dibuka dari shortcut layar utama (K-42): langsung diputar, lalu alamat dikembalikan
+  // ke layar murotal biasa agar tidak terputar ulang. Bila sudah berputar, tidak diulang.
+  useEffect(() => {
+    if (!hasil || !putar) return;
+    if (hasil.siap.length > 0 && keadaanPemutar()?.asal !== hash) mulai(judul, hasil.siap, hash);
+    ganti(hash);
+  }, [hasil, putar]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sesudah perbaikan (K-31): daftar putar disusun ulang lalu berlanjut dari ayat sesudahnya.
   useEffect(() => {

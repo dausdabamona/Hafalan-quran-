@@ -4,4 +4,6 @@
     <string name="title_activity_main">Saku Hati</string>
     <string name="package_name">id.dabamona.rabth</string>
     <string name="custom_url_scheme">id.dabamona.rabth</string>
+    <string name="pintasan_murotal_pendek">Murotal</string>
+    <string name="pintasan_murotal_panjang">Putar murotal hafalan</string>
 </resources>

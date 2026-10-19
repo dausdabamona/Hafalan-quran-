@@ -15,7 +15,7 @@ export type Layar =
   | { nama: 'pilih-murotal' }
   | { nama: 'pengingat' }
   | { nama: 'sinkron' }
-  | { nama: 'murotal'; rentang: Rentang };
+  | { nama: 'murotal'; rentang: Rentang; putar?: boolean };
 
 function bacaPotongan(nomor: string, awal: string, akhir: string): Potongan | null {
   const surah = cariSurah(Number(nomor));
@@ -31,7 +31,8 @@ export function bacaHash(): Layar {
   let m = /^#\/surah\/(\d+)\/tandai$/.exec(h);
   if (m && cariSurah(Number(m[1]))) return { nama: 'surah', nomor: Number(m[1]), tandai: true };
   m = /^#\/surah\/(\d+)(?:\/(\d+))?$/.exec(h);
-  if (m && cariSurah(Number(m[1]))) return { nama: 'surah', nomor: Number(m[1]), ayat: m[2] ? Number(m[2]) : undefined };
+  if (m && cariSurah(Number(m[1])))
+    return { nama: 'surah', nomor: Number(m[1]), ayat: m[2] ? Number(m[2]) : undefined };
   // Akhiran /r<nomor> menandai murojaah per rukuk (K-23).
   m = /^#\/(rekam|koreksi)\/(\d+)\/(\d+)-(\d+)(?:\/r(\d+))?$/.exec(h);
   if (m) {
@@ -43,8 +44,11 @@ export function bacaHash(): Layar {
   if (h === '#/pengingat') return { nama: 'pengingat' };
   if (h === '#/sinkron') return { nama: 'sinkron' };
   if (h === '#/murotal/hafalan') return { nama: 'murotal', rentang: { jenis: 'hafalan' } };
+  // Dari shortcut layar utama (K-42): langsung diputar.
+  if (h === '#/murotal/hafalan/putar') return { nama: 'murotal', rentang: { jenis: 'hafalan' }, putar: true };
   m = /^#\/murotal\/juz\/(\d+)$/.exec(h);
-  if (m && Number(m[1]) >= 1 && Number(m[1]) <= 30) return { nama: 'murotal', rentang: { jenis: 'juz', nomor: Number(m[1]) } };
+  if (m && Number(m[1]) >= 1 && Number(m[1]) <= 30)
+    return { nama: 'murotal', rentang: { jenis: 'juz', nomor: Number(m[1]) } };
   m = /^#\/murotal\/(\d+)\/(\d+)-(\d+)$/.exec(h);
   if (m) {
     const p = bacaPotongan(m[1], m[2], m[3]);

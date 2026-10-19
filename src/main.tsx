@@ -8,9 +8,11 @@ import './style.css';
 import App from './App';
 import { mintaPenyimpananTetap } from './db';
 import { pasangSatuSuara } from './pemutar';
+import { pasangPintasan } from './pintasan';
 
 mintaPenyimpananTetap();
 pasangSatuSuara();
+pasangPintasan();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

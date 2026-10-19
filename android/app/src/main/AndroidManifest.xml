@@ -23,6 +23,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Shortcut Murotal (K-42) -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/pintasan" />
+
         </activity>
 
         <!-- Pengingat ayat (K-32): kartu ayat di atas media sosial -->

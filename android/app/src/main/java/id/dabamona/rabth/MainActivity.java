@@ -9,6 +9,10 @@ public class MainActivity extends BridgeActivity {
         // Plugin lokal didaftarkan sebelum jembatan Capacitor dibuat.
         registerPlugin(PengingatAyatPlugin.class);
         registerPlugin(PusatSinkronPlugin.class);
+        registerPlugin(PintasanPlugin.class);
+        // Aplikasi dibuka dari shortcut Murotal (K-42): tindakan disimpan sampai halaman siap.
+        String t = PintasanPlugin.tindakanDari(getIntent());
+        if (t != null) PintasanPlugin.simpan(t);
         super.onCreate(savedInstanceState);
     }
 }

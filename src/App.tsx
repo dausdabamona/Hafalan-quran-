@@ -111,7 +111,9 @@ export default function App() {
       {layar.nama === 'pilih-murotal' && <LayarPilihMurotal />}
       {layar.nama === 'pengingat' && <LayarPengingat />}
       {layar.nama === 'sinkron' && <LayarSinkron />}
-      {layar.nama === 'murotal' && <LayarMurotal key={hashMurotal(layar.rentang)} rentang={layar.rentang} />}
+      {layar.nama === 'murotal' && (
+        <LayarMurotal key={hashMurotal(layar.rentang)} rentang={layar.rentang} putar={layar.putar} />
+      )}
       <BilahPemutar layarHash={layar.nama === 'murotal' ? hashMurotal(layar.rentang) : ''} />
     </div>
   );

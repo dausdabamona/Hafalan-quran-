@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import BilahSamping from './komponen/BilahSamping';
 import { cariSurah } from './data';
 import { bacaHash, pergi, type Layar } from './navigasi';
 import LayarDaftar from './layar/Daftar';
@@ -86,35 +87,38 @@ export default function App() {
   };
 
   return (
-    <div className="aplikasi" style={{ ['--ukuran-arab' as string]: `${ukuran}px` }}>
-      {layar.nama === 'hari-ini' && <LayarHariIni />}
-      {layar.nama === 'daftar' && <LayarDaftar />}
-      {layar.nama === 'sambung' && <LayarSambung />}
-      {layar.nama === 'tebak-arti' && <LayarTebakArti />}
-      {layar.nama === 'surah' && (
-        <LayarSurah
-          key={layar.nomor}
-          surah={cariSurah(layar.nomor)!}
-          ayatTuju={layar.ayat}
-          tandaiAwal={layar.tandai}
-          aturUkuran={aturUkuran}
-        />
-      )}
-      {layar.nama === 'rekam' && (
-        <LayarRekam key={JSON.stringify(layar)} potongan={layar.potongan} rukuk={layar.rukuk} />
-      )}
-      {layar.nama === 'koreksi' && (
-        <LayarKoreksi key={JSON.stringify(layar)} potongan={layar.potongan} rukuk={layar.rukuk} />
-      )}
-      {layar.nama === 'rukuk' && <LayarRukuk />}
-      {layar.nama === 'tentang' && <LayarTentang />}
-      {layar.nama === 'pilih-murotal' && <LayarPilihMurotal />}
-      {layar.nama === 'pengingat' && <LayarPengingat />}
-      {layar.nama === 'sinkron' && <LayarSinkron />}
-      {layar.nama === 'murotal' && (
-        <LayarMurotal key={hashMurotal(layar.rentang)} rentang={layar.rentang} putar={layar.putar} />
-      )}
-      <BilahPemutar layarHash={layar.nama === 'murotal' ? hashMurotal(layar.rentang) : ''} />
+    <div className="kerangka">
+      <BilahSamping layar={layar.nama} />
+      <div className="aplikasi" style={{ ['--ukuran-arab' as string]: `${ukuran}px` }}>
+        {layar.nama === 'hari-ini' && <LayarHariIni />}
+        {layar.nama === 'daftar' && <LayarDaftar />}
+        {layar.nama === 'sambung' && <LayarSambung />}
+        {layar.nama === 'tebak-arti' && <LayarTebakArti />}
+        {layar.nama === 'surah' && (
+          <LayarSurah
+            key={layar.nomor}
+            surah={cariSurah(layar.nomor)!}
+            ayatTuju={layar.ayat}
+            tandaiAwal={layar.tandai}
+            aturUkuran={aturUkuran}
+          />
+        )}
+        {layar.nama === 'rekam' && (
+          <LayarRekam key={JSON.stringify(layar)} potongan={layar.potongan} rukuk={layar.rukuk} />
+        )}
+        {layar.nama === 'koreksi' && (
+          <LayarKoreksi key={JSON.stringify(layar)} potongan={layar.potongan} rukuk={layar.rukuk} />
+        )}
+        {layar.nama === 'rukuk' && <LayarRukuk />}
+        {layar.nama === 'tentang' && <LayarTentang />}
+        {layar.nama === 'pilih-murotal' && <LayarPilihMurotal />}
+        {layar.nama === 'pengingat' && <LayarPengingat />}
+        {layar.nama === 'sinkron' && <LayarSinkron />}
+        {layar.nama === 'murotal' && (
+          <LayarMurotal key={hashMurotal(layar.rentang)} rentang={layar.rentang} putar={layar.putar} />
+        )}
+        <BilahPemutar layarHash={layar.nama === 'murotal' ? hashMurotal(layar.rentang) : ''} />
+      </div>
     </div>
   );
 }

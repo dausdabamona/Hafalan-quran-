@@ -2642,3 +2642,224 @@ button.teks-tertutup {
 .bilah-aksi .tombol.sekunder {
   white-space: nowrap;
 }
+
+/* ================= K-43: TATA LETAK LAYAR LEBAR (Windows, tablet) =================
+   Di bawah 960px tidak ada yang berubah: tampilan HP tetap satu kolom. */
+.bilah-samping {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  :root {
+    --lebar-samping: 264px;
+    --lebar-isi: 880px;
+  }
+  .kerangka {
+    display: grid;
+    grid-template-columns: var(--lebar-samping) minmax(0, 1fr);
+    min-height: 100vh;
+  }
+
+  /* ---------- Menu samping ---------- */
+  .bilah-samping {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: var(--space-6) var(--space-3) var(--space-4);
+    border-right: 1px solid var(--color-divider);
+    background: var(--color-surface);
+  }
+  .bilah-samping button {
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    text-align: left;
+  }
+  .merek-samping {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0 var(--space-2) var(--space-4);
+    margin-bottom: var(--space-3);
+    border-bottom: 3px double var(--color-text) !important;
+  }
+  .merek-samping img {
+    width: 44px;
+    height: 44px;
+    border-radius: 6px;
+  }
+  .merek-samping .cmyk-head {
+    font-size: 26px;
+    line-height: 1.1;
+  }
+  .merek-samping small {
+    display: block;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--color-muted);
+  }
+  .bilah-samping ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .bilah-samping li button,
+  .kaki-samping button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 10px var(--space-2);
+    font-size: 16px;
+    border-left: 3px solid transparent !important;
+  }
+  .bilah-samping li button:hover,
+  .kaki-samping button:hover {
+    background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  }
+  .bilah-samping button.aktif {
+    border-left-color: var(--color-accent) !important;
+    background: var(--color-bg);
+    color: var(--color-accent-700);
+    font-weight: 600;
+  }
+  .bilah-samping svg {
+    color: var(--color-accent-700);
+    flex: none;
+  }
+  .kaki-samping {
+    margin-top: auto;
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-divider);
+  }
+  .kaki-samping p {
+    margin: var(--space-3) var(--space-2) 0;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--color-muted);
+  }
+  .kaki-samping strong {
+    color: var(--color-accent-700);
+    letter-spacing: 0.06em;
+  }
+
+  /* ---------- Area isi ---------- */
+  .aplikasi {
+    max-width: var(--lebar-isi);
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 var(--space-6) 96px;
+  }
+  .kepala {
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .kepala h1 {
+    font-size: 26px;
+  }
+
+  /* Bilah bawah dan pemutar mengikuti lebar area isi, bukan selebar jendela. */
+  .bilah-aksi,
+  .bilah-pemutar {
+    left: var(--lebar-samping);
+    right: 0;
+    max-width: calc(var(--lebar-isi) - 2 * var(--space-6));
+    margin: 0 auto;
+  }
+  .bilah-aksi {
+    bottom: var(--space-4);
+    border: 1px solid var(--color-divider);
+  }
+  .bilah-aksi .tombol {
+    flex: 0 1 auto;
+    min-width: 180px;
+  }
+  .bilah-aksi .tombol.utama {
+    margin-left: auto;
+  }
+  .bilah-rekam .saklar-teks {
+    flex: 1 1 auto;
+    margin: 0;
+    align-self: center;
+  }
+  .bilah-aksi.bilah-rekam {
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+  .bilah-pemutar {
+    bottom: var(--space-4);
+  }
+
+  /* Lembar (makna kata, keterangan) menjadi kotak dialog di tengah. */
+  .latar-lembar {
+    align-items: center;
+    padding-left: var(--lebar-samping);
+  }
+  .lembar {
+    max-width: 560px;
+    border: 1px solid var(--color-divider);
+  }
+
+  /* ---------- Hari ini: halaman depan koran dua kolom ---------- */
+  .koran {
+    padding: var(--space-8) 0 0;
+  }
+  .koran-merek img {
+    width: 56px;
+    height: 56px;
+  }
+  .koran-isi {
+    padding: var(--space-8) 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 56px 48px;
+    align-items: start;
+  }
+  .koran-isi > .bagian:first-child,
+  .koran-isi > .bagian:last-child {
+    grid-column: 1 / -1;
+  }
+  .koran-isi > .bagian:nth-child(3) {
+    border-left: 1px solid var(--color-divider);
+    padding-left: 48px;
+    margin-left: -24px;
+  }
+  .menu-koran {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .daftar-surah {
+    padding: 0;
+  }
+  .kisi-juz {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+  }
+
+  /* Isi lain cukup tanpa jarak samping tambahan; area isi sudah berjarak. */
+  .potongan .daftar-ayat,
+  .rukuk .daftar-ayat,
+  .daftar-ayat,
+  .isi-rekam {
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .kepala-potongan {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+@media (min-width: 1400px) {
+  :root {
+    --lebar-samping: 288px;
+    --lebar-isi: 960px;
+  }
+}

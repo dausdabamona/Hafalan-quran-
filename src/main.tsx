@@ -9,10 +9,12 @@ import App from './App';
 import { mintaPenyimpananTetap } from './db';
 import { pasangSatuSuara } from './pemutar';
 import { pasangPintasan } from './pintasan';
+import { pasangPapanKetik } from './papanKetik';
 
 mintaPenyimpananTetap();
 pasangSatuSuara();
 pasangPintasan();
+pasangPapanKetik();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

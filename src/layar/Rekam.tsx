@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, Eye, EyeSlash, Microphone } from '@phosphor-icons/react';
+import { ArrowUUpLeft, Check, Eye, EyeSlash, Microphone } from '@phosphor-icons/react';
 import { gulirKe } from '../komponen/gulir';
 import { cariSurah, labelPotongan, type Potongan } from '../data';
 import { labelDaftarAyat, useAyatMurojaah } from '../komponen/useAyatMurojaah';
@@ -52,6 +52,15 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
     await mulai();
   };
 
+  // K-45: mundur ke ayat yang salah. Rekaman ayat yang sedang berjalan dibuang, lalu
+  // perekaman berlanjut berurutan dari ayat itu; rekaman ayat sesudahnya ikut diganti.
+  const mundurKe = async (tujuan: number) => {
+    if (tujuan < 0 || tujuan >= indeks || menyimpan) return;
+    if (merekam) await selesai();
+    setIndeks(tujuan);
+    if (merekam) await mulai();
+  };
+
   if (!daftarMuat || !ayatKini) return null;
 
   return (
@@ -62,11 +71,27 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
       />
 
       <div className="isi-rekam">
-        {daftarAyat.slice(0, indeks).map((a) => (
-          <div key={a.ayat} className="ayat selesai">
+        {indeks > 0 && (
+          <p className="petunjuk-mundur">Ada yang salah? Ketuk ayatnya untuk mundur dan membaca ulang dari situ.</p>
+        )}
+        {daftarAyat.slice(0, indeks).map((a, i) => (
+          <div
+            key={a.ayat}
+            role="button"
+            tabIndex={0}
+            className="ayat selesai bisa-mundur"
+            onClick={() => mundurKe(i)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') mundurKe(i);
+            }}
+            aria-label={`Mundur ke ayat ${a.ayat} dan rekam ulang dari situ`}
+          >
             <p className="status-ayat">
               <span>
                 <Check weight="duotone" /> Ayat {a.ayat} tersimpan
+              </span>
+              <span className="label-mundur">
+                <ArrowUUpLeft weight="duotone" /> Mundur ke sini
               </span>
             </p>
             <TeksAyat ayat={a} />
@@ -121,6 +146,16 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
           </button>
         ) : (
           <>
+            {indeks > 0 && (
+              <button
+                className="tombol sekunder"
+                onClick={() => mundurKe(indeks - 1)}
+                disabled={menyimpan}
+                aria-label={`Mundur ke ayat ${daftarAyat[indeks - 1].ayat}`}
+              >
+                <ArrowUUpLeft weight="duotone" /> Mundur
+              </button>
+            )}
             <button className="tombol sekunder" onClick={ulangiAyat} disabled={menyimpan}>
               Ulangi ayat
             </button>

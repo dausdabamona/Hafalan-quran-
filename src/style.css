@@ -2863,3 +2863,44 @@ button.teks-tertutup {
     --lebar-isi: 960px;
   }
 }
+
+/* K-45: mundur ke ayat yang salah saat merekam */
+.petunjuk-mundur {
+  margin: 0 0 var(--space-2);
+  font-size: 14px;
+  font-style: italic;
+  color: var(--color-muted);
+}
+div.ayat.bisa-mundur {
+  cursor: pointer;
+}
+div.ayat.bisa-mundur .kata {
+  pointer-events: none;
+}
+div.ayat.bisa-mundur:hover,
+div.ayat.bisa-mundur:focus-visible {
+  opacity: 0.9;
+  outline: 1px dashed var(--color-accent);
+  outline-offset: 4px;
+}
+.bisa-mundur .status-ayat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+}
+.label-mundur {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent-700);
+  white-space: nowrap;
+}
+.label-mundur svg {
+  width: 1.1em;
+  height: 1.1em;
+  vertical-align: -0.2em;
+}
+.bilah-rekam .tombol.sekunder {
+  padding-left: var(--space-3);
+  padding-right: var(--space-3);
+}

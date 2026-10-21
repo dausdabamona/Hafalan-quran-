@@ -3838,3 +3838,19 @@ body {
 .tombol.utama.ikon-utama .bulat {
   color: #fff;
 }
+/* K-52 (penyesuaian): arti murojaah lebih kecil dan kotak lebih rapat */
+.teks-tertutup.arti-murojaah {
+  padding: var(--space-3) var(--space-3);
+  gap: var(--space-1);
+}
+.arti-murojaah .isi-arti {
+  font-size: 16px;
+  line-height: 1.5;
+}
+.arti-murojaah .kicker {
+  font-size: 11px;
+}
+.arti-murojaah .buka-teks {
+  margin-top: 2px;
+  font-size: 13px;
+}

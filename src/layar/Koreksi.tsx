@@ -20,9 +20,22 @@ import TombolPutar from '../komponen/TombolPutar';
 
 // Koreksi mandiri (F-03, F-06): dengarkan rekaman sambil melihat ayat, ketuk
 // kata yang salah, tandai sambungan yang tertukar, lalu simpan sebagai satu sesi.
-export default function LayarKoreksi({ potongan, rukuk }: { potongan: Potongan; rukuk?: number }) {
+export default function LayarKoreksi({
+  potongan,
+  rukuk,
+  sampai,
+}: {
+  potongan: Potongan;
+  rukuk?: number;
+  sampai?: number;
+}) {
   const surah = cariSurah(potongan.surah)!;
-  const daftarMuat = useAyatMurojaah(potongan, rukuk);
+  const daftarSemua = useAyatMurojaah(potongan, rukuk);
+  // K-53: murojaah yang dihentikan hanya mengoreksi ayat sampai titik berhenti.
+  const daftarMuat = useMemo(
+    () => (daftarSemua && sampai ? daftarSemua.filter((a) => a.ayat <= sampai) : daftarSemua),
+    [daftarSemua, sampai],
+  );
   const daftarAyat = daftarMuat ?? [];
   const [rekaman, setRekaman] = useState<Map<string, Rekaman>>(new Map());
   const [tanda, setTanda] = useState<TandaSurah>({ salah: new Map(), tertukar: new Map() });
@@ -77,6 +90,7 @@ export default function LayarKoreksi({ potongan, rukuk }: { potongan: Potongan; 
       ...(daftarAyat.length !== potongan.ayatAkhir - potongan.ayatAwal + 1
         ? { ayat: daftarAyat.map((a) => a.ayat) }
         : {}),
+      ...(sampai ? { sebagian: true } : {}),
     };
     // Murojaah rukuk memperbarui jadwal rukuk, bukan jadwal potongan (K-23).
     const sesi = await simpanKoreksi({ ...isi, rukuk });
@@ -96,7 +110,14 @@ export default function LayarKoreksi({ potongan, rukuk }: { potongan: Potongan; 
           {hasil.lancar ? (
             <>
               <p className="hasil-besar">Lancar, alhamdulillah</p>
-              <p>Tidak ada kesalahan baru pada sesi ini.</p>
+              <p>
+                Tidak ada kesalahan baru pada sesi ini.
+                {rukuk && sampai
+                  ? ' Murojaah baru sampai ayat ' +
+                    sampai +
+                    ', jadi rukuk ini tetap di daftar Ulang hafalan sampai dibaca utuh.'
+                  : ''}
+              </p>
             </>
           ) : (
             <>

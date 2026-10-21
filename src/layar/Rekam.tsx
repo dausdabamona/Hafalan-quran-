@@ -7,6 +7,7 @@ import {
   Eye,
   EyeSlash,
   Microphone,
+  StopCircle,
 } from '@phosphor-icons/react';
 import { gulirKe } from '../komponen/gulir';
 import { cariSurah, labelPotongan, segmenAyat, type Potongan } from '../data';
@@ -62,6 +63,24 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
     }
     setIndeks((i) => i + 1);
     await mulai();
+  };
+
+  // K-53: berhenti di tengah murojaah. Ayat yang sedang dibaca disimpan, lalu koreksi
+  // hanya sampai ayat itu. Bila belum merekam, berhenti di ayat terakhir yang tersimpan.
+  const berhentiDiSini = async () => {
+    setMenyimpan(true);
+    let sampai = indeks > 0 ? daftarAyat[indeks - 1].ayat : 0;
+    if (merekam) {
+      const hasil = await selesai();
+      if (hasil) {
+        await simpanRekaman(surah.nomor, ayatKini.ayat, hasil.audio, hasil.durasiMs);
+        sampai = ayatKini.ayat;
+      }
+    }
+    setMenyimpan(false);
+    if (!sampai) return;
+    lepas();
+    ganti(hashPotongan('koreksi', potongan, rukuk, sampai));
   };
 
   // Membuang rekaman ayat yang sedang berjalan lalu mulai lagi dari awal ayat itu.
@@ -212,7 +231,22 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
           </span>
           <span className="keterangan">Ulangi</span>
         </button>
-        <span className="ikon-aksi pengisi" aria-hidden="true" />
+        {rukuk && !terakhir ? (
+          <button
+            type="button"
+            className="ikon-aksi"
+            onClick={berhentiDiSini}
+            disabled={menyimpan || (!merekam && indeks === 0)}
+            aria-label={`Berhenti di ayat ${merekam ? ayatKini.ayat : (daftarAyat[indeks - 1]?.ayat ?? '')} lalu koreksi`}
+          >
+            <span className="bulat">
+              <StopCircle weight="duotone" />
+            </span>
+            <span className="keterangan">Berhenti</span>
+          </button>
+        ) : (
+          <span className="ikon-aksi pengisi" aria-hidden="true" />
+        )}
       </div>
     </>
   );

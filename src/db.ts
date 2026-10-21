@@ -491,6 +491,7 @@ export interface HasilKoreksi {
   ayatAkhir: number;
   rukuk?: number; // terisi bila murojaah per rukuk
   ayat?: number[]; // daftar ayat yang dikoreksi bila tidak berurutan (K-30)
+  sebagian?: boolean; // murojaah rukuk dihentikan di tengah (K-53)
   kataSalah: { ayat: number; urutan: number }[];
   tertukar: { ayatAsal: number; ayatKeliru: number }[];
   hari?: string; // untuk uji; bawaan hari ini
@@ -548,6 +549,12 @@ export async function simpanKoreksi(h: HasilKoreksi): Promise<Sesi> {
     if (h.rukuk) {
       const j = await db.jadwalRukuk.get(h.rukuk);
       if (!j) return;
+      // K-53: murojaah sebagian — kesalahan tetap menurunkan jadwal; bila lancar, rukuk
+      // tetap jatuh tempo sampai dibaca utuh.
+      if (h.sebagian) {
+        if (!sesi.lancar) await db.jadwalRukuk.put(turunkanJadwal(j, hari));
+        return;
+      }
       const baru = setelahMurojaahRukuk(j, sesi.lancar, hari);
       await db.jadwalRukuk.put(baru ?? { ...j, terakhir: hari });
       return;

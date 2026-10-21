@@ -9,7 +9,7 @@ export type Layar =
   | { nama: 'tebak-arti' }
   | { nama: 'surah'; nomor: number; ayat?: number; tandai?: boolean }
   | { nama: 'rekam'; potongan: Potongan; rukuk?: number }
-  | { nama: 'koreksi'; potongan: Potongan; rukuk?: number }
+  | { nama: 'koreksi'; potongan: Potongan; rukuk?: number; sampai?: number }
   | { nama: 'rukuk' }
   | { nama: 'tentang' }
   | { nama: 'lainnya' }
@@ -37,10 +37,14 @@ export function bacaHash(): Layar {
   if (m && cariSurah(Number(m[1])))
     return { nama: 'surah', nomor: Number(m[1]), ayat: m[2] ? Number(m[2]) : undefined };
   // Akhiran /r<nomor> menandai murojaah per rukuk (K-23).
-  m = /^#\/(rekam|koreksi)\/(\d+)\/(\d+)-(\d+)(?:\/r(\d+))?$/.exec(h);
+  // Akhiran /s<ayat> (K-53): murojaah dihentikan, koreksi hanya sampai ayat itu.
+  m = /^#\/(rekam|koreksi)\/(\d+)\/(\d+)-(\d+)(?:\/r(\d+))?(?:\/s(\d+))?$/.exec(h);
   if (m) {
     const p = bacaPotongan(m[2], m[3], m[4]);
-    if (p) return { nama: m[1] as 'rekam' | 'koreksi', potongan: p, rukuk: m[5] ? Number(m[5]) : undefined };
+    const rukuk = m[5] ? Number(m[5]) : undefined;
+    if (p && m[1] === 'koreksi')
+      return { nama: 'koreksi', potongan: p, rukuk, sampai: m[6] ? Number(m[6]) : undefined };
+    if (p) return { nama: 'rekam', potongan: p, rukuk };
   }
   // Murotal (K-28): #/murotal, #/murotal/hafalan, #/murotal/juz/N, #/murotal/S/A-B
   if (h === '#/murotal') return { nama: 'pilih-murotal' };
@@ -68,8 +72,8 @@ export function bacaHash(): Layar {
   return { nama: 'hari-ini' };
 }
 
-export function hashPotongan(jenis: 'rekam' | 'koreksi', p: Potongan, rukuk?: number): string {
-  return `#/${jenis}/${p.surah}/${p.ayatAwal}-${p.ayatAkhir}${rukuk ? `/r${rukuk}` : ''}`;
+export function hashPotongan(jenis: 'rekam' | 'koreksi', p: Potongan, rukuk?: number, sampai?: number): string {
+  return `#/${jenis}/${p.surah}/${p.ayatAwal}-${p.ayatAkhir}${rukuk ? `/r${rukuk}` : ''}${sampai ? `/s${sampai}` : ''}`;
 }
 
 export function pergi(hash: string) {

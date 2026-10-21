@@ -3806,3 +3806,35 @@ body {
     grid-template-columns: repeat(30, minmax(0, 1fr));
   }
 }
+
+/* K-52: arti ayat saat murojaah */
+.teks-tertutup.arti-murojaah {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+  text-align: left;
+  font-style: normal;
+  background: var(--color-accent-100);
+}
+.arti-murojaah .kicker {
+  color: var(--color-accent-700);
+  font-weight: 700;
+  font-size: 12px;
+}
+.arti-murojaah .isi-arti {
+  font-size: 19px;
+  line-height: 1.55;
+  font-style: italic;
+  color: var(--color-text);
+}
+.arti-murojaah .buka-teks {
+  margin-top: var(--space-1);
+  text-align: center;
+}
+.tombol.utama.ikon-utama {
+  color: var(--color-text);
+}
+.tombol.utama.ikon-utama .bulat {
+  color: #fff;
+}

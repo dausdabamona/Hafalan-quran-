@@ -9,9 +9,9 @@ import {
   Microphone,
 } from '@phosphor-icons/react';
 import { gulirKe } from '../komponen/gulir';
-import { cariSurah, labelPotongan, type Potongan } from '../data';
+import { cariSurah, labelPotongan, segmenAyat, type Potongan } from '../data';
 import { labelDaftarAyat, useAyatMurojaah } from '../komponen/useAyatMurojaah';
-import { simpanRekaman } from '../db';
+import { ambilMaknaSurah, simpanRekaman, type Makna } from '../db';
 import { ganti, hashPotongan } from '../navigasi';
 import { usePerekam } from '../perekam';
 import Kepala from '../komponen/Kepala';
@@ -27,6 +27,9 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
   const { status, mulai, selesai, lepas } = usePerekam();
   const [indeks, setIndeks] = useState(0);
   const [tampilkanTeks, setTampilkanTeks] = useState(false);
+  // K-52: teks ayat dibuka sementara untuk ayat yang sedang dibaca saja.
+  const [intip, setIntip] = useState(false);
+  const [makna, setMakna] = useState<Map<string, Makna>>(new Map());
   const [menyimpan, setMenyimpan] = useState(false);
   const refKini = useRef<HTMLDivElement>(null);
 
@@ -34,11 +37,18 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
   const terakhir = indeks === daftarAyat.length - 1;
   const merekam = status === 'merekam';
 
+  useEffect(() => {
+    ambilMaknaSurah(surah.nomor).then(setMakna);
+  }, [surah.nomor]);
+
+  // Pindah ayat (maju atau mundur): teks yang dibuka sementara ditutup lagi.
+  useEffect(() => setIntip(false), [indeks]);
+
   // Ayat yang sedang direkam selalu tampil di tengah layar.
   useEffect(() => {
     const t = setTimeout(() => gulirKe(refKini.current), 60);
     return () => clearTimeout(t);
-  }, [indeks, daftarMuat, merekam, tampilkanTeks]);
+  }, [indeks, daftarMuat, merekam, tampilkanTeks, intip]);
 
   const selesaiAyat = async () => {
     setMenyimpan(true);
@@ -113,8 +123,21 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
               {merekam && <span className="titik-rekam" role="img" aria-label="Sedang merekam" />}
             </span>
           </p>
-          {tampilkanTeks ? (
+          {tampilkanTeks || intip ? (
             <TeksAyat ayat={ayatKini} />
+          ) : rukuk ? (
+            // K-52: saat murojaah yang tampil arti ayat; ragu → buka teks ayat ini saja.
+            <button type="button" className="teks-tertutup arti-murojaah" onClick={() => setIntip(true)}>
+              <span className="kicker">Arti ayat {ayatKini.ayat}</span>
+              <span className="isi-arti">
+                {segmenAyat(ayatKini)
+                  .map((g) => makna.get(`${surah.nomor}:${ayatKini.ayat}:${g.indeks}`)?.isi ?? g.maknaBawaan)
+                  .join(' · ')}
+              </span>
+              <span className="buka-teks">
+                <Eye weight="duotone" /> Ragu? Ketuk untuk melihat ayat
+              </span>
+            </button>
           ) : (
             <button type="button" className="teks-tertutup" onClick={() => setTampilkanTeks(true)}>
               Teks tertutup — bacalah dari hafalan

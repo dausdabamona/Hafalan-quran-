@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle, Circle } from '@phosphor-icons/react';
 import Kepala from '../komponen/Kepala';
-import { APLIKASI_PEMICU, PAKET_BAWAAN, Pengingat, pengingatTersedia, sinkronAyatKartu } from '../pengingat';
+import { APLIKASI_PEMICU, PAKET_BAWAAN, PAKET_CLAUDE, Pengingat, pengingatTersedia, sinkronAyatKartu } from '../pengingat';
 
 interface Keadaan {
   overlay: boolean;
@@ -19,6 +19,16 @@ export default function LayarPengingat() {
   const muat = useCallback(async () => {
     if (!pengingatTersedia()) return;
     const s = await Pengingat.cekIzin();
+    // K-44: Claude ditambahkan sekali ke daftar yang sudah tersimpan; sesudahnya pilihan pengguna dihormati.
+    try {
+      if (s.paket && !s.paket.split(',').includes(PAKET_CLAUDE) && !localStorage.getItem('pemicuClaude')) {
+        s.paket = `${s.paket},${PAKET_CLAUDE}`;
+        await Pengingat.atur({ aktif: s.aktif, jedaMenit: s.jedaMenit || 15, paket: s.paket });
+      }
+      localStorage.setItem('pemicuClaude', '1');
+    } catch {
+      // abaikan
+    }
     setK({
       overlay: s.overlay,
       penggunaan: s.penggunaan,

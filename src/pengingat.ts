@@ -39,12 +39,16 @@ export function pengingatTersedia(): boolean {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
 }
 
+// Aplikasi Claude (K-44).
+export const PAKET_CLAUDE = 'com.anthropic.claude';
+
 export const APLIKASI_PEMICU = [
   { nama: 'Facebook', paket: ['com.facebook.katana', 'com.facebook.lite'] },
   { nama: 'YouTube', paket: ['com.google.android.youtube'] },
   { nama: 'Instagram', paket: ['com.instagram.android'] },
   { nama: 'Chrome', paket: ['com.android.chrome'] },
   { nama: 'TikTok', paket: ['com.zhiliaoapp.musically', 'com.ss.android.ugc.trill', 'com.zhiliaoapp.musically.go'] },
+  { nama: 'Claude', paket: [PAKET_CLAUDE] },
 ];
 
 export const PAKET_BAWAAN = APLIKASI_PEMICU.flatMap((a) => a.paket).join(',');

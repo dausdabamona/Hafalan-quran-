@@ -2904,3 +2904,108 @@ div.ayat.bisa-mundur:focus-visible {
   padding-left: var(--space-3);
   padding-right: var(--space-3);
 }
+
+/* ================= K-46: bilah rekam berupa ikon ================= */
+.bilah-aksi.bilah-ikon {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: var(--space-1);
+  padding-top: var(--space-2);
+  flex-wrap: nowrap;
+}
+.bilah-ikon button {
+  font: inherit;
+  cursor: pointer;
+}
+.ikon-aksi {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--color-text);
+  min-width: 0;
+}
+.ikon-aksi .bulat {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-accent-700);
+  border: 1px solid var(--color-divider);
+}
+.ikon-aksi .bulat svg {
+  width: 26px;
+  height: 26px;
+}
+.ikon-aksi.nyala .bulat {
+  background: var(--color-accent-100);
+  border-color: var(--color-accent);
+}
+.ikon-aksi:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.ikon-aksi.pengisi {
+  visibility: hidden;
+}
+.bilah-ikon .keterangan {
+  font-size: 12px;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+}
+.tombol.ikon-utama {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 var(--space-1);
+  color: var(--color-text);
+  min-width: 96px;
+}
+.tombol.ikon-utama .bulat {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  box-shadow: var(--shadow-md);
+}
+.tombol.ikon-utama .bulat svg {
+  width: 36px;
+  height: 36px;
+}
+.tombol.ikon-utama.merekam .bulat {
+  background: var(--color-accent-700);
+  outline: 3px solid color-mix(in srgb, #d32f2f 55%, transparent);
+  outline-offset: 3px;
+}
+.tombol.ikon-utama .keterangan {
+  font-weight: 600;
+  font-size: 13px;
+}
+.tombol.ikon-utama:disabled .bulat {
+  opacity: 0.5;
+}
+@media (min-width: 960px) {
+  .bilah-aksi.bilah-ikon {
+    display: grid;
+    padding-left: var(--space-8);
+    padding-right: var(--space-8);
+  }
+  .bilah-ikon .tombol {
+    min-width: 96px;
+    margin-left: 0;
+  }
+}

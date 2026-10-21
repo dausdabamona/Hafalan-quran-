@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowUUpLeft, Check, Eye, EyeSlash, Microphone } from '@phosphor-icons/react';
+import {
+  ArrowCounterClockwise,
+  ArrowUUpLeft,
+  Check,
+  CheckCircle,
+  Eye,
+  EyeSlash,
+  Microphone,
+} from '@phosphor-icons/react';
 import { gulirKe } from '../komponen/gulir';
 import { cariSurah, labelPotongan, type Potongan } from '../data';
 import { labelDaftarAyat, useAyatMurojaah } from '../komponen/useAyatMurojaah';
@@ -125,45 +133,63 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
         {status === 'tidak-didukung' && <p className="pesan-galat">Perangkat ini belum mendukung perekaman.</p>}
       </div>
 
-      <div className="bilah-aksi bilah-rekam">
-        <label className="saklar saklar-teks">
-          <input type="checkbox" checked={tampilkanTeks} onChange={(e) => setTampilkanTeks(e.target.checked)} />
-          <span>{tampilkanTeks ? <Eye weight="duotone" /> : <EyeSlash weight="duotone" />} Tampilkan teks ayat</span>
-        </label>
+      {/* K-46: bilah rekam berupa ikon seperti alat perekam; tombol utama besar di tengah. */}
+      <div className="bilah-aksi bilah-rekam bilah-ikon">
+        <button
+          type="button"
+          className={'ikon-aksi' + (tampilkanTeks ? ' nyala' : '')}
+          onClick={() => setTampilkanTeks((v) => !v)}
+          aria-pressed={tampilkanTeks}
+        >
+          <span className="bulat">{tampilkanTeks ? <Eye weight="duotone" /> : <EyeSlash weight="duotone" />}</span>
+          <span className="keterangan">{tampilkanTeks ? 'Teks tampil' : 'Teks'}</span>
+        </button>
+        <button
+          type="button"
+          className="ikon-aksi"
+          onClick={() => mundurKe(indeks - 1)}
+          disabled={!merekam || indeks === 0 || menyimpan}
+          aria-label={indeks > 0 ? `Mundur ke ayat ${daftarAyat[indeks - 1].ayat}` : 'Mundur'}
+        >
+          <span className="bulat">
+            <ArrowUUpLeft weight="duotone" />
+          </span>
+          <span className="keterangan">Mundur</span>
+        </button>
         {!merekam ? (
           <button
-            className="tombol utama besar"
+            type="button"
+            className="tombol utama ikon-utama"
             onClick={mulai}
             disabled={status === 'meminta-izin' || status === 'tidak-didukung' || menyimpan}
           >
-            {status === 'meminta-izin' ? (
-              'Meminta izin mikrofon…'
-            ) : (
-              <>
-                <Microphone weight="duotone" /> Mulai rekam ayat {ayatKini.ayat}
-              </>
-            )}
+            <span className="bulat">
+              <Microphone weight="fill" />
+            </span>
+            <span className="keterangan">
+              {status === 'meminta-izin' ? 'Meminta izin…' : `Rekam ayat ${ayatKini.ayat}`}
+            </span>
           </button>
         ) : (
-          <>
-            {indeks > 0 && (
-              <button
-                className="tombol sekunder"
-                onClick={() => mundurKe(indeks - 1)}
-                disabled={menyimpan}
-                aria-label={`Mundur ke ayat ${daftarAyat[indeks - 1].ayat}`}
-              >
-                <ArrowUUpLeft weight="duotone" /> Mundur
-              </button>
-            )}
-            <button className="tombol sekunder" onClick={ulangiAyat} disabled={menyimpan}>
-              Ulangi ayat
-            </button>
-            <button className="tombol utama besar" onClick={selesaiAyat} disabled={menyimpan}>
-              {menyimpan ? 'Menyimpan…' : terakhir ? 'Selesai & koreksi' : 'Selesai ayat ini'}
-            </button>
-          </>
+          <button
+            type="button"
+            className={'tombol utama ikon-utama merekam' + (terakhir ? ' akhir' : '')}
+            onClick={selesaiAyat}
+            disabled={menyimpan}
+          >
+            <span className="bulat">{terakhir ? <CheckCircle weight="fill" /> : <Check weight="bold" />}</span>
+            <span className="keterangan">
+              {menyimpan ? 'Menyimpan…' : terakhir ? 'Selesai & koreksi' : 'Selesai ayat'}
+            </span>
+          </button>
         )}
+        <button type="button" className="ikon-aksi" onClick={ulangiAyat} disabled={!merekam || menyimpan}>
+          <span className="bulat">
+            <ArrowCounterClockwise weight="duotone" />
+          </span>
+          <span className="keterangan">Ulangi</span>
+        </button>
+        <span className="ikon-aksi pengisi" aria-hidden="true" />
       </div>
     </>
   );

@@ -3641,3 +3641,168 @@ body {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* ======================= K-50: TARGET & BATANG HARI ======================= */
+.kepala-target {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.kepala-target .tautan {
+  min-height: 36px;
+  font-size: 14px;
+}
+.judul-target {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+.baris-target {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+.baris-target strong {
+  color: var(--color-text);
+  font-size: 17px;
+}
+.garis-target {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--color-surface);
+}
+.garis-target > div {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-accent);
+}
+.penanda-seharusnya {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 18px;
+  background: var(--color-text);
+  border-radius: 1px;
+}
+.batang-hari {
+  display: grid;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  gap: 4px;
+}
+.batang-hari.rapat {
+  grid-template-columns: repeat(15, minmax(0, 1fr));
+  gap: 3px;
+}
+.batang {
+  height: 24px;
+  border-radius: 5px;
+  background: var(--color-surface);
+}
+.batang-hari.rapat .batang {
+  height: 18px;
+}
+.batang.hijau {
+  background: #2fb36a;
+}
+.batang.kuning {
+  background: #f2c14e;
+}
+.batang.merah {
+  background: #e5484d;
+}
+.batang.hari-ini {
+  background: var(--color-kartu);
+  outline: 2px dashed var(--color-accent);
+  outline-offset: -2px;
+}
+.batang.nanti {
+  background: var(--color-surface);
+  opacity: 0.6;
+}
+.batang.mini {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+.status-target {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-accent-700);
+  font-weight: 600;
+}
+.status-target.tertinggal {
+  color: #b42318;
+}
+.kicker.merah {
+  color: #c4282d !important;
+}
+.daftar-perhatian {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.daftar-perhatian button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  border: 0;
+  border-bottom: 1px solid var(--color-divider);
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.daftar-perhatian li:last-child button {
+  border-bottom: 0;
+}
+.daftar-perhatian .nilai {
+  font-size: 13px;
+  font-weight: 600;
+  color: #c4282d;
+  white-space: nowrap;
+}
+.form-target .isian {
+  width: 100%;
+  box-sizing: border-box;
+}
+.pilih-jenis {
+  display: flex;
+  gap: var(--space-4);
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.pilih-jenis legend {
+  font-weight: 700;
+  margin-bottom: var(--space-2);
+}
+.pilih-jenis label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-weight: 600;
+}
+.ringkas-target {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-100);
+}
+@media (min-width: 960px) {
+  .koran-isi > .kartu-target,
+  .koran-isi > .kartu-perhatian {
+    grid-column: 1 / -1;
+  }
+  .batang-hari.rapat {
+    grid-template-columns: repeat(30, minmax(0, 1fr));
+  }
+}

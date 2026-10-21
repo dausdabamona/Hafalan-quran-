@@ -14,6 +14,7 @@ export type Layar =
   | { nama: 'tentang' }
   | { nama: 'lainnya' }
   | { nama: 'kemajuan' }
+  | { nama: 'target' }
   | { nama: 'pilih-murotal' }
   | { nama: 'pengingat' }
   | { nama: 'sinkron' }
@@ -60,6 +61,7 @@ export function bacaHash(): Layar {
   if (h === '#/tentang') return { nama: 'tentang' };
   if (h === '#/lainnya') return { nama: 'lainnya' };
   if (h === '#/kemajuan') return { nama: 'kemajuan' };
+  if (h === '#/target') return { nama: 'target' };
   if (h === '#/semua') return { nama: 'daftar' };
   if (h === '#/sambung') return { nama: 'sambung' };
   if (h === '#/tebak-arti') return { nama: 'tebak-arti' };

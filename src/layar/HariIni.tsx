@@ -29,7 +29,19 @@ import {
   type Potongan,
   type Rukuk,
 } from '../data';
-import { ambilHafalan, ambilJadwal, ambilMaknaSurah, db, type Makna } from '../db';
+import {
+  ambilHafalan,
+  ambilJadwal,
+  ambilMaknaSurah,
+  db,
+  type Makna,
+  type Sesi,
+  type TandaSalah,
+  type TandaTertukar,
+} from '../db';
+import KartuTarget from '../komponen/KartuTarget';
+import PerluPerhatian from '../komponen/PerluPerhatian';
+import { ambilCatatanHari, ambilTarget, potonganDalamTarget, warnaHariIni, type Target } from '../target';
 import { hariLokal, rentetanHari } from '../kemajuan';
 import {
   ayatHafal,
@@ -39,6 +51,7 @@ import {
   kelompok,
   labelAyatHafal,
   pilihHafalanBaru,
+  potonganBerikut,
   rentangMurojaah,
   selesaiHariIni,
   selisihHari,
@@ -113,26 +126,35 @@ export default function LayarHariIni() {
   const [jadwal, setJadwal] = useState<Map<number, EntriJadwal>>(new Map());
   const [lihatSemua, setLihatSemua] = useState(false);
 
-  const [rentetan, setRentetan] = useState(0);
+  const [sesi, setSesi] = useState<Sesi[]>([]);
+  const [tanda, setTanda] = useState<{ salah: TandaSalah[]; tertukar: TandaTertukar[] }>({ salah: [], tertukar: [] });
+  const [target, setTarget] = useState<Target | null | undefined>(undefined);
+  const [catatan, setCatatan] = useState<Record<string, 'hijau' | 'kuning'>>({});
 
   useEffect(() => {
     ambilHafalan().then(setHafalan);
     ambilJadwal().then(setJadwal);
-    db.sesi.toArray().then((x) =>
-      setRentetan(
-        rentetanHari(
-          x.map((s) => hariLokal(s.tanggal)),
-          hariIni(),
-        ),
-      ),
+    db.sesi.toArray().then(setSesi);
+    Promise.all([db.tandaSalah.toArray(), db.tandaTertukar.toArray()]).then(([salah, tertukar]) =>
+      setTanda({ salah, tertukar }),
     );
+    ambilTarget().then((t) => setTarget(t ?? null));
+    ambilCatatanHari().then(setCatatan);
   }, []);
+  const rentetan = useMemo(
+    () =>
+      rentetanHari(
+        sesi.map((s) => hariLokal(s.tanggal)),
+        hari,
+      ),
+    [sesi, hari],
+  );
 
   const hafal = useMemo(() => ayatHafal(hafalan ?? new Map()), [hafalan]);
 
   if (!hafalan) return null;
 
-  const baru = pilihHafalanBaru(hafalan, hari);
+  const baru = pilihHafalanBaru(hafalan, hari, target ? potonganDalamTarget(target) : undefined);
   const ulang = daftarUlangHafalan(jadwal, hari);
   const selesai = selesaiHariIni(jadwal, hari);
   const tampil = lihatSemua ? ulang : ulang.slice(0, BATAS_ULANG_MALAM);
@@ -305,6 +327,19 @@ export default function LayarHariIni() {
       </header>
 
       <main className="koran-isi">
+        {target !== undefined && (
+          <KartuTarget
+            target={target}
+            hafal={hafal}
+            hari={hari}
+            sesi={sesi}
+            catatan={catatan}
+            warnaKini={warnaHariIni(baru.status === 'selesai' || baru.status === 'tamat', ulang.length, selesai.length)}
+            tambahPotongan={
+              baru.status === 'selesai' && target ? potonganBerikut(hafalan, potonganDalamTarget(target)) : undefined
+            }
+          />
+        )}
         <HafalanBaru baru={baru} hari={hari} />
 
         <section className="bagian">
@@ -334,6 +369,8 @@ export default function LayarHariIni() {
             </button>
           )}
         </section>
+
+        <PerluPerhatian hafal={hafal} tandaSalah={tanda.salah} tertukar={tanda.tertukar} />
 
         <section className="bagian" style={{ gap: 'var(--space-4)' }}>
           <p className="kicker">Juga di Saku Hati</p>

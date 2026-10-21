@@ -115,7 +115,24 @@ export type HafalanBaru =
   | { status: 'selesai'; potongan: Potongan } // sudah dikerjakan hari ini (P-04)
   | { status: 'tamat' };
 
-export function pilihHafalanBaru(hafalan: Map<string, EntriHafalan>, hari: string): HafalanBaru {
+// Potongan berikutnya yang belum tercatat; potongan dalam target (K-50) didahulukan.
+export function potonganBerikut(
+  hafalan: Map<string, EntriHafalan>,
+  utamakan?: (p: Potongan) => boolean,
+): Potongan | undefined {
+  const tercatat = ayatTercatat(hafalan);
+  const belum = (p: Potongan) => {
+    for (let a = p.ayatAwal; a <= p.ayatAkhir; a++) if (!tercatat.has(`${p.surah}:${a}`)) return true;
+    return false;
+  };
+  return (utamakan && jalurHafalan().find((p) => utamakan(p) && belum(p))) || jalurHafalan().find(belum);
+}
+
+export function pilihHafalanBaru(
+  hafalan: Map<string, EntriHafalan>,
+  hari: string,
+  utamakan?: (p: Potongan) => boolean,
+): HafalanBaru {
   let terakhir: EntriHafalan | undefined;
   for (const e of hafalan.values()) {
     if (e.lama) continue;
@@ -124,11 +141,7 @@ export function pilihHafalanBaru(hafalan: Map<string, EntriHafalan>, hari: strin
   }
   if (terakhir && !terakhir.sabaqLancar) return { status: 'ulang', potongan: terakhir };
   if (terakhir && terakhir.mulai === hari) return { status: 'selesai', potongan: terakhir };
-  const tercatat = ayatTercatat(hafalan);
-  const berikut = jalurHafalan().find((p) => {
-    for (let a = p.ayatAwal; a <= p.ayatAkhir; a++) if (!tercatat.has(`${p.surah}:${a}`)) return true;
-    return false;
-  });
+  const berikut = potonganBerikut(hafalan, utamakan);
   return berikut ? { status: 'baru', potongan: berikut } : { status: 'tamat' };
 }
 
@@ -182,7 +195,13 @@ export function setelahKoreksiPotongan(
       terakhir: hari,
     });
   } else if (!j.lengkap && lengkap) {
-    hasil.jadwal.push({ ...j, lengkap: true, sebagian: false, tingkat: 0, jatuhTempo: tambahHari(hari, JARAK_HARI[0]) });
+    hasil.jadwal.push({
+      ...j,
+      lengkap: true,
+      sebagian: false,
+      tingkat: 0,
+      jatuhTempo: tambahHari(hari, JARAK_HARI[0]),
+    });
   } else if (j.sebagian) {
     // Hafalan baru mulai mengisi rukuk yang hafal sebagian: kini diulang harian.
     hasil.jadwal.push({ ...j, sebagian: false, tingkat: 0, jatuhTempo: tambahHari(hari, 1) });
@@ -278,8 +297,9 @@ export function tandaiAyatLama(
   batas = BATAS_ULANG_MALAM,
 ): { hafalan: EntriHafalan[]; jadwal: EntriJadwal[] } {
   const hafal = ayatHafal(hafalan);
-  const baru = [...new Map(ayat.filter((x) => !hafal.has(`${x.surah}:${x.ayat}`)).map((x) => [`${x.surah}:${x.ayat}`, x])).values()]
-    .sort((a, b) => a.surah - b.surah || a.ayat - b.ayat);
+  const baru = [
+    ...new Map(ayat.filter((x) => !hafal.has(`${x.surah}:${x.ayat}`)).map((x) => [`${x.surah}:${x.ayat}`, x])).values(),
+  ].sort((a, b) => a.surah - b.surah || a.ayat - b.ayat);
   const hasil = { hafalan: [] as EntriHafalan[], jadwal: [] as EntriJadwal[] };
   // Entri hafalan per deretan ayat berurutan di dalam satu rukuk.
   const rukukTersentuh = new Set<number>();
@@ -322,7 +342,8 @@ export function tandaiAyatLama(
     const lengkap = rukukLengkap(r, hafal);
     if (j && !j.lengkap && !j.sebagian) {
       // Rukuk yang sedang dihafal tetap diulang harian; bila kini lengkap, masuk jadwal berjarak.
-      if (lengkap) hasil.jadwal.push({ ...j, lengkap: true, sebagian: false, tingkat: 0, jatuhTempo: tambahHari(hari, 1) });
+      if (lengkap)
+        hasil.jadwal.push({ ...j, lengkap: true, sebagian: false, tingkat: 0, jatuhTempo: tambahHari(hari, 1) });
       continue;
     }
     if (j && j.lengkap) continue;
@@ -469,7 +490,10 @@ export function migrasiJadwalLama(lama: JadwalPotonganLama[]): { hafalan: EntriH
       tingkat: lengkap ? Math.min(...daftar.map((e) => e.tingkat)) : 0,
       jatuhTempo: daftar.map((e) => e.jatuhTempo).sort()[0],
       mulai: daftar.map((e) => e.mulai).sort()[0],
-      terakhir: daftar.map((e) => e.terakhir).sort().at(-1)!,
+      terakhir: daftar
+        .map((e) => e.terakhir)
+        .sort()
+        .at(-1)!,
     });
   }
   return { hafalan, jadwal };

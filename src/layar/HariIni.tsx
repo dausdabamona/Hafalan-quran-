@@ -141,30 +141,34 @@ export default function LayarHariIni() {
   const menu = [
     {
       judul: 'Latihan sambung ayat',
+      pendek: 'Sambung ayat',
       isi: 'Satu ayat tampil, Anda melanjutkan ayat sesudahnya. Sambungan yang pernah tertukar didahulukan.',
-      ikon: <Link size={34} weight="duotone" className="ikon" />,
+      ikon: <Link size={30} weight="duotone" className="ikon" />,
       buka: () => pergi('#/sambung'),
       mati: jumlahHafal < 2,
     },
     {
       judul: 'Tebak ayat dari arti',
+      pendek: 'Tebak arti',
       isi: 'Arti satu ayat tampil, Anda menebak ayatnya dan membacanya sambil direkam, lalu periksa sendiri.',
-      ikon: <Translate size={34} weight="duotone" className="ikon" />,
+      ikon: <Translate size={30} weight="duotone" className="ikon" />,
       buka: () => pergi('#/tebak-arti'),
       mati: jumlahHafal < 1,
     },
     {
       judul: 'Murotal',
+      pendek: 'Murotal',
       isi: 'Dengarkan rekaman murojaah Anda sendiri yang sudah dikoreksi dan bersih dari kesalahan.',
-      ikon: <Headphones size={34} weight="duotone" className="ikon" />,
+      ikon: <Headphones size={30} weight="duotone" className="ikon" />,
       buka: () => pergi('#/murotal'),
     },
     ...(pengingatTersedia()
       ? [
           {
             judul: 'Pengingat ayat',
+            pendek: 'Pengingat',
             isi: 'Ayat hafalan tampil sebagai kartu kecil saat Anda membuka media sosial.',
-            ikon: <BellRinging size={34} weight="duotone" className="ikon" />,
+            ikon: <BellRinging size={30} weight="duotone" className="ikon" />,
             buka: () => pergi('#/pengingat'),
           },
         ]
@@ -173,25 +177,28 @@ export default function LayarHariIni() {
       ? [
           {
             judul: 'Sinkron HP ↔ Laptop',
+            pendek: 'Sinkron',
             isi:
               peranSinkron() === 'pusat'
                 ? 'Pasangkan Saku Hati di laptop lewat kode QR; data saling sinkron di Wi-Fi yang sama.'
                 : 'Pasangkan dengan Saku Hati di HP lewat kode QR; data saling sinkron di Wi-Fi yang sama.',
-            ikon: <ArrowsClockwise size={34} weight="duotone" className="ikon" />,
+            ikon: <ArrowsClockwise size={30} weight="duotone" className="ikon" />,
             buka: () => pergi('#/sinkron'),
           },
         ]
       : []),
     {
       judul: 'Jelajah mushaf',
+      pendek: 'Mushaf',
       isi: 'Semua surah, 30 juz, Al-Fatihah sampai An-Nas. Tandai ayat yang sudah hafal.',
-      ikon: <BookOpen size={34} weight="duotone" className="ikon" />,
+      ikon: <BookOpen size={30} weight="duotone" className="ikon" />,
       buka: () => pergi('#/semua'),
     },
     {
       judul: 'Rukuk yang dihafal',
+      pendek: 'Rukuk hafal',
       isi: 'Semua rukuk yang sudah masuk hafalan, untuk murojaah di luar jadwal.',
-      ikon: <ListChecks size={34} weight="duotone" className="ikon" />,
+      ikon: <ListChecks size={30} weight="duotone" className="ikon" />,
       buka: () => pergi('#/rukuk'),
     },
   ];
@@ -332,12 +339,18 @@ export default function LayarHariIni() {
 
         <section className="bagian" style={{ gap: 'var(--space-4)' }}>
           <p className="kicker">Juga di Saku Hati</p>
-          <div className="menu-koran">
+          {/* K-47: menu berupa ikon dengan label pendek; penjelasan tampil saat ditekan lama / disorot. */}
+          <div className="menu-ikon">
             {menu.map((m) => (
-              <button key={m.judul} onClick={m.buka} disabled={'mati' in m && m.mati}>
-                {m.ikon}
-                <span className="judul">{m.judul}</span>
-                <span className="isi">{m.isi}</span>
+              <button
+                key={m.judul}
+                onClick={m.buka}
+                disabled={'mati' in m && m.mati}
+                title={`${m.judul} — ${m.isi}`}
+                aria-label={m.judul}
+              >
+                <span className="bulat">{m.ikon}</span>
+                <span className="label">{m.pendek}</span>
               </button>
             ))}
           </div>

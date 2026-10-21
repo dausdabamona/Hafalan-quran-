@@ -3009,3 +3009,53 @@ div.ayat.bisa-mundur:focus-visible {
     margin-left: 0;
   }
 }
+
+/* ================= K-47: menu Hari ini berupa ikon ================= */
+.menu-ikon {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4) var(--space-2);
+}
+.menu-ikon button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: var(--color-text);
+  cursor: pointer;
+  min-width: 0;
+}
+.menu-ikon .bulat {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  color: var(--color-accent-700);
+  transition: background 0.15s;
+}
+.menu-ikon button:hover .bulat,
+.menu-ikon button:focus-visible .bulat {
+  background: var(--color-accent-100);
+  border-color: var(--color-accent);
+}
+.menu-ikon .label {
+  font-size: 13px;
+  line-height: 1.25;
+  text-align: center;
+}
+.menu-ikon button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+@media (min-width: 960px) {
+  .menu-ikon {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}

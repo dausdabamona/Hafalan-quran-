@@ -62,6 +62,7 @@ Di luar cakupan versi pertama: banyak pengguna, audio qari, pengenalan suara oto
 | K-44 | Pengingat ayat juga di atas Claude | Aplikasi Claude (com.anthropic.claude) ditambahkan ke daftar aplikasi pemicu kartu ayat (K-32), dengan jeda minimal yang sama. Pada pengaturan yang sudah tersimpan, Claude dicentang sekali secara otomatis; sesudahnya bisa dimatikan di layar Pengingat ayat (21 Okt 2026) |
 | K-45 | Mundur ke ayat yang salah saat merekam | Selama merekam murojaah/hafalan, bila sadar ada ayat yang salah, bisa mundur lewat tombol **Mundur** (satu ayat sebelumnya) atau dengan **mengetuk ayat yang sudah tersimpan**. Rekaman ayat yang sedang berjalan dibuang, lalu perekaman **berlanjut berurutan** dari ayat yang salah sampai akhir; rekaman ayat sesudahnya ikut diganti saat dibaca ulang (21 Okt 2026) |
 | K-46 | Bilah rekam berupa ikon | Tombol di bilah bawah layar rekam diganti ikon bulat seperti alat perekam, masing-masing dengan keterangan pendek: Teks (tampilkan/tutup teks ayat), Mundur, tombol utama besar di tengah (Rekam → Selesai ayat → Selesai & koreksi), dan Ulangi. Ikon yang belum bisa dipakai tampil pudar. Fungsi tidak berubah (21 Okt 2026) |
+| K-47 | Menu Hari ini berupa ikon | Bagian "Juga di Saku Hati" di Hari ini diganti deretan ikon dengan label pendek (Sambung ayat, Tebak arti, Murotal, Pengingat, Sinkron, Mushaf, Rukuk hafal), empat per baris di HP dan satu baris di laptop; penjelasan panjang tampil saat ikon disorot. Tombol utama "Rekam & koreksi" tetap bertulisan agar jelas (21 Okt 2026) |
 
 ## Metode dan alur harian
 

@@ -3059,3 +3059,387 @@ div.ayat.bisa-mundur:focus-visible {
     grid-template-columns: repeat(7, minmax(0, 1fr));
   }
 }
+
+/* ======================= K-48: TAMPILAN KARTU MODERN (pilihan A) =======================
+   Menggantikan gaya koran Broadsheet: latar terang, kepala hijau tua, isi berupa kartu putih
+   bersudut bulat, huruf Plus Jakarta Sans. Lapisan ini sengaja paling akhir agar menimpa. */
+:root {
+  --color-bg: #f2f5f3;
+  --color-surface: #e8efeb;
+  --color-kartu: #ffffff;
+  --color-text: #15231c;
+  --color-muted: #5b6b63;
+  --color-divider: #dce5e0;
+  --color-accent: #1e8a4c;
+  --color-accent-100: #e7f5ec;
+  --color-accent-200: #c6e8d2;
+  --color-accent-600: #1a7c43;
+  --color-accent-700: #146b38;
+  --color-accent-800: #0f3d2e;
+  --color-api: #f2a93b;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --shadow-kartu: 0 6px 18px rgba(15, 61, 46, 0.08);
+  --shadow-md: 0 6px 18px rgba(15, 61, 46, 0.1);
+  --shadow-lg: 0 16px 40px rgba(15, 61, 46, 0.18);
+  --font-latin: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --kartu: var(--color-kartu);
+}
+body {
+  font-family: var(--font-latin);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+.angka-besar,
+.judul-besar {
+  font-family: var(--font-latin);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-text);
+}
+.judul-besar {
+  font-size: inherit;
+}
+
+/* ---------- Tombol ---------- */
+.tombol,
+.tautan,
+.chip {
+  font-family: var(--font-latin);
+}
+.tombol {
+  border-radius: var(--radius-md);
+  font-weight: 700;
+}
+.tombol.utama {
+  background: var(--color-accent);
+  color: #fff;
+  box-shadow: 0 3px 0 var(--color-accent-700);
+}
+.tombol.utama:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 0 var(--color-accent-700);
+}
+.tombol.sekunder {
+  background: var(--color-kartu);
+  border-color: var(--color-divider);
+}
+.chip {
+  border-radius: 999px;
+}
+.tombol.ikon-utama,
+.tombol.ikon-utama:active {
+  box-shadow: none !important;
+  transform: none;
+}
+
+/* ---------- Kepala layar turunan ---------- */
+.kepala {
+  background: var(--color-bg);
+}
+.kepala h1 {
+  font-weight: 700;
+}
+
+/* ---------- Hari ini: kepala hijau ---------- */
+.pahlawan {
+  background: var(--color-accent-800);
+  color: #fff;
+  padding: calc(var(--space-6) + env(safe-area-inset-top)) var(--space-4) 64px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.pahlawan-atas {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+.pahlawan-salam {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pahlawan-tanggal {
+  font-size: 13px;
+  color: #a9c9b8;
+}
+.pahlawan h1 {
+  margin: 0;
+  font-size: 23px;
+  font-weight: 700;
+  color: #fff;
+}
+.pil-rentetan {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #1c5a43;
+  font-weight: 700;
+  font-size: 14px;
+}
+.pil-rentetan svg {
+  color: var(--color-api);
+}
+.pahlawan-kemajuan {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.cincin {
+  --persen: 0%;
+  width: 88px;
+  height: 88px;
+  flex: none;
+  border-radius: 50%;
+  background: conic-gradient(var(--color-api) 0 var(--persen), #1c5a43 var(--persen) 100%);
+  display: grid;
+  place-items: center;
+}
+.cincin span {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: var(--color-accent-800);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 16px;
+}
+.pahlawan-angka {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #a9c9b8;
+}
+.pahlawan-angka .jumlah {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.05;
+  color: #fff;
+}
+.pahlawan .strip-juz {
+  gap: 2px;
+}
+.pahlawan .strip-juz > div {
+  height: 16px;
+  border-radius: 3px;
+  background: #1c5a43;
+}
+.pahlawan .strip-juz > div > div {
+  background: #7fd1a1;
+}
+.pahlawan .strip-juz > div.berjalan {
+  outline: 2px solid var(--color-api);
+  outline-offset: 1px;
+}
+.pahlawan .strip-juz > div.berjalan > div {
+  background: var(--color-api);
+}
+
+/* ---------- Hari ini: isi berupa kartu ---------- */
+.koran-isi {
+  margin-top: -40px;
+  padding: 0 var(--space-3) var(--space-6);
+  gap: var(--space-3);
+}
+.koran-isi > .bagian {
+  background: var(--color-kartu);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-kartu);
+  gap: var(--space-3);
+}
+.koran-isi .kicker {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+.judul-sabaq {
+  font-size: 24px;
+  font-weight: 700;
+}
+.pita-ayat {
+  margin: 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-100);
+}
+.ulang-angka .angka-besar {
+  font-size: 44px;
+  color: var(--color-accent-700);
+}
+.ulang-angka h2 {
+  font-weight: 700;
+}
+.daftar-koran .baris-koran {
+  border-radius: var(--radius-md);
+}
+.menu-ikon .bulat {
+  background: var(--color-accent-100);
+  border-color: transparent;
+}
+
+/* ---------- Menu tab bawah (HP) ---------- */
+.bilah-tab {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 15;
+  max-width: 440px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 6px 0 calc(8px + env(safe-area-inset-bottom));
+  background: var(--color-kartu);
+  border-top: 1px solid var(--color-divider);
+  box-shadow: 0 -4px 16px rgba(15, 61, 46, 0.06);
+}
+.bilah-tab button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 52px;
+  justify-content: center;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+.bilah-tab button.aktif {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+.aplikasi.bertab {
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}
+.aplikasi.bertab .bilah-pemutar {
+  bottom: calc(76px + env(safe-area-inset-bottom));
+}
+.aplikasi.bertab .kepala .tombol-ikon[aria-label='Kembali'] {
+  display: none;
+}
+
+/* ---------- Layar Lainnya ---------- */
+.daftar-lainnya {
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.daftar-lainnya button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--color-kartu);
+  box-shadow: var(--shadow-kartu);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ikon-kotak {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border-radius: var(--radius-md);
+  background: var(--color-accent-100);
+  color: var(--color-accent-700);
+  display: grid;
+  place-items: center;
+}
+.daftar-lainnya .teks {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.daftar-lainnya .teks span {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+/* ---------- Bilah bawah & lembar ---------- */
+.bilah-aksi {
+  background: var(--color-kartu);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.lembar {
+  background: var(--color-kartu);
+  border-radius: 20px 20px 0 0;
+}
+.bilah-pemutar {
+  background: var(--color-kartu);
+  border-radius: var(--radius-lg);
+}
+
+/* ---------- Daftar surah ---------- */
+.baris-surah {
+  background: var(--color-kartu);
+  border-radius: var(--radius-md);
+  margin-bottom: 6px;
+}
+
+@media (min-width: 960px) {
+  .bilah-tab {
+    display: none;
+  }
+  .aplikasi.bertab {
+    padding-bottom: 96px;
+  }
+  .aplikasi.bertab .bilah-pemutar {
+    bottom: var(--space-4);
+  }
+  .aplikasi.bertab .kepala .tombol-ikon[aria-label='Kembali'] {
+    display: inline-flex;
+  }
+  .bilah-samping {
+    background: var(--color-kartu);
+  }
+  .merek-samping {
+    border-bottom: 1px solid var(--color-divider) !important;
+  }
+  .merek-samping .judul-besar {
+    font-size: 24px;
+  }
+  .bilah-samping button.aktif {
+    background: var(--color-accent-100);
+    border-radius: var(--radius-sm);
+  }
+  .bilah-aksi,
+  .lembar {
+    border-radius: var(--radius-lg);
+  }
+  .pahlawan {
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    padding-left: var(--space-6);
+    padding-right: var(--space-6);
+  }
+  .koran-isi {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+  .koran-isi > .bagian:nth-child(2) {
+    border-left: 0;
+    padding-left: var(--space-4);
+    margin-left: 0;
+  }
+  .koran-isi > .bagian:first-child {
+    grid-column: auto;
+  }
+}

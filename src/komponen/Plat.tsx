@@ -1,5 +1,5 @@
-// Efek "plate cetak" Broadsheet (K-38): teks dicetak sebagai tiga pelat C/M/Y yang
-// sedikit bergeser. Hanya untuk angka dan judul besar berhuruf Latin, bukan teks Arab.
+// Angka atau judul besar. Efek pelat cetak Broadsheet (K-38) dihapus pada tampilan
+// Kartu Modern (K-48); komponen tetap dipakai agar pemanggilnya tidak berubah.
 export default function Plat({
   teks,
   jenis = 'num',
@@ -14,17 +14,8 @@ export default function Plat({
   style?: React.CSSProperties;
 }) {
   return (
-    <Tag className={`cmyk-${jenis} ${className}`} style={style}>
-      <span className="paper">{teks}</span>
-      <span className="plate plate-c" aria-hidden="true">
-        {teks}
-      </span>
-      <span className="plate plate-m" aria-hidden="true">
-        {teks}
-      </span>
-      <span className="plate plate-y" aria-hidden="true">
-        {teks}
-      </span>
+    <Tag className={`${jenis === 'num' ? 'angka-besar' : 'judul-besar'} ${className}`} style={style}>
+      {teks}
     </Tag>
   );
 }

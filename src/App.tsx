@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import BilahSamping from './komponen/BilahSamping';
+import BilahTab, { LAYAR_BERTAB } from './komponen/BilahTab';
+import LayarLainnya from './layar/Lainnya';
 import { cariSurah } from './data';
 import { bacaHash, pergi, type Layar } from './navigasi';
 import LayarDaftar from './layar/Daftar';
@@ -89,7 +91,10 @@ export default function App() {
   return (
     <div className="kerangka">
       <BilahSamping layar={layar.nama} />
-      <div className="aplikasi" style={{ ['--ukuran-arab' as string]: `${ukuran}px` }}>
+      <div
+        className={'aplikasi' + (LAYAR_BERTAB.includes(layar.nama) ? ' bertab' : '')}
+        style={{ ['--ukuran-arab' as string]: `${ukuran}px` }}
+      >
         {layar.nama === 'hari-ini' && <LayarHariIni />}
         {layar.nama === 'daftar' && <LayarDaftar />}
         {layar.nama === 'sambung' && <LayarSambung />}
@@ -111,12 +116,14 @@ export default function App() {
         )}
         {layar.nama === 'rukuk' && <LayarRukuk />}
         {layar.nama === 'tentang' && <LayarTentang />}
+        {layar.nama === 'lainnya' && <LayarLainnya />}
         {layar.nama === 'pilih-murotal' && <LayarPilihMurotal />}
         {layar.nama === 'pengingat' && <LayarPengingat />}
         {layar.nama === 'sinkron' && <LayarSinkron />}
         {layar.nama === 'murotal' && (
           <LayarMurotal key={hashMurotal(layar.rentang)} rentang={layar.rentang} putar={layar.putar} />
         )}
+        <BilahTab layar={layar.nama} />
         <BilahPemutar layarHash={layar.nama === 'murotal' ? hashMurotal(layar.rentang) : ''} />
       </div>
     </div>

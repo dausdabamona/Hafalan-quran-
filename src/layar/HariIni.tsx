@@ -5,8 +5,8 @@ import {
   BellRinging,
   BookOpen,
   CheckCircle,
+  Flame,
   Headphones,
-  Info,
   Link,
   ListChecks,
   Microphone,
@@ -29,7 +29,8 @@ import {
   type Potongan,
   type Rukuk,
 } from '../data';
-import { ambilHafalan, ambilJadwal, ambilMaknaSurah, type Makna } from '../db';
+import { ambilHafalan, ambilJadwal, ambilMaknaSurah, db, type Makna } from '../db';
+import { hariLokal, rentetanHari } from '../kemajuan';
 import {
   ayatHafal,
   BATAS_ULANG_MALAM,
@@ -112,9 +113,19 @@ export default function LayarHariIni() {
   const [jadwal, setJadwal] = useState<Map<number, EntriJadwal>>(new Map());
   const [lihatSemua, setLihatSemua] = useState(false);
 
+  const [rentetan, setRentetan] = useState(0);
+
   useEffect(() => {
     ambilHafalan().then(setHafalan);
     ambilJadwal().then(setJadwal);
+    db.sesi.toArray().then((x) =>
+      setRentetan(
+        rentetanHari(
+          x.map((s) => hariLokal(s.tanggal)),
+          hariIni(),
+        ),
+      ),
+    );
   }, []);
 
   const hafal = useMemo(() => ayatHafal(hafalan ?? new Map()), [hafalan]);
@@ -127,6 +138,7 @@ export default function LayarHariIni() {
   const tampil = lihatSemua ? ulang : ulang.slice(0, BATAS_ULANG_MALAM);
   const jumlahHafal = hafal.size;
   const sekarang = new Date();
+  const hijriah = tanggalHijriah(sekarang);
 
   // Strip 30 juz: persen ayat hafal per juz.
   const total = totalAyatJuz();
@@ -248,65 +260,51 @@ export default function LayarHariIni() {
 
   return (
     <>
-      <header className="koran">
-        <div className="garis-tebal">
-          <div />
-        </div>
-        <div className="koran-baris">
-          <div className="koran-merek">
-            <img src="./ikon.png" alt="" />
-            <div>
-              <Plat as="h1" jenis="head" teks="Saku Hati" />
-              <p>Sedikit Ayat, Kuat Ulangnya</p>
-            </div>
+      {/* K-48: kepala Kartu Modern — salam, tanggal, rentetan hari, cincin persentase hafalan. */}
+      <header className="pahlawan">
+        <div className="pahlawan-atas">
+          <div className="pahlawan-salam">
+            <span className="pahlawan-tanggal">
+              {sekarang.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}
+              {hijriah && ` · ${hijriah}`}
+            </span>
+            <h1>Assalamu'alaikum</h1>
           </div>
-          <button className="tombol-ikon" onClick={() => pergi('#/tentang')} aria-label="Tentang">
-            <Info weight="duotone" />
-          </button>
-        </div>
-        <div className="garis-tipis" />
-        <div className="koran-tanggal">
-          <span>
-            {sekarang.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          <span className="pil-rentetan" title="Hari berturut-turut ada murojaah atau koreksi">
+            <Flame size={18} weight="fill" /> {rentetan} hari
           </span>
-          <span style={{ fontStyle: 'italic' }}>{tanggalHijriah(sekarang)}</span>
         </div>
-        <div className="garis-tutup" />
-        <div />
+        <div className="pahlawan-kemajuan">
+          <div
+            className="cincin"
+            style={{ ['--persen' as string]: `${Math.min(100, (jumlahHafal / JUMLAH_AYAT) * 100)}%` }}
+            role="img"
+            aria-label={`${persen} persen Al-Qur'an sudah dihafal`}
+          >
+            <span>{persen}%</span>
+          </div>
+          <div className="pahlawan-angka">
+            <span className="jumlah">{jumlahHafal.toLocaleString('id-ID')} ayat</span>
+            <span>
+              sudah dihafal dari {JUMLAH_AYAT.toLocaleString('id-ID')}
+              {juzBerjalan ? ` · Juz ${juzBerjalan} berjalan` : ''}
+            </span>
+          </div>
+        </div>
+        <div className="strip-juz" aria-hidden="true">
+          {Array.from({ length: 30 }, (_, i) => i + 1).map((n) => (
+            <div
+              key={n}
+              className={n === juzBerjalan ? 'berjalan' : ''}
+              title={`Juz ${n}: ${hafalJuz[n]} dari ${total[n]} ayat`}
+            >
+              <div style={{ height: `${total[n] ? (hafalJuz[n] / total[n]) * 100 : 0}%` }} />
+            </div>
+          ))}
+        </div>
       </header>
 
       <main className="koran-isi">
-        <section className="bagian" style={{ gap: 'var(--space-4)' }}>
-          <div className="kemajuan-angka">
-            <Plat teks={jumlahHafal.toLocaleString('id-ID')} />
-            <p>
-              ayat sudah dihafal
-              <br />
-              <span style={{ fontStyle: 'italic' }}>
-                dari {JUMLAH_AYAT.toLocaleString('id-ID')} · {persen}%
-              </span>
-            </p>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-            <div className="strip-juz">
-              {Array.from({ length: 30 }, (_, i) => i + 1).map((n) => (
-                <div
-                  key={n}
-                  className={n === juzBerjalan ? 'berjalan' : ''}
-                  title={`Juz ${n}: ${hafalJuz[n]} dari ${total[n]} ayat`}
-                >
-                  <div style={{ height: `${total[n] ? (hafalJuz[n] / total[n]) * 100 : 0}%` }} />
-                </div>
-              ))}
-            </div>
-            <div className="label-strip">
-              <span>Juz 1</span>
-              <span>15</span>
-              <span>30</span>
-            </div>
-          </div>
-        </section>
-
         <HafalanBaru baru={baru} hari={hari} />
 
         <section className="bagian">

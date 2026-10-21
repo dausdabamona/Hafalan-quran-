@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import BilahSamping from './komponen/BilahSamping';
 import BilahTab, { LAYAR_BERTAB } from './komponen/BilahTab';
 import LayarLainnya from './layar/Lainnya';
+import LayarKemajuan from './layar/Kemajuan';
 import { cariSurah } from './data';
 import { bacaHash, pergi, type Layar } from './navigasi';
 import LayarDaftar from './layar/Daftar';
@@ -117,6 +118,7 @@ export default function App() {
         {layar.nama === 'rukuk' && <LayarRukuk />}
         {layar.nama === 'tentang' && <LayarTentang />}
         {layar.nama === 'lainnya' && <LayarLainnya />}
+      {layar.nama === 'kemajuan' && <LayarKemajuan />}
         {layar.nama === 'pilih-murotal' && <LayarPilihMurotal />}
         {layar.nama === 'pengingat' && <LayarPengingat />}
         {layar.nama === 'sinkron' && <LayarSinkron />}

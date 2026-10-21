@@ -13,6 +13,7 @@ export type Layar =
   | { nama: 'rukuk' }
   | { nama: 'tentang' }
   | { nama: 'lainnya' }
+  | { nama: 'kemajuan' }
   | { nama: 'pilih-murotal' }
   | { nama: 'pengingat' }
   | { nama: 'sinkron' }
@@ -58,6 +59,7 @@ export function bacaHash(): Layar {
   if (h === '#/rukuk') return { nama: 'rukuk' };
   if (h === '#/tentang') return { nama: 'tentang' };
   if (h === '#/lainnya') return { nama: 'lainnya' };
+  if (h === '#/kemajuan') return { nama: 'kemajuan' };
   if (h === '#/semua') return { nama: 'daftar' };
   if (h === '#/sambung') return { nama: 'sambung' };
   if (h === '#/tebak-arti') return { nama: 'tebak-arti' };

@@ -2,6 +2,7 @@ import {
   ArrowsClockwise,
   BellRinging,
   BookOpen,
+  ChartBar,
   Headphones,
   Info,
   Link,
@@ -31,6 +32,7 @@ export default function BilahSamping({ layar }: { layar: NamaLayar }) {
   const item: Item[] = [
     { judul: 'Hari ini', hash: '#/', ikon: ikon(Newspaper), aktif: ['hari-ini', 'rekam', 'koreksi'] },
     { judul: 'Jelajah mushaf', hash: '#/semua', ikon: ikon(BookOpen), aktif: ['daftar', 'surah'] },
+    { judul: 'Kemajuan', hash: '#/kemajuan', ikon: ikon(ChartBar), aktif: ['kemajuan'] },
     { judul: 'Rukuk yang dihafal', hash: '#/rukuk', ikon: ikon(ListChecks), aktif: ['rukuk'] },
     { judul: 'Murotal', hash: '#/murotal', ikon: ikon(Headphones), aktif: ['pilih-murotal', 'murotal'] },
     { judul: 'Sambung ayat', hash: '#/sambung', ikon: ikon(Link), aktif: ['sambung'] },

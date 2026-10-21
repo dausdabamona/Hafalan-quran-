@@ -342,7 +342,7 @@ export default function LayarHariIni() {
         )}
         <HafalanBaru baru={baru} hari={hari} />
 
-        <section className="bagian">
+        <section className="bagian kartu-ulang">
           <p className="kicker">
             <MoonStars size={18} weight="duotone" className="ikon" /> Ulang hafalan
             <span className="istilah">Sabqi &amp; Manzil · sebelum tidur</span>
@@ -372,7 +372,7 @@ export default function LayarHariIni() {
 
         <PerluPerhatian hafal={hafal} tandaSalah={tanda.salah} tertukar={tanda.tertukar} />
 
-        <section className="bagian" style={{ gap: 'var(--space-4)' }}>
+        <section className="bagian kartu-menu" style={{ gap: 'var(--space-4)' }}>
           <p className="kicker">Juga di Saku Hati</p>
           {/* K-47: menu berupa ikon dengan label pendek; penjelasan tampil saat ditekan lama / disorot. */}
           <div className="menu-ikon">
@@ -414,7 +414,7 @@ function HafalanBaru({ baru, hari }: { baru: ReturnType<typeof pilihHafalanBaru>
 
   if (baru.status === 'tamat') {
     return (
-      <section className="bagian">
+      <section className="bagian kartu-baru">
         {kepala}
         <p className="selesai-hari-ini">Masya Allah, seluruh Al-Qur'an sudah masuk hafalan.</p>
       </section>
@@ -426,7 +426,7 @@ function HafalanBaru({ baru, hari }: { baru: ReturnType<typeof pilihHafalanBaru>
   const jumlahAyat = p.ayatAkhir - p.ayatAwal + 1;
 
   return (
-    <section className="bagian">
+    <section className="bagian kartu-baru">
       {kepala}
       <h2 className="judul-sabaq">
         {cariSurah(p.surah)?.nama}, {labelPotongan(p)}

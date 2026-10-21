@@ -3854,3 +3854,87 @@ body {
   margin-top: 2px;
   font-size: 13px;
 }
+
+/* ======================= K-54: TATA LETAK LAPTOP UNTUK KARTU MODERN =======================
+   Hari ini memakai area grid: target selebar penuh, Hafalan baru (lebar) di kiri,
+   Ulang hafalan + Perlu perhatian di kanan. Menu ikon disembunyikan karena sudah ada
+   menu samping. Area isi melebar mengikuti jendela. */
+@media (min-width: 960px) {
+  :root {
+    --lebar-isi: 1080px;
+  }
+  .koran-isi {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    grid-template-areas:
+      'target target'
+      'baru ulang'
+      'baru perhatian'
+      'baru .';
+    grid-template-rows: auto auto auto 1fr;
+    align-items: start;
+    gap: var(--space-4);
+  }
+  .koran-isi > .bagian {
+    margin-left: 0 !important;
+    border-left: 0 !important;
+    padding-left: var(--space-4) !important;
+  }
+  .koran-isi > .bagian.kartu-target {
+    grid-area: target;
+    grid-column: 1 / -1;
+  }
+  .koran-isi > .kartu-baru {
+    grid-area: baru;
+  }
+  .koran-isi > .kartu-ulang {
+    grid-area: ulang;
+  }
+  .koran-isi > .kartu-perhatian {
+    grid-area: perhatian;
+  }
+  .koran-isi > .kartu-menu {
+    display: none;
+  }
+  .kartu-baru .pita-ayat .arab {
+    font-size: calc(var(--ukuran-arab, 34px) * 1.1);
+  }
+  .batang-hari {
+    grid-template-columns: repeat(14, minmax(0, 1fr));
+    max-width: 640px;
+  }
+  .batang-hari.rapat {
+    grid-template-columns: repeat(30, minmax(0, 1fr));
+    max-width: none;
+  }
+
+  /* Kepala hijau: angka di kiri, strip juz di kanan. */
+  .pahlawan {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    grid-template-areas:
+      'atas atas'
+      'kemajuan strip';
+    align-items: center;
+    column-gap: var(--space-8);
+    padding-bottom: 72px;
+  }
+  .pahlawan-atas {
+    grid-area: atas;
+  }
+  .pahlawan-kemajuan {
+    grid-area: kemajuan;
+  }
+  .pahlawan .strip-juz {
+    grid-area: strip;
+    align-self: center;
+  }
+  .pahlawan .strip-juz > div {
+    height: 40px;
+  }
+}
+@media (min-width: 1400px) {
+  :root {
+    --lebar-isi: 1240px;
+  }
+}

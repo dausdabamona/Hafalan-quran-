@@ -10,9 +10,9 @@ import {
   StopCircle,
 } from '@phosphor-icons/react';
 import { gulirKe } from '../komponen/gulir';
-import { cariSurah, labelPotongan, segmenAyat, type Potongan } from '../data';
+import { cariSurah, labelPotongan, segmenAyat, susunToken, type Kata, type Potongan } from '../data';
 import { labelDaftarAyat, useAyatMurojaah } from '../komponen/useAyatMurojaah';
-import { ambilMaknaSurah, simpanRekaman, type Makna } from '../db';
+import { ambilMaknaSurah, ambilTandaSurah, kunciKata, simpanRekaman, type Makna, type TandaSalah } from '../db';
 import { ganti, hashPotongan } from '../navigasi';
 import { usePerekam } from '../perekam';
 import Kepala from '../komponen/Kepala';
@@ -31,6 +31,9 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
   // K-52: teks ayat dibuka sementara untuk ayat yang sedang dibaca saja.
   const [intip, setIntip] = useState(false);
   const [makna, setMakna] = useState<Map<string, Makna>>(new Map());
+  const [tandaSalah, setTandaSalah] = useState<Map<string, TandaSalah>>(new Map());
+  const salahDi = (ayat: number, urutan: number) => tandaSalah.get(kunciKata(surah.nomor, ayat, urutan));
+  const kelasKataSalah = (ayat: number) => (k: Kata) => (salahDi(ayat, k.urutan) ? 'tanda-lama' : '');
   const [menyimpan, setMenyimpan] = useState(false);
   const refKini = useRef<HTMLDivElement>(null);
 
@@ -40,6 +43,7 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
 
   useEffect(() => {
     ambilMaknaSurah(surah.nomor).then(setMakna);
+    ambilTandaSurah(surah.nomor).then((t) => setTandaSalah(t.salah));
   }, [surah.nomor]);
 
   // Pindah ayat (maju atau mundur): teks yang dibuka sementara ditutup lagi.
@@ -143,10 +147,32 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
             </span>
           </p>
           {tampilkanTeks || intip ? (
-            <TeksAyat ayat={ayatKini} />
+            <TeksAyat ayat={ayatKini} kelasKata={kelasKataSalah(ayatKini.ayat)} />
           ) : rukuk ? (
             // K-52: saat murojaah yang tampil arti ayat; ragu → buka teks ayat ini saja.
             <button type="button" className="teks-tertutup arti-murojaah" onClick={() => setIntip(true)}>
+              {/* K-55: hanya kata yang pernah salah yang terlihat; kata lain tetap kotak tertutup. */}
+              {susunToken(ayatKini).some((t) => t.kata && salahDi(ayatKini.ayat, t.kata.urutan)) && (
+                <span className="ayat-salah" dir="rtl" lang="ar">
+                  {susunToken(ayatKini)
+                    .filter((t) => t.kata)
+                    .map((t, i) => {
+                      const tanda = salahDi(ayatKini.ayat, t.kata!.urutan);
+                      return tanda ? (
+                        <span key={i} className="kata-salah">
+                          {t.teks}
+                          <small dir="ltr">{tanda.jumlah}×</small>
+                        </span>
+                      ) : (
+                        <span
+                          key={i}
+                          className="kotak-kata"
+                          style={{ width: `${Math.min(84, Math.max(26, t.teks.length * 7))}px` }}
+                        />
+                      );
+                    })}
+                </span>
+              )}
               <span className="kicker">Arti ayat {ayatKini.ayat}</span>
               <span className="isi-arti">
                 {segmenAyat(ayatKini)

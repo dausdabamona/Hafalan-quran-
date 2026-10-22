@@ -3938,3 +3938,41 @@ body {
     --lebar-isi: 1240px;
   }
 }
+
+/* K-55: hanya kata yang pernah salah yang terlihat saat murojaah */
+.ayat-salah {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-1);
+  border-bottom: 1px solid var(--color-accent-200);
+  font-style: normal;
+}
+.kotak-kata {
+  display: inline-block;
+  height: 18px;
+  border-radius: 5px;
+  background: #cfe3d6;
+}
+.kata-salah {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: var(--font-arab);
+  font-size: calc(var(--ukuran-arab, 34px) * 0.75);
+  line-height: 1.7;
+  color: #b42318;
+  border-bottom: 3px solid #d92d20;
+}
+.kata-salah small {
+  font-family: var(--font-latin);
+  font-size: 11px;
+  font-weight: 700;
+}
+.isi-rekam .kata.tanda-lama {
+  color: #b42318;
+  text-decoration: none;
+  border-bottom: 3px solid #d92d20;
+}

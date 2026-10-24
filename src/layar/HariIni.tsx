@@ -422,7 +422,9 @@ function HafalanBaru({ baru, hari }: { baru: ReturnType<typeof pilihHafalanBaru>
   }
 
   const p = baru.potongan;
-  const ayat = cariAyat(p.surah, p.ayatAwal);
+  const daftarAyat = Array.from({ length: p.ayatAkhir - p.ayatAwal + 1 }, (_, i) =>
+    cariAyat(p.surah, p.ayatAwal + i),
+  ).filter((a) => !!a);
   const jumlahAyat = p.ayatAkhir - p.ayatAwal + 1;
 
   return (
@@ -435,19 +437,30 @@ function HafalanBaru({ baru, hari }: { baru: ReturnType<typeof pilihHafalanBaru>
         Juz {juzAyat(p.surah, p.ayatAwal)} · {jumlahAyat === 1 ? 'satu ayat' : `${jumlahAyat} ayat`}
         {baru.status === 'ulang' && ' · diulang sampai lancar sebelum menambah yang baru'}
       </p>
-      {ayat && (
+      {/* K-59: semua ayat potongan, per potongan waqaf dengan artinya tepat di bawahnya. */}
+      {daftarAyat.length > 0 && (
         <div className="pita-ayat">
-          <p className="arab" dir="rtl" lang="ar">
-            {susunToken(ayat)
-              .map((t) => t.teks)
-              .join(' ')}{' '}
-            <span>﴿{angkaArab(ayat.ayat)}﴾</span>
-          </p>
-          <p className="makna-pita">
-            {segmenAyat(ayat)
-              .map((g) => makna.get(`${p.surah}:${ayat.ayat}:${g.indeks}`)?.isi ?? g.maknaBawaan)
-              .join(' ')}
-          </p>
+          {daftarAyat.map((ayat) => {
+            const token = susunToken(ayat);
+            return (
+              <div key={ayat.ayat} className="ayat-pita">
+                {segmenAyat(ayat).map((g, n, semua) => (
+                  <div key={g.indeks} className="segmen-pita">
+                    <p className="arab" dir="rtl" lang="ar">
+                      {token
+                        .filter((t) => t.segmen === g.indeks)
+                        .map((t) => t.teks)
+                        .join(' ')}
+                      {n === semua.length - 1 && <span> ﴿{angkaArab(ayat.ayat)}﴾</span>}
+                    </p>
+                    <p className="makna-pita">
+                      {makna.get(`${p.surah}:${ayat.ayat}:${g.indeks}`)?.isi ?? g.maknaBawaan}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
         </div>
       )}
       {baru.status === 'selesai' ? (

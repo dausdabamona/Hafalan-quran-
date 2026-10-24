@@ -109,10 +109,16 @@ export default function KartuTarget({
             : `Sesuai jadwal. Sekitar ${h.perHari} ayat per hari sampai selesai.`}
         </p>
       )}
-      {h && h.tertinggal > 0 && tambahPotongan && (
-        <button className="tombol sekunder lebar" onClick={() => pergi(hashPotongan('rekam', tambahPotongan))}>
-          <Plus weight="bold" /> Tambah satu potongan: {namaPotongan(tambahPotongan)}
-        </button>
+      {/* K-58: tombol tambah selalu ada selama target berjalan, setelah hafalan baru hari ini selesai. */}
+      {h && !h.selesai && tambahPotongan && (
+        <>
+          {h.tertinggal === 0 && (
+            <p className="keterangan-kecil">Hafalan baru hari ini sudah selesai. Bila sanggup, tambah dari target:</p>
+          )}
+          <button className="tombol sekunder lebar" onClick={() => pergi(hashPotongan('rekam', tambahPotongan))}>
+            <Plus weight="bold" /> Tambah satu potongan: {namaPotongan(tambahPotongan)}
+          </button>
+        </>
       )}
     </section>
   );

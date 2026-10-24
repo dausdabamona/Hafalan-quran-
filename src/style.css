@@ -2329,8 +2329,8 @@ button.judul-juz.tandai {
 .pita-ayat .arab {
   margin: 0;
   font-family: var(--font-arab);
-  font-size: var(--arab-besar);
-  line-height: 2;
+  font-size: calc(var(--ukuran-arab, 34px) * 0.85);
+  line-height: 1.9;
   text-align: right;
 }
 .pita-ayat .arab span {
@@ -2338,8 +2338,25 @@ button.judul-juz.tandai {
 }
 .pita-ayat .makna-pita {
   margin: 0;
-  font-size: 16px;
+  font-size: 15px;
+  line-height: 1.5;
   font-style: italic;
+  color: var(--color-neutral-800);
+}
+/* K-59: ayat dipisah per potongan waqaf, arti di bawah tiap potongan. */
+.pita-ayat .ayat-pita {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.pita-ayat .ayat-pita + .ayat-pita {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-accent-200, rgba(0, 0, 0, 0.08));
+}
+.pita-ayat .segmen-pita {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .langkah-koran {
   margin: var(--space-3) 0 0;
@@ -3897,7 +3914,7 @@ body {
     display: none;
   }
   .kartu-baru .pita-ayat .arab {
-    font-size: calc(var(--ukuran-arab, 34px) * 1.1);
+    font-size: calc(var(--ukuran-arab, 34px) * 0.9);
   }
   .batang-hari {
     grid-template-columns: repeat(14, minmax(0, 1fr));

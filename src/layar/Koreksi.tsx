@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Play, Stop } from '@phosphor-icons/react';
+import { ArrowsDownUp, Check, CheckCircle, Play, Stop, X } from '@phosphor-icons/react';
 import { gulirKe } from '../komponen/gulir';
 import { cariSurah, labelPotongan, type Kata, type Potongan } from '../data';
 import { labelDaftarAyat, useAyatMurojaah } from '../komponen/useAyatMurojaah';
@@ -165,7 +165,7 @@ export default function LayarKoreksi({
       />
       <p className="petunjuk">
         Putar rekaman sambil melihat ayat. Ketuk kata yang salah; ketuk lagi untuk membatalkan. Bila urutan ayat
-        tertukar, tandai pada sambungannya.
+        tertukar, ketuk ikon ⇅ di bawah ayatnya. Kata merah di bawah ayat pernah salah; ketuk bila kini sudah benar.
       </p>
 
       <ol className="daftar-ayat koreksi">
@@ -254,28 +254,38 @@ function Sambungan({
   const pilihan = Array.from({ length: jumlahAyatSurah }, (_, i) => i + 1).filter(
     (n) => n !== seharusnya && n !== ayatAsal,
   );
+  // K-60: tampil sebagai ikon saja; keterangan lengkap lewat title/aria-label.
+  const ket = `Sambungan ${ayatAsal} → ${seharusnya}${pernah > 0 ? `, pernah tertukar ${pernah}×` : ''}`;
   return (
-    <div className={'sambungan' + (keliru !== null ? ' tertukar' : '')}>
-      <span className="label-sambungan">
-        Sambungan {ayatAsal} → {seharusnya}
-        {pernah > 0 && <span className="redup"> · pernah tertukar {pernah}×</span>}
-      </span>
+    <div className={'sambungan ikon-saja' + (keliru !== null ? ' tertukar' : '')}>
       {keliru === null ? (
-        <button className="tautan kecil" onClick={() => atur(pilihan[0] ?? null)}>
-          Tandai tertukar
+        <button
+          type="button"
+          className="ikon-sambungan"
+          onClick={() => atur(pilihan[0] ?? null)}
+          title={`${ket}. Ketuk bila tertukar.`}
+          aria-label={`${ket}. Tandai tertukar`}
+        >
+          <ArrowsDownUp size={20} weight="bold" />
+          {pernah > 0 && <span className="lencana">{pernah}×</span>}
         </button>
       ) : (
         <span className="pilih-keliru">
-          terbaca ayat
-          <select value={keliru} onChange={(e) => atur(Number(e.target.value))}>
+          <ArrowsDownUp size={20} weight="bold" aria-hidden="true" />
+          <select
+            value={keliru}
+            onChange={(e) => atur(Number(e.target.value))}
+            aria-label={`Sesudah ayat ${ayatAsal} terbaca ayat`}
+            title={`Sesudah ayat ${ayatAsal} terbaca ayat`}
+          >
             {pilihan.map((n) => (
               <option key={n} value={n}>
                 {n}
               </option>
             ))}
           </select>
-          <button className="tautan kecil" onClick={() => atur(null)}>
-            Batal
+          <button type="button" className="ikon-sambungan" onClick={() => atur(null)} aria-label="Batal" title="Batal">
+            <X size={18} weight="bold" />
           </button>
         </span>
       )}
@@ -363,32 +373,41 @@ function TandaLamaAyat({
   ubah: (k: Kata) => void;
 }) {
   if (kata.length === 0) return null;
+  // K-60: ringkas — kata + ikon centang + hitungan, tanpa judul.
   return (
-    <div className="tanda-lama-ayat">
-      <span className="judul-tanda-lama">Pernah salah — sudah benar kali ini?</span>
-      <div className="daftar-tanda-lama">
-        {kata.map((k) => (
+    <div className="tanda-lama-ayat" title="Pernah salah. Ketuk kata yang kini sudah benar.">
+      {kata.map((k) => {
+        const lagi = salahLagi(k);
+        const ok = benar(k) && !lagi;
+        const ket = lagi
+          ? 'salah lagi'
+          : ok
+            ? 'ditandai sudah benar'
+            : `pernah salah, benar ${jumlah(k)} dari ${BATAS_BENAR_OTOMATIS} kali berturut-turut`;
+        return (
           <button
             key={k.urutan}
             type="button"
-            className={'chip-tanda-lama' + (benar(k) && !salahLagi(k) ? ' benar' : '')}
+            className={'chip-tanda-lama' + (ok ? ' benar' : '')}
             onClick={() => ubah(k)}
-            disabled={salahLagi(k)}
+            disabled={lagi}
             aria-pressed={benar(k)}
+            aria-label={`${k.teks}: ${ket}. Ketuk bila sekarang sudah benar.`}
+            title={ket}
           >
+            {ok ? <CheckCircle size={18} weight="fill" /> : <Check size={16} weight="bold" />}
             <span className="arab" lang="ar" dir="rtl">
               {k.teks}
             </span>
-            <span className="ket">
-              {salahLagi(k)
-                ? 'salah lagi'
-                : benar(k)
-                  ? '✓ sudah benar'
-                  : `Sekarang sudah benar · ${jumlah(k)}/${BATAS_BENAR_OTOMATIS}`}
-            </span>
+            {!ok && !lagi && (
+              <span className="ket">
+                {jumlah(k)}/{BATAS_BENAR_OTOMATIS}
+              </span>
+            )}
+            {lagi && <X size={14} weight="bold" />}
           </button>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }

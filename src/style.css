@@ -3994,22 +3994,9 @@ body {
   border-bottom: 3px solid #d92d20;
 }
 
-/* K-57: tanda kata lama di layar Koreksi */
+/* K-57/K-60: tanda kata lama di layar Koreksi — ringkas, tanpa judul */
 .tanda-lama-ayat {
   margin-top: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  background: #fdf1f1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.judul-tanda-lama {
-  font-size: 12px;
-  font-weight: 700;
-  color: #b42318;
-}
-.daftar-tanda-lama {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -4017,31 +4004,33 @@ body {
 .chip-tanda-lama {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 2px 12px;
+  gap: 4px;
+  min-height: 36px;
+  padding: 0 10px;
   border: 1px solid #f3c2c4;
   border-radius: 999px;
-  background: var(--color-kartu);
+  background: #fdf1f1;
+  color: #b42318;
   font: inherit;
   cursor: pointer;
 }
 .chip-tanda-lama .arab {
   font-family: var(--font-arab);
-  font-size: 22px;
+  font-size: 20px;
+  line-height: 1.4;
   color: #b42318;
 }
 .chip-tanda-lama .ket {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   color: var(--color-muted);
 }
 .chip-tanda-lama.benar {
   border-color: var(--color-accent);
   background: var(--color-accent-100);
+  color: var(--color-accent-700);
 }
-.chip-tanda-lama.benar .arab,
-.chip-tanda-lama.benar .ket {
+.chip-tanda-lama.benar .arab {
   color: var(--color-accent-700);
 }
 .chip-tanda-lama:disabled {
@@ -4055,4 +4044,43 @@ body {
   background: var(--color-accent-100);
   color: var(--color-accent-700);
   font-weight: 600;
+}
+
+/* K-60: sambungan antar-ayat sebagai ikon saja */
+.sambungan.ikon-saja {
+  margin: 2px 0 var(--space-3);
+  padding: 0;
+  background: none;
+}
+.sambungan.ikon-saja.tertukar {
+  padding: 2px 6px;
+  background: var(--color-accent-2-100);
+}
+.ikon-sambungan {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--color-divider);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-accent-700);
+  font: inherit;
+  cursor: pointer;
+}
+.ikon-sambungan .lencana {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-accent-2-800);
+}
+.sambungan.ikon-saja .pilih-keliru {
+  gap: 4px;
+}
+.sambungan.ikon-saja .pilih-keliru select {
+  min-height: 32px;
+  font-size: 15px;
 }

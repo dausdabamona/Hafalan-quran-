@@ -3976,3 +3976,66 @@ body {
   text-decoration: none;
   border-bottom: 3px solid #d92d20;
 }
+
+/* K-57: tanda kata lama di layar Koreksi */
+.tanda-lama-ayat {
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: #fdf1f1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.judul-tanda-lama {
+  font-size: 12px;
+  font-weight: 700;
+  color: #b42318;
+}
+.daftar-tanda-lama {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip-tanda-lama {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 2px 12px;
+  border: 1px solid #f3c2c4;
+  border-radius: 999px;
+  background: var(--color-kartu);
+  font: inherit;
+  cursor: pointer;
+}
+.chip-tanda-lama .arab {
+  font-family: var(--font-arab);
+  font-size: 22px;
+  color: #b42318;
+}
+.chip-tanda-lama .ket {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+.chip-tanda-lama.benar {
+  border-color: var(--color-accent);
+  background: var(--color-accent-100);
+}
+.chip-tanda-lama.benar .arab,
+.chip-tanda-lama.benar .ket {
+  color: var(--color-accent-700);
+}
+.chip-tanda-lama:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.pesan-tanda-dihapus {
+  margin: 0 0 var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-100);
+  color: var(--color-accent-700);
+  font-weight: 600;
+}

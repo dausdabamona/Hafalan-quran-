@@ -56,6 +56,7 @@ export interface TandaSalah {
   pertama: string;
   terakhir: string;
   jumlah: number;
+  benarBeruntun?: number; // koreksi berturut-turut yang benar sejak salah terakhir (K-57)
 }
 
 // Tanda urutan tertukar (K-15): dipasang pada sambungan sesudah ayatAsal.
@@ -492,6 +493,7 @@ export interface HasilKoreksi {
   rukuk?: number; // terisi bila murojaah per rukuk
   ayat?: number[]; // daftar ayat yang dikoreksi bila tidak berurutan (K-30)
   sebagian?: boolean; // murojaah rukuk dihentikan di tengah (K-53)
+  sudahBenar?: { ayat: number; urutan: number }[]; // tanda lama yang dinyatakan sudah benar (K-57)
   kataSalah: { ayat: number; urutan: number }[];
   tertukar: { ayatAsal: number; ayatKeliru: number }[];
   hari?: string; // untuk uji; bawaan hari ini
@@ -509,6 +511,7 @@ async function catatTanda(h: HasilKoreksi, sekarang: string) {
       pertama: lama?.pertama ?? sekarang,
       terakhir: sekarang,
       jumlah: (lama?.jumlah ?? 0) + 1,
+      benarBeruntun: 0,
     });
   }
   for (const t of h.tertukar) {
@@ -526,9 +529,34 @@ async function catatTanda(h: HasilKoreksi, sekarang: string) {
   }
 }
 
+export const BATAS_BENAR_OTOMATIS = 3;
+
+// K-57: tanda kata lama di ayat yang dikoreksi. Yang dinyatakan sudah benar dihapus; yang
+// tidak ditandai salah lagi menambah hitungan benar berturut-turut dan terhapus setelah
+// BATAS_BENAR_OTOMATIS kali. Mengembalikan jumlah tanda yang dihapus.
+async function perbaruiTandaBenar(h: HasilKoreksi): Promise<number> {
+  const ayat = new Set(h.ayat ?? Array.from({ length: h.ayatAkhir - h.ayatAwal + 1 }, (_, i) => h.ayatAwal + i));
+  const salah = new Set(h.kataSalah.map((k) => `${k.ayat}:${k.urutan}`));
+  const benar = new Set((h.sudahBenar ?? []).map((k) => `${k.ayat}:${k.urutan}`));
+  const tanda = (await db.tandaSalah.where('surah').equals(h.surah).toArray()).filter((t) => ayat.has(t.ayat));
+  const hapus: string[] = [];
+  for (const t of tanda) {
+    const k = `${t.ayat}:${t.urutan}`;
+    if (salah.has(k)) continue;
+    const beruntun = (t.benarBeruntun ?? 0) + 1;
+    if (benar.has(k) || beruntun >= BATAS_BENAR_OTOMATIS) hapus.push(t.kunci);
+    else await db.tandaSalah.put({ ...t, benarBeruntun: beruntun });
+  }
+  if (hapus.length) {
+    await db.tandaSalah.bulkDelete(hapus);
+    await catatHapus(db, 'tandaSalah', hapus);
+  }
+  return hapus.length;
+}
+
 // Menyimpan hasil satu sesi koreksi (potongan) atau murojaah (rukuk).
-// Tanda lama yang salah lagi bertambah hitungannya; tidak ada tanda yang dihapus (K-13).
-export async function simpanKoreksi(h: HasilKoreksi): Promise<Sesi> {
+// Tanda lama yang salah lagi bertambah hitungannya; yang benar dihitung/dihapus (K-57).
+export async function simpanKoreksi(h: HasilKoreksi): Promise<Sesi & { tandaDihapus?: number }> {
   const sekarang = new Date().toISOString();
   const hari = h.hari ?? hariIni();
   const sesi: Sesi = {
@@ -542,31 +570,37 @@ export async function simpanKoreksi(h: HasilKoreksi): Promise<Sesi> {
     sambunganTertukar: h.tertukar.length,
     lancar: h.kataSalah.length === 0 && h.tertukar.length === 0,
   };
-  await db.transaction('rw', [db.tandaSalah, db.tandaTertukar, db.sesi, db.hafalan, db.jadwalRukuk], async () => {
-    await catatTanda(h, sekarang);
-    sesi.id = await db.sesi.add(sesi);
+  let tandaDihapus = 0;
+  await db.transaction(
+    'rw',
+    [db.tandaSalah, db.tandaTertukar, db.sesi, db.hafalan, db.jadwalRukuk, db.hapus],
+    async () => {
+      tandaDihapus = await perbaruiTandaBenar(h);
+      await catatTanda(h, sekarang);
+      sesi.id = await db.sesi.add(sesi);
 
-    if (h.rukuk) {
-      const j = await db.jadwalRukuk.get(h.rukuk);
-      if (!j) return;
-      // K-53: murojaah sebagian — kesalahan tetap menurunkan jadwal; bila lancar, rukuk
-      // tetap jatuh tempo sampai dibaca utuh.
-      if (h.sebagian) {
-        if (!sesi.lancar) await db.jadwalRukuk.put(turunkanJadwal(j, hari));
+      if (h.rukuk) {
+        const j = await db.jadwalRukuk.get(h.rukuk);
+        if (!j) return;
+        // K-53: murojaah sebagian — kesalahan tetap menurunkan jadwal; bila lancar, rukuk
+        // tetap jatuh tempo sampai dibaca utuh.
+        if (h.sebagian) {
+          if (!sesi.lancar) await db.jadwalRukuk.put(turunkanJadwal(j, hari));
+          return;
+        }
+        const baru = setelahMurojaahRukuk(j, sesi.lancar, hari);
+        await db.jadwalRukuk.put(baru ?? { ...j, terakhir: hari });
         return;
       }
-      const baru = setelahMurojaahRukuk(j, sesi.lancar, hari);
-      await db.jadwalRukuk.put(baru ?? { ...j, terakhir: hari });
-      return;
-    }
 
-    const [hafalan, jadwal] = await Promise.all([ambilHafalan(), ambilJadwal()]);
-    const p = { surah: h.surah, ayatAwal: h.ayatAwal, ayatAkhir: h.ayatAkhir };
-    const ubah = setelahKoreksiPotongan(hafalan, jadwal, p, sesi.lancar, hari);
-    if (ubah.hafalan) await db.hafalan.put(ubah.hafalan);
-    if (ubah.jadwal.length) await db.jadwalRukuk.bulkPut(ubah.jadwal);
-  });
-  return sesi;
+      const [hafalan, jadwal] = await Promise.all([ambilHafalan(), ambilJadwal()]);
+      const p = { surah: h.surah, ayatAwal: h.ayatAwal, ayatAkhir: h.ayatAkhir };
+      const ubah = setelahKoreksiPotongan(hafalan, jadwal, p, sesi.lancar, hari);
+      if (ubah.hafalan) await db.hafalan.put(ubah.hafalan);
+      if (ubah.jadwal.length) await db.jadwalRukuk.bulkPut(ubah.jadwal);
+    },
+  );
+  return { ...sesi, tandaDihapus };
 }
 
 // Hasil satu soal latihan tebak ayat dari arti (K-41).

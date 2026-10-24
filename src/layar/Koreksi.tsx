@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Play, Stop } from '@phosphor-icons/react';
 import { gulirKe } from '../komponen/gulir';
-import { cariSurah, labelPotongan, type Potongan } from '../data';
+import { cariSurah, labelPotongan, type Kata, type Potongan } from '../data';
 import { labelDaftarAyat, useAyatMurojaah } from '../komponen/useAyatMurojaah';
 import {
   ambilRekamanSurah,
   ambilTandaSurah,
+  BATAS_BENAR_OTOMATIS,
   kunciAyat,
   kunciKata,
   simpanKoreksi,
@@ -40,8 +41,9 @@ export default function LayarKoreksi({
   const [rekaman, setRekaman] = useState<Map<string, Rekaman>>(new Map());
   const [tanda, setTanda] = useState<TandaSurah>({ salah: new Map(), tertukar: new Map() });
   const [salahSesi, setSalahSesi] = useState<Set<string>>(new Set()); // "ayat:urutan"
+  const [sudahBenar, setSudahBenar] = useState<Set<string>>(new Set()); // tanda lama yang kini benar (K-57)
   const [tertukarSesi, setTertukarSesi] = useState<Map<number, number>>(new Map()); // ayatAsal → ayatKeliru
-  const [hasil, setHasil] = useState<Sesi | null>(null);
+  const [hasil, setHasil] = useState<(Sesi & { tandaDihapus?: number }) | null>(null);
   const [menyimpan, setMenyimpan] = useState(false);
   const [diputar, setDiputar] = useState<number | null>(null); // nomor ayat yang sedang diputar
 
@@ -91,6 +93,12 @@ export default function LayarKoreksi({
         ? { ayat: daftarAyat.map((a) => a.ayat) }
         : {}),
       ...(sampai ? { sebagian: true } : {}),
+      sudahBenar: [...sudahBenar]
+        .filter((k) => !salahSesi.has(k))
+        .map((k) => {
+          const [ayat, urutan] = k.split(':').map(Number);
+          return { ayat, urutan };
+        }),
     };
     // Murojaah rukuk memperbarui jadwal rukuk, bukan jadwal potongan (K-23).
     const sesi = await simpanKoreksi({ ...isi, rukuk });
@@ -107,6 +115,11 @@ export default function LayarKoreksi({
           sub={`${rukuk ? 'Murojaah rukuk' : 'Potongan'} ${rukuk && daftarAyat.length ? labelDaftarAyat(daftarAyat) : labelPotongan(potongan)}`}
         />
         <div className="hasil-koreksi">
+          {!!hasil.tandaDihapus && (
+            <p className="pesan-tanda-dihapus">
+              {hasil.tandaDihapus} tanda kata yang sudah benar dihapus. Alhamdulillah.
+            </p>
+          )}
           {hasil.lancar ? (
             <>
               <p className="hasil-besar">Lancar, alhamdulillah</p>
@@ -175,6 +188,21 @@ export default function LayarKoreksi({
                     if (salahSesi.has(`${a.ayat}:${k.urutan}`)) kelas.push('salah-sesi');
                     return kelas.join(' ');
                   }}
+                />
+                <TandaLamaAyat
+                  kata={a.kata.filter((k) => tanda.salah.has(kunciKata(surah.nomor, a.ayat, k.urutan)))}
+                  jumlah={(k) => tanda.salah.get(kunciKata(surah.nomor, a.ayat, k.urutan))?.benarBeruntun ?? 0}
+                  salahLagi={(k) => salahSesi.has(`${a.ayat}:${k.urutan}`)}
+                  benar={(k) => sudahBenar.has(`${a.ayat}:${k.urutan}`)}
+                  ubah={(k) =>
+                    setSudahBenar((lama) => {
+                      const baru = new Set(lama);
+                      const kunci = `${a.ayat}:${k.urutan}`;
+                      if (baru.has(kunci)) baru.delete(kunci);
+                      else baru.add(kunci);
+                      return baru;
+                    })
+                  }
                 />
               </div>
               {berikut && berikut.ayat === a.ayat + 1 && (
@@ -316,5 +344,51 @@ function PutarSemua({
         )}
       </button>
     </>
+  );
+}
+
+// K-57: tanda kata lama di bawah ayat — ketuk "Sekarang sudah benar" untuk menghapusnya
+// saat koreksi disimpan. Tanpa itu, tanda terhapus sendiri setelah 3 koreksi benar berturut-turut.
+function TandaLamaAyat({
+  kata,
+  jumlah,
+  salahLagi,
+  benar,
+  ubah,
+}: {
+  kata: Kata[];
+  jumlah: (k: Kata) => number;
+  salahLagi: (k: Kata) => boolean;
+  benar: (k: Kata) => boolean;
+  ubah: (k: Kata) => void;
+}) {
+  if (kata.length === 0) return null;
+  return (
+    <div className="tanda-lama-ayat">
+      <span className="judul-tanda-lama">Pernah salah — sudah benar kali ini?</span>
+      <div className="daftar-tanda-lama">
+        {kata.map((k) => (
+          <button
+            key={k.urutan}
+            type="button"
+            className={'chip-tanda-lama' + (benar(k) && !salahLagi(k) ? ' benar' : '')}
+            onClick={() => ubah(k)}
+            disabled={salahLagi(k)}
+            aria-pressed={benar(k)}
+          >
+            <span className="arab" lang="ar" dir="rtl">
+              {k.teks}
+            </span>
+            <span className="ket">
+              {salahLagi(k)
+                ? 'salah lagi'
+                : benar(k)
+                  ? '✓ sudah benar'
+                  : `Sekarang sudah benar · ${jumlah(k)}/${BATAS_BENAR_OTOMATIS}`}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

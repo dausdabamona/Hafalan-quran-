@@ -243,6 +243,17 @@ export function segmenAyat(ayat: Ayat): Segmen[] {
   return hasil;
 }
 
+// K-61: kata bantu murojaah — kata pertama ayat, kata pertama sesudah tiap tanda waqaf,
+// dan kata terakhir ayat. Mengembalikan nomor urutan kata.
+export function kataBantu(ayat: Ayat): Set<number> {
+  const hasil = new Set<number>();
+  const segmen = segmenAyat(ayat).filter(Boolean);
+  for (const g of segmen) if (g.kata.length) hasil.add(g.kata[0].urutan);
+  const akhir = segmen.at(-1)?.kata.at(-1);
+  if (akhir) hasil.add(akhir.urutan);
+  return hasil;
+}
+
 // ---------- Potongan hafalan (K-04, P-11) ----------
 
 export interface Potongan {

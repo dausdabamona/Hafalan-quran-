@@ -6,13 +6,23 @@ import {
   CheckCircle,
   Eye,
   EyeSlash,
+  Lifebuoy,
   Microphone,
   StopCircle,
 } from '@phosphor-icons/react';
 import { gulirKe } from '../komponen/gulir';
-import { cariSurah, labelPotongan, segmenAyat, susunToken, type Kata, type Potongan } from '../data';
+import { cariSurah, kataBantu, labelPotongan, segmenAyat, susunToken, type Kata, type Potongan } from '../data';
 import { labelDaftarAyat, useAyatMurojaah } from '../komponen/useAyatMurojaah';
-import { ambilMaknaSurah, ambilTandaSurah, kunciKata, simpanRekaman, type Makna, type TandaSalah } from '../db';
+import {
+  ambilMaknaSurah,
+  ambilTandaSurah,
+  BATAS_KATA_BANTU,
+  hitungMurojaahRukuk,
+  kunciKata,
+  simpanRekaman,
+  type Makna,
+  type TandaSalah,
+} from '../db';
 import { ganti, hashPotongan } from '../navigasi';
 import { usePerekam } from '../perekam';
 import Kepala from '../komponen/Kepala';
@@ -35,6 +45,10 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
   const salahDi = (ayat: number, urutan: number) => tandaSalah.get(kunciKata(surah.nomor, ayat, urutan));
   const kelasKataSalah = (ayat: number) => (k: Kata) => (salahDi(ayat, k.urutan) ? 'tanda-lama' : '');
   const [menyimpan, setMenyimpan] = useState(false);
+  // K-61: kata bantu (awal ayat, awal tiap waqaf, akhir ayat). Nyala otomatis bila rukuk
+  // ini dimurojaah kurang dari BATAS_KATA_BANTU kali; sesudahnya mati bawaan.
+  const [jumlahMurojaah, setJumlahMurojaah] = useState<number | null>(null);
+  const [bantu, setBantu] = useState(false);
   const refKini = useRef<HTMLDivElement>(null);
 
   const ayatKini = daftarAyat[indeks];
@@ -45,6 +59,14 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
     ambilMaknaSurah(surah.nomor).then(setMakna);
     ambilTandaSurah(surah.nomor).then((t) => setTandaSalah(t.salah));
   }, [surah.nomor]);
+
+  useEffect(() => {
+    if (!rukuk) return;
+    hitungMurojaahRukuk(surah.nomor, rukuk).then((n) => {
+      setJumlahMurojaah(n);
+      setBantu(n < BATAS_KATA_BANTU);
+    });
+  }, [surah.nomor, rukuk]);
 
   // Pindah ayat (maju atau mundur): teks yang dibuka sementara ditutup lagi.
   useEffect(() => setIntip(false), [indeks]);
@@ -145,6 +167,17 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
               Ayat {ayatKini.ayat} · {indeks + 1} dari {daftarAyat.length}
               {merekam && <span className="titik-rekam" role="img" aria-label="Sedang merekam" />}
             </span>
+            {rukuk && jumlahMurojaah !== null && !(tampilkanTeks || intip) && (
+              <button
+                type="button"
+                className={'sakelar-bantu' + (bantu ? ' nyala' : '')}
+                onClick={() => setBantu((v) => !v)}
+                aria-pressed={bantu}
+                title={`Kata bantu: awal ayat, awal tiap waqaf, dan akhir ayat. Rukuk ini sudah dimurojaah ${jumlahMurojaah}×; nyala otomatis di bawah ${BATAS_KATA_BANTU}×.`}
+              >
+                <Lifebuoy size={16} weight={bantu ? 'fill' : 'duotone'} /> Bantu
+              </button>
+            )}
           </p>
           {tampilkanTeks || intip ? (
             <TeksAyat ayat={ayatKini} kelasKata={kelasKataSalah(ayatKini.ayat)} />
@@ -152,18 +185,29 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
             // K-52: saat murojaah yang tampil arti ayat; ragu → buka teks ayat ini saja.
             <button type="button" className="teks-tertutup arti-murojaah" onClick={() => setIntip(true)}>
               {/* K-55: hanya kata yang pernah salah yang terlihat; kata lain tetap kotak tertutup. */}
-              {susunToken(ayatKini).some((t) => t.kata && salahDi(ayatKini.ayat, t.kata.urutan)) && (
-                <span className="ayat-salah" dir="rtl" lang="ar">
-                  {susunToken(ayatKini)
-                    .filter((t) => t.kata)
-                    .map((t, i) => {
+              {(() => {
+                const token = susunToken(ayatKini).filter((t) => t.kata);
+                const bantuAyat = bantu ? kataBantu(ayatKini) : new Set<number>();
+                const adaSalah = token.some((t) => salahDi(ayatKini.ayat, t.kata!.urutan));
+                if (!adaSalah && bantuAyat.size === 0) return null;
+                return (
+                  <span className="ayat-salah" dir="rtl" lang="ar">
+                    {token.map((t, i) => {
                       const tanda = salahDi(ayatKini.ayat, t.kata!.urutan);
-                      return tanda ? (
-                        <span key={i} className="kata-salah">
-                          {t.teks}
-                          <small dir="ltr">{tanda.jumlah}×</small>
-                        </span>
-                      ) : (
+                      if (tanda)
+                        return (
+                          <span key={i} className="kata-salah">
+                            {t.teks}
+                            <small dir="ltr">{tanda.jumlah}×</small>
+                          </span>
+                        );
+                      if (bantuAyat.has(t.kata!.urutan))
+                        return (
+                          <span key={i} className="kata-bantu">
+                            {t.teks}
+                          </span>
+                        );
+                      return (
                         <span
                           key={i}
                           className="kotak-kata"
@@ -171,8 +215,9 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
                         />
                       );
                     })}
-                </span>
-              )}
+                  </span>
+                );
+              })()}
               <span className="kicker">Arti ayat {ayatKini.ayat}</span>
               <span className="isi-arti">
                 {segmenAyat(ayatKini)

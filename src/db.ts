@@ -531,6 +531,18 @@ async function catatTanda(h: HasilKoreksi, sekarang: string) {
 
 export const BATAS_BENAR_OTOMATIS = 3;
 
+// K-61: kata bantu murojaah nyala otomatis selama rukuk dimurojaah kurang dari ini.
+export const BATAS_KATA_BANTU = 15;
+
+// Jumlah sesi murojaah (termasuk yang dihentikan) untuk satu rukuk.
+export function hitungMurojaahRukuk(surah: number, rukuk: number): Promise<number> {
+  return db.sesi
+    .where('surah')
+    .equals(surah)
+    .filter((s) => s.rukuk === rukuk)
+    .count();
+}
+
 // K-57: tanda kata lama di ayat yang dikoreksi. Yang dinyatakan sudah benar dihapus; yang
 // tidak ditandai salah lagi menambah hitungan benar berturut-turut dan terhapus setelah
 // BATAS_BENAR_OTOMATIS kali. Mengembalikan jumlah tanda yang dihapus.

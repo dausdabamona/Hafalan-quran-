@@ -4,8 +4,8 @@ import { pergi } from '../navigasi';
 
 type NamaLayar = Layar['nama'];
 
-// Layar yang menampilkan menu tab bawah di HP (K-48). Layar kerja (rekam, koreksi,
-// latihan) memakai bilah tombolnya sendiri di bawah, jadi tab tidak tampil di sana.
+// Layar utama menu tab (K-48): di layar ini tombol Kembali disembunyikan.
+// K-64: menu bawah sendiri tampil di semua layar HP, berupa ikon saja.
 export const LAYAR_BERTAB: NamaLayar[] = ['hari-ini', 'daftar', 'rukuk', 'pilih-murotal', 'lainnya', 'kemajuan'];
 
 const TAB: { judul: string; hash: string; ikon: typeof House; aktif: NamaLayar[] }[] = [
@@ -17,7 +17,6 @@ const TAB: { judul: string; hash: string; ikon: typeof House; aktif: NamaLayar[]
 ];
 
 export default function BilahTab({ layar }: { layar: NamaLayar }) {
-  if (!LAYAR_BERTAB.includes(layar)) return null;
   return (
     <nav className="bilah-tab" aria-label="Menu utama">
       {TAB.map((t) => {
@@ -28,10 +27,11 @@ export default function BilahTab({ layar }: { layar: NamaLayar }) {
             key={t.hash}
             className={aktif ? 'aktif' : ''}
             aria-current={aktif ? 'page' : undefined}
+            aria-label={t.judul}
+            title={t.judul}
             onClick={() => pergi(t.hash)}
           >
-            <Ikon size={24} weight={aktif ? 'fill' : 'regular'} />
-            <span>{t.judul}</span>
+            <Ikon size={26} weight={aktif ? 'fill' : 'regular'} />
           </button>
         );
       })}

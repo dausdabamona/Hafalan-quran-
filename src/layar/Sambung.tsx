@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check } from '@phosphor-icons/react';
+import { ArrowsDownUp, Check, Eye, FloppyDisk, X } from '@phosphor-icons/react';
 import { gulirKe } from '../komponen/gulir';
 import { cariSurah, type Ayat, type Surah } from '../data';
 import { ambilHafalan, db, tandaiTertukarLatihan } from '../db';
@@ -133,40 +133,69 @@ export default function LayarSambung() {
       )}
 
       {kini && (
-        <div className="bilah-aksi">
+        <div className="bilah-aksi bilah-ikon-ringkas">
           {!terbuka ? (
-            <button className="tombol utama besar" onClick={() => setTerbuka(true)}>
-              Buka jawaban
+            <button type="button" className="tombol utama ikon-utama" onClick={() => setTerbuka(true)} title="Buka jawaban">
+              <span className="bulat">
+                <Eye weight="fill" />
+              </span>
+              <span className="keterangan">Buka</span>
             </button>
           ) : !modeTertukar ? (
             <>
-              <button className="tombol sekunder" onClick={() => setModeTertukar(true)}>
-                Tertukar
+              <button
+                type="button"
+                className="ikon-aksi"
+                onClick={() => setModeTertukar(true)}
+                aria-label="Tertukar"
+                title="Tertukar"
+              >
+                <span className="bulat">
+                  <ArrowsDownUp weight="bold" />
+                </span>
               </button>
               <button
-                className="tombol utama besar"
+                type="button"
+                className="tombol utama ikon-utama"
                 onClick={() => {
                   setHasil((h) => ({ ...h, lancar: h.lancar + 1 }));
                   lanjut();
                 }}
+                title="Lancar, lanjut"
               >
-                <Check weight="duotone" /> Lancar
+                <span className="bulat">
+                  <Check weight="bold" />
+                </span>
+                <span className="keterangan">Lancar</span>
               </button>
             </>
           ) : (
             <>
-              <button className="tombol sekunder" onClick={() => setModeTertukar(false)}>
-                Batal
+              <button
+                type="button"
+                className="ikon-aksi"
+                onClick={() => setModeTertukar(false)}
+                aria-label="Batal"
+                title="Batal"
+              >
+                <span className="bulat">
+                  <X weight="bold" />
+                </span>
               </button>
               <button
-                className="tombol utama besar"
+                type="button"
+                className="tombol utama ikon-utama"
                 onClick={async () => {
                   await tandaiTertukarLatihan(kini.surah.nomor, kini.asal.ayat, keliru);
                   setHasil((h) => ({ ...h, tertukar: h.tertukar + 1 }));
                   lanjut();
                 }}
+                title="Simpan tertukar dan lanjut"
               >
-                Simpan & lanjut
+                <span className="bulat">
+                  <FloppyDisk weight="fill" />
+                </span>
+                <span className="keterangan">Simpan</span>
               </button>
             </>
           )}

@@ -127,33 +127,72 @@ export default function LayarTebakArti() {
       )}
 
       {kini && (
-        <div className="bilah-aksi">
+        <div className="bilah-aksi bilah-ikon-ringkas">
           {tahap === 'menebak' && (
             <>
-              <button className="tombol sekunder" onClick={() => setTahap('periksa')}>
-                <Eye weight="duotone" /> Buka ayat
+              <button
+                type="button"
+                className="ikon-aksi"
+                onClick={() => setTahap('periksa')}
+                aria-label="Buka ayat"
+                title="Buka ayat"
+              >
+                <span className="bulat">
+                  <Eye weight="duotone" />
+                </span>
               </button>
               <button
-                className="tombol utama besar"
+                type="button"
+                className="tombol utama ikon-utama"
                 onClick={mulaiRekam}
                 disabled={status === 'meminta-izin' || status === 'tidak-didukung'}
+                title="Rekam tebakan"
               >
-                <Microphone weight="duotone" /> {status === 'meminta-izin' ? 'Meminta izin…' : 'Rekam tebakan'}
+                <span className="bulat">
+                  <Microphone weight="fill" />
+                </span>
+                <span className="keterangan">{status === 'meminta-izin' ? 'Meminta izin…' : 'Rekam'}</span>
               </button>
             </>
           )}
           {tahap === 'merekam' && (
-            <button className="tombol utama besar" onClick={selesaiRekam}>
-              <Check weight="duotone" /> Selesai & buka ayat
+            <button
+              type="button"
+              className="tombol utama ikon-utama merekam"
+              onClick={selesaiRekam}
+              title="Selesai dan buka ayat"
+            >
+              <span className="bulat">
+                <Check weight="bold" />
+              </span>
+              <span className="keterangan">Selesai</span>
             </button>
           )}
           {tahap === 'periksa' && (
             <>
-              <button className="tombol sekunder" onClick={() => nilai(false)} disabled={menyimpan}>
-                <X weight="duotone" /> Salah
+              <button
+                type="button"
+                className="ikon-aksi"
+                onClick={() => nilai(false)}
+                disabled={menyimpan}
+                aria-label="Salah"
+                title="Salah"
+              >
+                <span className="bulat salah">
+                  <X weight="bold" />
+                </span>
               </button>
-              <button className="tombol utama besar" onClick={() => nilai(true)} disabled={menyimpan}>
-                <Check weight="duotone" /> Benar
+              <button
+                type="button"
+                className="tombol utama ikon-utama"
+                onClick={() => nilai(true)}
+                disabled={menyimpan}
+                title="Benar"
+              >
+                <span className="bulat">
+                  <Check weight="bold" />
+                </span>
+                <span className="keterangan">Benar</span>
               </button>
             </>
           )}

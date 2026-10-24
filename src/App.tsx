@@ -94,7 +94,7 @@ export default function App() {
     <div className="kerangka">
       <BilahSamping layar={layar.nama} />
       <div
-        className={'aplikasi' + (LAYAR_BERTAB.includes(layar.nama) ? ' bertab' : '')}
+        className={'aplikasi bertab' + (LAYAR_BERTAB.includes(layar.nama) ? ' layar-tab' : '')}
         style={{ ['--ukuran-arab' as string]: `${ukuran}px` }}
       >
         {layar.nama === 'hari-ini' && <LayarHariIni />}

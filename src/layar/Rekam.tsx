@@ -297,9 +297,10 @@ export default function LayarRekam({
           className={'ikon-aksi' + (tampilkanTeks ? ' nyala' : '')}
           onClick={() => setTampilkanTeks((v) => !v)}
           aria-pressed={tampilkanTeks}
+          aria-label={tampilkanTeks ? 'Tutup teks semua ayat' : 'Tampilkan teks semua ayat'}
+          title={tampilkanTeks ? 'Tutup teks semua ayat' : 'Tampilkan teks semua ayat'}
         >
           <span className="bulat">{tampilkanTeks ? <Eye weight="duotone" /> : <EyeSlash weight="duotone" />}</span>
-          <span className="keterangan">{tampilkanTeks ? 'Teks tampil' : 'Teks'}</span>
         </button>
         <button
           type="button"
@@ -307,11 +308,11 @@ export default function LayarRekam({
           onClick={() => mundurKe(indeks - 1)}
           disabled={!merekam || indeks === 0 || menyimpan}
           aria-label={indeks > 0 ? `Mundur ke ayat ${daftarAyat[indeks - 1].ayat}` : 'Mundur'}
+          title="Mundur ke ayat sebelumnya"
         >
           <span className="bulat">
             <ArrowUUpLeft weight="duotone" />
           </span>
-          <span className="keterangan">Mundur</span>
         </button>
         {!merekam ? (
           <button
@@ -324,7 +325,7 @@ export default function LayarRekam({
               <Microphone weight="fill" />
             </span>
             <span className="keterangan">
-              {status === 'meminta-izin' ? 'Meminta izin…' : `Rekam ayat ${ayatKini.ayat}`}
+              {status === 'meminta-izin' ? 'Meminta izin…' : `Rekam ${ayatKini.ayat}`}
             </span>
           </button>
         ) : (
@@ -336,15 +337,21 @@ export default function LayarRekam({
           >
             <span className="bulat">{terakhir ? <CheckCircle weight="fill" /> : <Check weight="bold" />}</span>
             <span className="keterangan">
-              {menyimpan ? 'Menyimpan…' : terakhir ? 'Selesai & koreksi' : 'Selesai ayat'}
+              {menyimpan ? 'Menyimpan…' : terakhir ? 'Koreksi' : 'Selesai'}
             </span>
           </button>
         )}
-        <button type="button" className="ikon-aksi" onClick={ulangiAyat} disabled={!merekam || menyimpan}>
+        <button
+          type="button"
+          className="ikon-aksi"
+          onClick={ulangiAyat}
+          disabled={!merekam || menyimpan}
+          aria-label="Ulangi ayat ini dari awal"
+          title="Ulangi ayat ini dari awal"
+        >
           <span className="bulat">
             <ArrowCounterClockwise weight="duotone" />
           </span>
-          <span className="keterangan">Ulangi</span>
         </button>
         {rukuk && !terakhir ? (
           <button
@@ -353,11 +360,11 @@ export default function LayarRekam({
             onClick={berhentiDiSini}
             disabled={menyimpan || (!merekam && indeks === 0)}
             aria-label={`Berhenti di ayat ${merekam ? ayatKini.ayat : (daftarAyat[indeks - 1]?.ayat ?? '')} lalu koreksi`}
+            title="Berhenti di sini lalu koreksi"
           >
             <span className="bulat">
               <StopCircle weight="duotone" />
             </span>
-            <span className="keterangan">Berhenti</span>
           </button>
         ) : (
           <span className="ikon-aksi pengisi" aria-hidden="true" />

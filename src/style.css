@@ -3343,7 +3343,7 @@ body {
 .aplikasi.bertab .bilah-pemutar {
   bottom: calc(76px + env(safe-area-inset-bottom));
 }
-.aplikasi.bertab .kepala .tombol-ikon[aria-label='Kembali'] {
+.aplikasi.layar-tab .kepala .tombol-ikon[aria-label='Kembali'] {
   display: none;
 }
 
@@ -3422,7 +3422,7 @@ body {
   .aplikasi.bertab .bilah-pemutar {
     bottom: var(--space-4);
   }
-  .aplikasi.bertab .kepala .tombol-ikon[aria-label='Kembali'] {
+  .aplikasi.layar-tab .kepala .tombol-ikon[aria-label='Kembali'] {
     display: inline-flex;
   }
   .bilah-samping {
@@ -4147,4 +4147,111 @@ body {
   width: 36px;
   min-height: 36px;
   padding: 0;
+}
+
+/* ======================= K-64: menu bawah selalu tampil & menu ringkas ======================= */
+:root {
+  --tinggi-tab: calc(50px + env(safe-area-inset-bottom));
+}
+@media (max-width: 959px) {
+  .bilah-tab {
+    padding: 2px 0 env(safe-area-inset-bottom);
+  }
+  .bilah-tab button {
+    min-height: 48px;
+  }
+  .bilah-tab button.aktif {
+    position: relative;
+  }
+  .bilah-tab button.aktif::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    width: 18px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--color-accent);
+  }
+  .aplikasi.bertab {
+    padding-bottom: calc(var(--tinggi-tab) + 24px);
+  }
+  .aplikasi.bertab .bilah-pemutar {
+    bottom: calc(var(--tinggi-tab) + 8px);
+  }
+  /* Bilah tombol layar kerja duduk tepat di atas menu bawah. */
+  .aplikasi.bertab .bilah-aksi {
+    bottom: var(--tinggi-tab);
+    padding-bottom: var(--space-3);
+    box-shadow: none;
+    border-top: 1px solid var(--color-divider);
+  }
+}
+
+/* Bilah ikon ringkas: ikon samping tanpa tulisan, tombol utama bulat dengan satu kata. */
+.bilah-aksi.bilah-ikon-ringkas {
+  justify-content: center;
+  align-items: flex-end;
+  gap: var(--space-8);
+  padding-top: var(--space-2);
+}
+.bilah-ikon-ringkas button {
+  font: inherit;
+  cursor: pointer;
+}
+.bilah-ikon-ringkas .ikon-aksi {
+  margin-bottom: 18px;
+}
+.bilah-ikon-ringkas .bulat.salah {
+  color: #b42318;
+}
+.bilah-ikon-ringkas .tombol.ikon-utama .keterangan,
+.bilah-ikon .tombol.ikon-utama .keterangan {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.bilah-ikon-ringkas .tombol.ikon-utama .bulat,
+.bilah-ikon .tombol.ikon-utama .bulat {
+  width: 64px;
+  height: 64px;
+}
+.bilah-ikon-ringkas .tombol.ikon-utama .bulat svg,
+.bilah-ikon .tombol.ikon-utama .bulat svg {
+  width: 30px;
+  height: 30px;
+}
+.bilah-ikon .ikon-aksi {
+  margin-bottom: 18px;
+}
+.bilah-ikon .ikon-aksi .bulat,
+.bilah-ikon-ringkas .ikon-aksi .bulat {
+  width: 48px;
+  height: 48px;
+}
+.isi-rekam {
+  padding-bottom: 130px;
+}
+@media (min-width: 960px) {
+  .bilah-ikon-ringkas .tombol {
+    flex: 0 0 auto;
+    min-width: 96px;
+    margin-left: 0;
+  }
+}
+
+/* Kartu "Juga di Saku Hati": satu baris ikon kecil tanpa tulisan. */
+.menu-ikon {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.menu-ikon .bulat {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+}
+.menu-ikon .bulat svg {
+  width: 26px;
+  height: 26px;
 }

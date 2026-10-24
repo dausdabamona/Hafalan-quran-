@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowsDownUp, Check, CheckCircle, Play, Stop, X } from '@phosphor-icons/react';
+import { ArrowsDownUp, Check, CheckCircle, FloppyDisk, Play, Stop, X } from '@phosphor-icons/react';
 import { gulirKe } from '../komponen/gulir';
 import { cariSurah, labelPotongan, type Kata, type Potongan } from '../data';
 import { labelDaftarAyat, useAyatMurojaah } from '../komponen/useAyatMurojaah';
@@ -235,7 +235,8 @@ export default function LayarKoreksi({
         })}
       </ol>
 
-      <div className="bilah-aksi">
+      {/* K-64: bilah bawah berupa ikon. */}
+      <div className="bilah-aksi bilah-ikon-ringkas">
         <PutarSemua
           daftar={audioSemua}
           ayat={daftarAyat.map((a) => a.ayat)}
@@ -244,8 +245,18 @@ export default function LayarKoreksi({
             if (n !== null) gulirKe(document.getElementById(`koreksi-${n}`));
           }}
         />
-        <button className="tombol utama besar" onClick={simpan} disabled={menyimpan}>
-          {menyimpan ? 'Menyimpan…' : 'Simpan koreksi'}
+        <button
+          type="button"
+          className="tombol utama ikon-utama"
+          onClick={simpan}
+          disabled={menyimpan}
+          aria-label="Simpan koreksi"
+          title="Simpan koreksi"
+        >
+          <span className="bulat">
+            <FloppyDisk weight="fill" />
+          </span>
+          <span className="keterangan">{menyimpan ? 'Menyimpan…' : 'Simpan'}</span>
         </button>
       </div>
     </>
@@ -358,16 +369,14 @@ function PutarSemua({
   return (
     <>
       <audio ref={el} />
-      <button className="tombol sekunder" onClick={tekan}>
-        {main ? (
-          <>
-            <Stop weight="duotone" /> Berhenti
-          </>
-        ) : (
-          <>
-            <Play weight="duotone" /> Putar semua
-          </>
-        )}
+      <button
+        type="button"
+        className={'ikon-aksi' + (main ? ' nyala' : '')}
+        onClick={tekan}
+        aria-label={main ? 'Hentikan putar semua' : 'Putar semua rekaman'}
+        title={main ? 'Hentikan putar semua' : 'Putar semua rekaman'}
+      >
+        <span className="bulat">{main ? <Stop weight="duotone" /> : <Play weight="duotone" />}</span>
       </button>
     </>
   );

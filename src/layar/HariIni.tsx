@@ -394,7 +394,6 @@ export default function LayarHariIni() {
                 aria-label={m.judul}
               >
                 <span className="bulat">{m.ikon}</span>
-                <span className="label">{m.pendek}</span>
               </button>
             ))}
           </div>

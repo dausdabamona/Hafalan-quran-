@@ -209,10 +209,36 @@ export function setelahKoreksiPotongan(
   return hasil;
 }
 
+// ---------- Mutu murojaah (K-62) ----------
+
+// Bobot salah (kata salah + sambungan tertukar) di bawah 5% kata yang dibaca = kesalahan kecil.
+export const BATAS_KESALAHAN_KECIL = 0.05;
+export type MutuMurojaah = 'lancar' | 'kecil' | 'besar';
+
+export function mutuMurojaah(kataSalah: number, tertukar: number, jumlahKata: number): MutuMurojaah {
+  const bobot = kataSalah + tertukar;
+  if (bobot === 0) return 'lancar';
+  if (jumlahKata > 0 && bobot / jumlahKata < BATAS_KESALAHAN_KECIL) return 'kecil';
+  return 'besar';
+}
+
+// Kesalahan kecil: turun satu anak tangga (paling bawah tetap 1 hari), dihitung dari hari ini.
+export function turunSatuTingkat(j: EntriJadwal, hari: string): EntriJadwal {
+  const tingkat = Math.max(0, j.tingkat - 1);
+  return { ...j, tingkat, jatuhTempo: tambahHari(hari, JARAK_HARI[tingkat]), terakhir: hari };
+}
+
 // Sesudah murojaah satu rukuk. Null bila jadwal tidak berubah.
-export function setelahMurojaahRukuk(j: EntriJadwal, lancar: boolean, hari: string): EntriJadwal | null {
+// `hasil` boleh boolean (lancar / tidak) atau mutu K-62; false = kesalahan besar.
+export function setelahMurojaahRukuk(
+  j: EntriJadwal,
+  hasil: boolean | MutuMurojaah,
+  hari: string,
+): EntriJadwal | null {
+  const mutu: MutuMurojaah = typeof hasil === 'boolean' ? (hasil ? 'lancar' : 'besar') : hasil;
   if (!j.lengkap && !j.sebagian) return { ...j, terakhir: hari, jatuhTempo: tambahHari(hari, 1) };
-  if (!lancar) return turunkanJadwal(j, hari);
+  if (mutu === 'besar') return turunkanJadwal(j, hari);
+  if (mutu === 'kecil') return turunSatuTingkat(j, hari);
   if (j.jatuhTempo > hari) return null;
   const tingkat = Math.min(j.tingkat + 1, JARAK_HARI.length - 1);
   return { ...j, tingkat, jatuhTempo: tambahHari(hari, JARAK_HARI[tingkat]), terakhir: hari };
@@ -513,4 +539,62 @@ export function labelAyatHafal(nomor: number, hafalan: Map<string, EntriHafalan>
     }
   }
   return `ayat ${bagian.join(', ')}`;
+}
+
+// ---------- Perbaiki ayat (K-62) ----------
+
+// Ayat yang salah kecil saat murojaah rukuk diulang sendiri besok dan lusa.
+export const KALI_PERBAIKAN = 2;
+
+export interface EntriPerbaikan {
+  kunci: string; // "surah:ayat"
+  surah: number;
+  ayat: number;
+  rukuk: number;
+  jatuhTempo: string;
+  sisa: number; // perbaikan yang masih harus dilakukan
+  mulai: string;
+  terakhir: string;
+}
+
+// Ayat yang masuk perbaikan: ayat tempat kata salah dan ayat asal sambungan tertukar.
+export function ayatPerbaikan(
+  kataSalah: { ayat: number }[],
+  tertukar: { ayatAsal: number }[],
+): number[] {
+  return [...new Set([...kataSalah.map((k) => k.ayat), ...tertukar.map((t) => t.ayatAsal)])].sort((a, b) => a - b);
+}
+
+export function mulaiPerbaikan(
+  surah: number,
+  ayat: number,
+  rukuk: number,
+  hari: string,
+  lama?: EntriPerbaikan,
+): EntriPerbaikan {
+  return {
+    kunci: `${surah}:${ayat}`,
+    surah,
+    ayat,
+    rukuk,
+    jatuhTempo: tambahHari(hari, 1),
+    sisa: KALI_PERBAIKAN,
+    mulai: lama?.mulai ?? hari,
+    terakhir: hari,
+  };
+}
+
+// Sesudah merekam & mengoreksi satu ayat perbaikan. Null = perbaikan selesai (dihapus).
+// Salah lagi → mulai lagi besok dan lusa. Dikerjakan sebelum jatuh tempo → tidak dihitung.
+export function setelahPerbaikan(e: EntriPerbaikan, lancar: boolean, hari: string): EntriPerbaikan | null {
+  if (!lancar) return mulaiPerbaikan(e.surah, e.ayat, e.rukuk, hari, e);
+  if (e.jatuhTempo > hari) return { ...e, terakhir: hari };
+  const sisa = e.sisa - 1;
+  return sisa <= 0 ? null : { ...e, sisa, jatuhTempo: tambahHari(hari, 1), terakhir: hari };
+}
+
+export function daftarPerbaikanHariIni(semua: EntriPerbaikan[], hari: string): EntriPerbaikan[] {
+  return semua
+    .filter((e) => e.jatuhTempo <= hari)
+    .sort((a, b) => (a.jatuhTempo !== b.jatuhTempo ? (a.jatuhTempo < b.jatuhTempo ? -1 : 1) : a.surah - b.surah || a.ayat - b.ayat));
 }

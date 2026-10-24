@@ -13,6 +13,7 @@ import {
   MoonStars,
   SunHorizon,
   Translate,
+  Wrench,
 } from '@phosphor-icons/react';
 import {
   angkaArab,
@@ -32,6 +33,7 @@ import {
 import {
   ambilHafalan,
   ambilJadwal,
+  ambilPerbaikan,
   ambilMaknaSurah,
   db,
   type Makna,
@@ -46,8 +48,10 @@ import { hariLokal, rentetanHari } from '../kemajuan';
 import {
   ayatHafal,
   BATAS_ULANG_MALAM,
+  daftarPerbaikanHariIni,
   daftarUlangHafalan,
   hariIni,
+  KALI_PERBAIKAN,
   kelompok,
   labelAyatHafal,
   pilihHafalanBaru,
@@ -57,6 +61,7 @@ import {
   selisihHari,
   type EntriHafalan,
   type EntriJadwal,
+  type EntriPerbaikan,
 } from '../jadwal';
 import { hashPotongan, pergi } from '../navigasi';
 import { pengingatTersedia } from '../pengingat';
@@ -130,6 +135,7 @@ export default function LayarHariIni() {
   const [tanda, setTanda] = useState<{ salah: TandaSalah[]; tertukar: TandaTertukar[] }>({ salah: [], tertukar: [] });
   const [target, setTarget] = useState<Target | null | undefined>(undefined);
   const [catatan, setCatatan] = useState<Record<string, 'hijau' | 'kuning'>>({});
+  const [perbaikan, setPerbaikan] = useState<EntriPerbaikan[]>([]);
 
   useEffect(() => {
     ambilHafalan().then(setHafalan);
@@ -140,6 +146,7 @@ export default function LayarHariIni() {
     );
     ambilTarget().then((t) => setTarget(t ?? null));
     ambilCatatanHari().then(setCatatan);
+    ambilPerbaikan().then(setPerbaikan);
   }, []);
   const rentetan = useMemo(
     () =>
@@ -370,6 +377,8 @@ export default function LayarHariIni() {
           )}
         </section>
 
+        <KartuPerbaikan daftar={daftarPerbaikanHariIni(perbaikan, hari)} hari={hari} />
+
         <PerluPerhatian hafal={hafal} tandaSalah={tanda.salah} tertukar={tanda.tertukar} />
 
         <section className="bagian kartu-menu" style={{ gap: 'var(--space-4)' }}>
@@ -505,6 +514,45 @@ function HafalanBaru({ baru, hari }: { baru: ReturnType<typeof pilihHafalanBaru>
           </button>
         </>
       )}
+    </section>
+  );
+}
+
+// K-62: ayat yang salah kecil saat murojaah rukuk, diulang sendiri besok dan lusa.
+function KartuPerbaikan({ daftar, hari }: { daftar: EntriPerbaikan[]; hari: string }) {
+  if (daftar.length === 0) return null;
+  return (
+    <section className="bagian kartu-perbaikan">
+      <p className="kicker">
+        <Wrench size={18} weight="duotone" className="ikon" /> Perbaiki ayat
+        <span className="istilah">kesalahan kecil saat murojaah</span>
+      </p>
+      <ul className="daftar-koran">
+        {daftar.map((e) => {
+          const telat = selisihHari(e.jatuhTempo, hari);
+          const p = { surah: e.surah, ayatAwal: e.ayat, ayatAkhir: e.ayat };
+          return (
+            <li key={e.kunci}>
+              <button className="baris-koran" onClick={() => pergi(hashPotongan('rekam', p, e.rukuk, undefined, true))}>
+                <span className="isi">
+                  <span className="judul">
+                    <span className="nama">
+                      {cariSurah(e.surah)?.nama} · ayat {e.ayat}
+                    </span>
+                  </span>
+                  <span className="detail">
+                    perbaikan ke-{KALI_PERBAIKAN - e.sisa + 1} dari {KALI_PERBAIKAN} · Juz {juzAyat(e.surah, e.ayat)}
+                    {telat > 0 && <span className="telat"> · terlambat {telat} hari</span>}
+                  </span>
+                </span>
+                <span className="bulat-ikon">
+                  <Microphone weight="duotone" />
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }

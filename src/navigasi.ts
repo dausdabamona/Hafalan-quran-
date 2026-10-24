@@ -8,8 +8,8 @@ export type Layar =
   | { nama: 'sambung' }
   | { nama: 'tebak-arti' }
   | { nama: 'surah'; nomor: number; ayat?: number; tandai?: boolean }
-  | { nama: 'rekam'; potongan: Potongan; rukuk?: number }
-  | { nama: 'koreksi'; potongan: Potongan; rukuk?: number; sampai?: number }
+  | { nama: 'rekam'; potongan: Potongan; rukuk?: number; perbaikan?: boolean }
+  | { nama: 'koreksi'; potongan: Potongan; rukuk?: number; sampai?: number; perbaikan?: boolean }
   | { nama: 'rukuk' }
   | { nama: 'tentang' }
   | { nama: 'lainnya' }
@@ -38,13 +38,15 @@ export function bacaHash(): Layar {
     return { nama: 'surah', nomor: Number(m[1]), ayat: m[2] ? Number(m[2]) : undefined };
   // Akhiran /r<nomor> menandai murojaah per rukuk (K-23).
   // Akhiran /s<ayat> (K-53): murojaah dihentikan, koreksi hanya sampai ayat itu.
-  m = /^#\/(rekam|koreksi)\/(\d+)\/(\d+)-(\d+)(?:\/r(\d+))?(?:\/s(\d+))?$/.exec(h);
+  // Akhiran /p (K-62): sesi "Perbaiki ayat".
+  m = /^#\/(rekam|koreksi)\/(\d+)\/(\d+)-(\d+)(?:\/r(\d+))?(?:\/s(\d+))?(\/p)?$/.exec(h);
   if (m) {
     const p = bacaPotongan(m[2], m[3], m[4]);
     const rukuk = m[5] ? Number(m[5]) : undefined;
+    const perbaikan = m[7] ? true : undefined;
     if (p && m[1] === 'koreksi')
-      return { nama: 'koreksi', potongan: p, rukuk, sampai: m[6] ? Number(m[6]) : undefined };
-    if (p) return { nama: 'rekam', potongan: p, rukuk };
+      return { nama: 'koreksi', potongan: p, rukuk, sampai: m[6] ? Number(m[6]) : undefined, perbaikan };
+    if (p) return { nama: 'rekam', potongan: p, rukuk, perbaikan };
   }
   // Murotal (K-28): #/murotal, #/murotal/hafalan, #/murotal/juz/N, #/murotal/S/A-B
   if (h === '#/murotal') return { nama: 'pilih-murotal' };
@@ -72,8 +74,14 @@ export function bacaHash(): Layar {
   return { nama: 'hari-ini' };
 }
 
-export function hashPotongan(jenis: 'rekam' | 'koreksi', p: Potongan, rukuk?: number, sampai?: number): string {
-  return `#/${jenis}/${p.surah}/${p.ayatAwal}-${p.ayatAkhir}${rukuk ? `/r${rukuk}` : ''}${sampai ? `/s${sampai}` : ''}`;
+export function hashPotongan(
+  jenis: 'rekam' | 'koreksi',
+  p: Potongan,
+  rukuk?: number,
+  sampai?: number,
+  perbaikan?: boolean,
+): string {
+  return `#/${jenis}/${p.surah}/${p.ayatAwal}-${p.ayatAkhir}${rukuk ? `/r${rukuk}` : ''}${sampai ? `/s${sampai}` : ''}${perbaikan ? '/p' : ''}`;
 }
 
 export function pergi(hash: string) {

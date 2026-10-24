@@ -173,6 +173,8 @@ export interface HasilTerap {
 // Menerapkan satu paket dari perangkat `pengirim`.
 export async function terapkan(d: SakuDB, pengirim: string, paket: Paket): Promise<HasilTerap> {
   const hasil: HasilTerap = { diterima: 0, dihapus: 0 };
+  // Tabel dari versi aplikasi yang lebih baru diabaikan agar sinkron tetap berjalan.
+  if (!SEMUA_TABEL.includes(paket.tabel)) return hasil;
   const kini = Date.now();
   const tabelTerlibat = paket.tabel === 'hapus' ? [...TABEL_SINKRON, 'hapus'] : [paket.tabel, 'hapus'];
   await d.transaction('rw', tabelTerlibat, async () => {

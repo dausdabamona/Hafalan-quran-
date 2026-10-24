@@ -1,9 +1,14 @@
 import Dexie, { type EntityTable, type Transaction } from 'dexie';
-import { rukukAyat } from './data';
+import { cariAyat, rukukAyat } from './data';
 import { petaAyatFatihah, petaKataFatihah, petaRentangFatihah } from './fatihah';
 import {
+  ayatPerbaikan,
   hariIni,
   migrasiJadwalLama,
+  mulaiPerbaikan,
+  mutuMurojaah,
+  setelahPerbaikan,
+  turunSatuTingkat,
   setelahKoreksiPotongan,
   setelahMurojaahRukuk,
   turunkanJadwal,
@@ -13,7 +18,9 @@ import {
   tandaiLama,
   type EntriHafalan,
   type EntriJadwal,
+  type EntriPerbaikan,
   type JadwalPotonganLama,
+  type MutuMurojaah,
 } from './jadwal';
 
 // Keterangan pribadi (K-19). urutan = 0 berarti keterangan untuk satu ayat;
@@ -94,6 +101,7 @@ export interface Sesi {
   kataSalah: number;
   sambunganTertukar: number;
   lancar: boolean; // P-01
+  perbaikan?: boolean; // sesi "Perbaiki ayat" (K-62); tidak dihitung sebagai murojaah rukuk
 }
 
 export type SakuDB = Dexie & {
@@ -106,6 +114,7 @@ export type SakuDB = Dexie & {
   sesi: EntityTable<Sesi, 'id'>;
   hafalan: EntityTable<EntriHafalan, 'kunci'>;
   jadwalRukuk: EntityTable<EntriJadwal, 'nomor'>;
+  perbaikan: EntityTable<EntriPerbaikan, 'kunci'>;
   hapus: EntityTable<Penghapusan, 'kunci'>;
   meta: EntityTable<{ kunci: string; nilai: unknown }, 'kunci'>;
   /** true selama perubahan dari perangkat lain diterapkan (penanda waktu tidak diubah) */
@@ -251,6 +260,9 @@ function siapkanSkema(db: SakuDB) {
 
   // Versi 9 (K-41): tanda latihan tebak ayat dari arti.
   db.version(9).stores({ tandaArti: 'kunci, surah, terimaMs' });
+
+  // Versi 10 (K-62): ayat yang perlu diperbaiki sesudah kesalahan kecil saat murojaah.
+  db.version(10).stores({ perbaikan: 'kunci, surah, jatuhTempo, terimaMs' });
 }
 
 // Penanda sinkron otomatis untuk setiap penulisan lokal (K-37).
@@ -289,6 +301,7 @@ export const TABEL_SINKRON = [
   'sesi',
   'hafalan',
   'jadwalRukuk',
+  'perbaikan',
 ] as const;
 export type TabelSinkron = (typeof TABEL_SINKRON)[number];
 
@@ -496,7 +509,17 @@ export interface HasilKoreksi {
   sudahBenar?: { ayat: number; urutan: number }[]; // tanda lama yang dinyatakan sudah benar (K-57)
   kataSalah: { ayat: number; urutan: number }[];
   tertukar: { ayatAsal: number; ayatKeliru: number }[];
+  perbaikan?: boolean; // sesi "Perbaiki ayat" satu ayat (K-62)
   hari?: string; // untuk uji; bawaan hari ini
+}
+
+// Hasil simpan koreksi beserta penjelasan aturan yang berlaku (K-62).
+export type HasilSimpan = Sesi & {
+  tandaDihapus?: number;
+  mutu?: MutuMurojaah;
+  jumlahKata?: number;
+  ayatDiperbaiki?: number[]; // ayat yang masuk "Perbaiki ayat"
+  perbaikanSelesai?: number[]; // ayat perbaikan yang tuntas di sesi ini
 }
 
 async function catatTanda(h: HasilKoreksi, sekarang: string) {
@@ -539,7 +562,7 @@ export function hitungMurojaahRukuk(surah: number, rukuk: number): Promise<numbe
   return db.sesi
     .where('surah')
     .equals(surah)
-    .filter((s) => s.rukuk === rukuk)
+    .filter((s) => s.rukuk === rukuk && !s.perbaikan)
     .count();
 }
 
@@ -568,7 +591,7 @@ async function perbaruiTandaBenar(h: HasilKoreksi): Promise<number> {
 
 // Menyimpan hasil satu sesi koreksi (potongan) atau murojaah (rukuk).
 // Tanda lama yang salah lagi bertambah hitungannya; yang benar dihitung/dihapus (K-57).
-export async function simpanKoreksi(h: HasilKoreksi): Promise<Sesi & { tandaDihapus?: number }> {
+export async function simpanKoreksi(h: HasilKoreksi): Promise<HasilSimpan> {
   const sekarang = new Date().toISOString();
   const hari = h.hari ?? hariIni();
   const sesi: Sesi = {
@@ -581,27 +604,65 @@ export async function simpanKoreksi(h: HasilKoreksi): Promise<Sesi & { tandaDiha
     kataSalah: h.kataSalah.length,
     sambunganTertukar: h.tertukar.length,
     lancar: h.kataSalah.length === 0 && h.tertukar.length === 0,
+    ...(h.perbaikan ? { perbaikan: true } : {}),
   };
+  const ayatDibaca = h.ayat ?? Array.from({ length: h.ayatAkhir - h.ayatAwal + 1 }, (_, i) => h.ayatAwal + i);
+  const jumlahKata = ayatDibaca.reduce((n, a) => n + (cariAyat(h.surah, a)?.kata.length ?? 0), 0);
+  const tambahan: Partial<HasilSimpan> = {};
   let tandaDihapus = 0;
   await db.transaction(
     'rw',
-    [db.tandaSalah, db.tandaTertukar, db.sesi, db.hafalan, db.jadwalRukuk, db.hapus],
+    [db.tandaSalah, db.tandaTertukar, db.sesi, db.hafalan, db.jadwalRukuk, db.perbaikan, db.hapus],
     async () => {
       tandaDihapus = await perbaruiTandaBenar(h);
       await catatTanda(h, sekarang);
       sesi.id = await db.sesi.add(sesi);
 
+      // K-62: perbaikan satu ayat — hanya daftar perbaikan yang berubah, jadwal rukuk tetap.
+      if (h.perbaikan) {
+        const selesai: number[] = [];
+        for (const a of ayatDibaca) {
+          const kunci = kunciAyat(h.surah, a);
+          const e = await db.perbaikan.get(kunci);
+          if (!e) continue;
+          const lancarAyat = !h.kataSalah.some((k) => k.ayat === a) && !h.tertukar.some((t) => t.ayatAsal === a);
+          const b = setelahPerbaikan(e, lancarAyat, hari);
+          if (b) await db.perbaikan.put(b);
+          else {
+            await db.perbaikan.delete(kunci);
+            await catatHapus(db, 'perbaikan', [kunci]);
+            selesai.push(a);
+          }
+        }
+        tambahan.perbaikanSelesai = selesai;
+        return;
+      }
+
       if (h.rukuk) {
         const j = await db.jadwalRukuk.get(h.rukuk);
         if (!j) return;
-        // K-53: murojaah sebagian — kesalahan tetap menurunkan jadwal; bila lancar, rukuk
+        const mutu = mutuMurojaah(h.kataSalah.length, h.tertukar.length, jumlahKata);
+        const berjarak = j.lengkap || !!j.sebagian;
+        tambahan.mutu = mutu;
+        tambahan.jumlahKata = jumlahKata;
+        // K-53: murojaah sebagian — kesalahan tetap mengubah jadwal; bila lancar, rukuk
         // tetap jatuh tempo sampai dibaca utuh.
         if (h.sebagian) {
-          if (!sesi.lancar) await db.jadwalRukuk.put(turunkanJadwal(j, hari));
-          return;
+          if (mutu === 'kecil' && berjarak) await db.jadwalRukuk.put(turunSatuTingkat(j, hari));
+          else if (mutu !== 'lancar') await db.jadwalRukuk.put(turunkanJadwal(j, hari));
+        } else {
+          const baru = setelahMurojaahRukuk(j, mutu, hari);
+          await db.jadwalRukuk.put(baru ?? { ...j, terakhir: hari });
         }
-        const baru = setelahMurojaahRukuk(j, sesi.lancar, hari);
-        await db.jadwalRukuk.put(baru ?? { ...j, terakhir: hari });
+        // K-62: kesalahan kecil di rukuk yang sudah berjarak → ayat yang salah diperbaiki besok dan lusa.
+        if (mutu === 'kecil' && berjarak) {
+          const ayat = ayatPerbaikan(h.kataSalah, h.tertukar);
+          for (const a of ayat) {
+            const lama = await db.perbaikan.get(kunciAyat(h.surah, a));
+            await db.perbaikan.put(mulaiPerbaikan(h.surah, a, h.rukuk, hari, lama));
+          }
+          tambahan.ayatDiperbaiki = ayat;
+        }
         return;
       }
 
@@ -612,8 +673,13 @@ export async function simpanKoreksi(h: HasilKoreksi): Promise<Sesi & { tandaDiha
       if (ubah.jadwal.length) await db.jadwalRukuk.bulkPut(ubah.jadwal);
     },
   );
-  return { ...sesi, tandaDihapus };
+  return { ...sesi, tandaDihapus, ...tambahan };
 }
+
+export { KALI_PERBAIKAN as KALI_PERBAIKAN_TAMPIL } from './jadwal';
+
+// Daftar "Perbaiki ayat" (K-62).
+export const ambilPerbaikan = () => db.perbaikan.toArray();
 
 // Hasil satu soal latihan tebak ayat dari arti (K-41).
 export async function catatTebakArti(surah: number, ayat: number, benar: boolean) {

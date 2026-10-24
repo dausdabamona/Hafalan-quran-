@@ -31,7 +31,15 @@ import TeksAyat from '../komponen/TeksAyat';
 // Rekam berurutan per ayat (K-12, K-14). Teks ayat yang sedang dibaca tertutup
 // sampai "Selesai ayat ini" ditekan (K-16); bisa dibuka untuk hafalan baru.
 // Sakelar teks ada di bilah bawah agar tetap terjangkau selama merekam (K-39).
-export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; rukuk?: number }) {
+export default function LayarRekam({
+  potongan,
+  rukuk,
+  perbaikan,
+}: {
+  potongan: Potongan;
+  rukuk?: number;
+  perbaikan?: boolean;
+}) {
   const surah = cariSurah(potongan.surah)!;
   const daftarMuat = useAyatMurojaah(potongan, rukuk);
   const daftarAyat = daftarMuat ?? [];
@@ -84,7 +92,7 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
     setMenyimpan(false);
     if (terakhir) {
       lepas();
-      ganti(hashPotongan('koreksi', potongan, rukuk));
+      ganti(hashPotongan('koreksi', potongan, rukuk, undefined, perbaikan));
       return;
     }
     setIndeks((i) => i + 1);
@@ -129,8 +137,12 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
   return (
     <>
       <Kepala
-        judul={`${rukuk ? 'Murojaah' : 'Rekam'} · ${surah.nama}`}
-        sub={`${rukuk ? 'Rukuk' : 'Potongan'} ${rukuk && daftarAyat.length ? labelDaftarAyat(daftarAyat) : labelPotongan(potongan)}`}
+        judul={`${perbaikan ? 'Perbaiki' : rukuk ? 'Murojaah' : 'Rekam'} · ${surah.nama}`}
+        sub={
+          perbaikan
+            ? `Perbaiki ${labelPotongan(potongan)}`
+            : `${rukuk ? 'Rukuk' : 'Potongan'} ${rukuk && daftarAyat.length ? labelDaftarAyat(daftarAyat) : labelPotongan(potongan)}`
+        }
       />
 
       <div className="isi-rekam">
@@ -187,8 +199,10 @@ export default function LayarRekam({ potongan, rukuk }: { potongan: Potongan; ru
               {/* K-55: hanya kata yang pernah salah yang terlihat; kata lain tetap kotak tertutup. */}
               {(() => {
                 const token = susunToken(ayatKini).filter((t) => t.kata);
-                const bantuAyat = bantu ? kataBantu(ayatKini) : new Set<number>();
                 const adaSalah = token.some((t) => salahDi(ayatKini.ayat, t.kata!.urutan));
+                // K-61: ayat yang punya tanda kata salah selalu mendapat kata bantu,
+                // walau rukuk sudah 15× dimurojaah atau tombol Bantu dimatikan.
+                const bantuAyat = bantu || adaSalah ? kataBantu(ayatKini) : new Set<number>();
                 if (!adaSalah && bantuAyat.size === 0) return null;
                 return (
                   <span className="ayat-salah" dir="rtl" lang="ar">

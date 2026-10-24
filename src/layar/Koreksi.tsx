@@ -7,11 +7,12 @@ import {
   ambilRekamanSurah,
   ambilTandaSurah,
   BATAS_BENAR_OTOMATIS,
+  KALI_PERBAIKAN_TAMPIL,
   kunciAyat,
   kunciKata,
   simpanKoreksi,
+  type HasilSimpan,
   type Rekaman,
-  type Sesi,
   type TandaSurah,
 } from '../db';
 import { ganti, hashPotongan } from '../navigasi';
@@ -25,10 +26,12 @@ export default function LayarKoreksi({
   potongan,
   rukuk,
   sampai,
+  perbaikan,
 }: {
   potongan: Potongan;
   rukuk?: number;
   sampai?: number;
+  perbaikan?: boolean;
 }) {
   const surah = cariSurah(potongan.surah)!;
   const daftarSemua = useAyatMurojaah(potongan, rukuk);
@@ -43,7 +46,7 @@ export default function LayarKoreksi({
   const [salahSesi, setSalahSesi] = useState<Set<string>>(new Set()); // "ayat:urutan"
   const [sudahBenar, setSudahBenar] = useState<Set<string>>(new Set()); // tanda lama yang kini benar (K-57)
   const [tertukarSesi, setTertukarSesi] = useState<Map<number, number>>(new Map()); // ayatAsal → ayatKeliru
-  const [hasil, setHasil] = useState<(Sesi & { tandaDihapus?: number }) | null>(null);
+  const [hasil, setHasil] = useState<HasilSimpan | null>(null);
   const [menyimpan, setMenyimpan] = useState(false);
   const [diputar, setDiputar] = useState<number | null>(null); // nomor ayat yang sedang diputar
 
@@ -93,6 +96,7 @@ export default function LayarKoreksi({
         ? { ayat: daftarAyat.map((a) => a.ayat) }
         : {}),
       ...(sampai ? { sebagian: true } : {}),
+      ...(perbaikan ? { perbaikan: true } : {}),
       sudahBenar: [...sudahBenar]
         .filter((k) => !salahSesi.has(k))
         .map((k) => {
@@ -112,7 +116,11 @@ export default function LayarKoreksi({
       <>
         <Kepala
           judul={`Koreksi · ${surah.nama}`}
-          sub={`${rukuk ? 'Murojaah rukuk' : 'Potongan'} ${rukuk && daftarAyat.length ? labelDaftarAyat(daftarAyat) : labelPotongan(potongan)}`}
+          sub={
+            perbaikan
+              ? `Perbaiki ${labelPotongan(potongan)}`
+              : `${rukuk ? 'Murojaah rukuk' : 'Potongan'} ${rukuk && daftarAyat.length ? labelDaftarAyat(daftarAyat) : labelPotongan(potongan)}`
+          }
         />
         <div className="hasil-koreksi">
           {!!hasil.tandaDihapus && (
@@ -120,6 +128,7 @@ export default function LayarKoreksi({
               {hasil.tandaDihapus} tanda kata yang sudah benar dihapus. Alhamdulillah.
             </p>
           )}
+          <PesanAturan hasil={hasil} />
           {hasil.lancar ? (
             <>
               <p className="hasil-besar">Lancar, alhamdulillah</p>
@@ -138,12 +147,15 @@ export default function LayarKoreksi({
               <p>
                 {hasil.kataSalah} kata dan {hasil.sambunganTertukar} sambungan ditandai. Tandanya akan tetap tersorot
                 sebagai pengingat di sesi berikutnya
-                {rukuk ? ', dan rukuk ini diulang lagi besok.' : '.'}
+                {rukuk && !perbaikan && hasil.mutu !== 'kecil' ? ', dan rukuk ini diulang lagi besok.' : '.'}
               </p>
             </>
           )}
           <div className="aksi-lembar">
-            <button className="tombol sekunder" onClick={() => ganti(hashPotongan('rekam', potongan, rukuk))}>
+            <button
+              className="tombol sekunder"
+              onClick={() => ganti(hashPotongan('rekam', potongan, rukuk, undefined, perbaikan))}
+            >
               Rekam ulang
             </button>
             <button className="tombol utama" onClick={() => history.back()}>
@@ -161,7 +173,11 @@ export default function LayarKoreksi({
     <>
       <Kepala
         judul={`Koreksi · ${surah.nama}`}
-        sub={`${rukuk ? 'Murojaah rukuk' : 'Potongan'} ${rukuk && daftarAyat.length ? labelDaftarAyat(daftarAyat) : labelPotongan(potongan)}`}
+        sub={
+            perbaikan
+              ? `Perbaiki ${labelPotongan(potongan)}`
+              : `${rukuk ? 'Murojaah rukuk' : 'Potongan'} ${rukuk && daftarAyat.length ? labelDaftarAyat(daftarAyat) : labelPotongan(potongan)}`
+          }
       />
       <p className="petunjuk">
         Putar rekaman sambil melihat ayat. Ketuk kata yang salah; ketuk lagi untuk membatalkan. Bila urutan ayat
@@ -409,5 +425,37 @@ function TandaLamaAyat({
         );
       })}
     </div>
+  );
+}
+
+// K-62: penjelasan aturan jadwal yang berlaku sesudah koreksi disimpan.
+function PesanAturan({ hasil }: { hasil: HasilSimpan }) {
+  if (hasil.perbaikan) {
+    if (hasil.perbaikanSelesai?.length)
+      return <p className="pesan-aturan selesai">Perbaikan ayat {hasil.perbaikanSelesai.join(', ')} tuntas.</p>;
+    return (
+      <p className="pesan-aturan">
+        {hasil.lancar
+          ? 'Perbaikan tercatat. Ulangi sekali lagi besok.'
+          : `Masih ada yang salah: ayat ini diperbaiki lagi besok dan lusa (${KALI_PERBAIKAN_TAMPIL}×).`}
+      </p>
+    );
+  }
+  if (!hasil.mutu || hasil.mutu === 'lancar' || !hasil.jumlahKata) return null;
+  const bobot = hasil.kataSalah + hasil.sambunganTertukar;
+  const persen = ((bobot / hasil.jumlahKata) * 100).toLocaleString('id-ID', { maximumFractionDigits: 1 });
+  if (hasil.mutu === 'kecil')
+    return (
+      <p className="pesan-aturan">
+        Kesalahan kecil: {bobot} dari {hasil.jumlahKata} kata ({persen}%). Rukuk turun satu tingkat
+        {hasil.ayatDiperbaiki?.length
+          ? `, dan ayat ${hasil.ayatDiperbaiki.join(', ')} masuk "Perbaiki ayat" besok dan lusa.`
+          : '.'}
+      </p>
+    );
+  return (
+    <p className="pesan-aturan besar">
+      {bobot} dari {hasil.jumlahKata} kata ({persen}%), 5% atau lebih: rukuk kembali diulang besok.
+    </p>
   );
 }

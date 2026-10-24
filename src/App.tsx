@@ -111,7 +111,12 @@ export default function App() {
           />
         )}
         {layar.nama === 'rekam' && (
-          <LayarRekam key={JSON.stringify(layar)} potongan={layar.potongan} rukuk={layar.rukuk} />
+          <LayarRekam
+            key={JSON.stringify(layar)}
+            potongan={layar.potongan}
+            rukuk={layar.rukuk}
+            perbaikan={layar.perbaikan}
+          />
         )}
         {layar.nama === 'koreksi' && (
           <LayarKoreksi
@@ -119,6 +124,7 @@ export default function App() {
             potongan={layar.potongan}
             rukuk={layar.rukuk}
             sampai={layar.sampai}
+            perbaikan={layar.perbaikan}
           />
         )}
         {layar.nama === 'rukuk' && <LayarRukuk />}

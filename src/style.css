@@ -4130,3 +4130,21 @@ body {
   background: #fdf1f1;
   color: #b42318;
 }
+
+/* K-65: kata dibuka satu per satu, ikon bantu & lihat ayat */
+.kata-terbuka {
+  font-family: var(--font-arab);
+  font-size: calc(var(--ukuran-arab, 34px) * 0.75);
+  line-height: 1.7;
+  color: var(--color-text);
+}
+.status-ayat .ikon-status {
+  display: inline-flex;
+  gap: 6px;
+}
+.status-ayat .sakelar-bantu.ikon {
+  justify-content: center;
+  width: 36px;
+  min-height: 36px;
+  padding: 0;
+}

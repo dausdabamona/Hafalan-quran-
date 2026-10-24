@@ -245,9 +245,12 @@ export function segmenAyat(ayat: Ayat): Segmen[] {
 
 // K-61: kata bantu murojaah — kata pertama ayat, kata pertama sesudah tiap tanda waqaf,
 // dan kata terakhir ayat. Mengembalikan nomor urutan kata.
+// K-65: ayat yang hanya dua kata (atau kurang) cukup kata pertamanya.
 export function kataBantu(ayat: Ayat): Set<number> {
   const hasil = new Set<number>();
   const segmen = segmenAyat(ayat).filter(Boolean);
+  const semua = segmen.flatMap((g) => g.kata);
+  if (semua.length <= 2) return new Set(semua.length ? [semua[0].urutan] : []);
   for (const g of segmen) if (g.kata.length) hasil.add(g.kata[0].urutan);
   const akhir = segmen.at(-1)?.kata.at(-1);
   if (akhir) hasil.add(akhir.urutan);

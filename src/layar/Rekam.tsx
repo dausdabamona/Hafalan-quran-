@@ -56,7 +56,10 @@ export default function LayarRekam({
   // K-61: kata bantu (awal ayat, awal tiap waqaf, akhir ayat). Nyala otomatis bila rukuk
   // ini dimurojaah kurang dari BATAS_KATA_BANTU kali; sesudahnya mati bawaan.
   const [jumlahMurojaah, setJumlahMurojaah] = useState<number | null>(null);
-  const [bantu, setBantu] = useState(false);
+  // K-65: null = otomatis (di bawah 15× atau ayat pernah salah); true/false = dipilih lewat tombol.
+  const [bantuPilih, setBantuPilih] = useState<boolean | null>(null);
+  // K-65: jumlah kata yang dibuka satu per satu dengan mengetuk kotak ayat.
+  const [terbuka, setTerbuka] = useState(0);
   const refKini = useRef<HTMLDivElement>(null);
 
   const ayatKini = daftarAyat[indeks];
@@ -72,12 +75,14 @@ export default function LayarRekam({
     if (!rukuk) return;
     hitungMurojaahRukuk(surah.nomor, rukuk).then((n) => {
       setJumlahMurojaah(n);
-      setBantu(n < BATAS_KATA_BANTU);
     });
   }, [surah.nomor, rukuk]);
 
   // Pindah ayat (maju atau mundur): teks yang dibuka sementara ditutup lagi.
-  useEffect(() => setIntip(false), [indeks]);
+  useEffect(() => {
+    setIntip(false);
+    setTerbuka(0);
+  }, [indeks]);
 
   // Ayat yang sedang direkam selalu tampil di tengah layar.
   useEffect(() => {
@@ -134,6 +139,13 @@ export default function LayarRekam({
 
   if (!daftarMuat || !ayatKini) return null;
 
+  // K-61/K-65: kata bantu ayat yang sedang dibaca.
+  const tokenKini = susunToken(ayatKini).filter((t) => t.kata);
+  const adaSalahKini = tokenKini.some((t) => salahDi(ayatKini.ayat, t.kata!.urutan));
+  const bantuKini =
+    bantuPilih ?? ((jumlahMurojaah !== null && jumlahMurojaah < BATAS_KATA_BANTU) || adaSalahKini);
+  const bantuAyat = rukuk && bantuKini ? kataBantu(ayatKini) : new Set<number>();
+
   return (
     <>
       <Kepala
@@ -179,67 +191,85 @@ export default function LayarRekam({
               Ayat {ayatKini.ayat} · {indeks + 1} dari {daftarAyat.length}
               {merekam && <span className="titik-rekam" role="img" aria-label="Sedang merekam" />}
             </span>
-            {rukuk && jumlahMurojaah !== null && !(tampilkanTeks || intip) && (
-              <button
-                type="button"
-                className={'sakelar-bantu' + (bantu ? ' nyala' : '')}
-                onClick={() => setBantu((v) => !v)}
-                aria-pressed={bantu}
-                title={`Kata bantu: awal ayat, awal tiap waqaf, dan akhir ayat. Rukuk ini sudah dimurojaah ${jumlahMurojaah}×; nyala otomatis di bawah ${BATAS_KATA_BANTU}×.`}
-              >
-                <Lifebuoy size={16} weight={bantu ? 'fill' : 'duotone'} /> Bantu
-              </button>
+            {rukuk && jumlahMurojaah !== null && !tampilkanTeks && (
+              <span className="ikon-status">
+                {!intip && (
+                  <button
+                    type="button"
+                    className={'sakelar-bantu ikon' + (bantuKini ? ' nyala' : '')}
+                    onClick={() => setBantuPilih(!bantuKini)}
+                    aria-pressed={bantuKini}
+                    aria-label={bantuKini ? 'Sembunyikan kata bantu' : 'Tampilkan kata bantu'}
+                    title={`Kata bantu: awal ayat, awal tiap waqaf, dan akhir ayat. Rukuk ini sudah dimurojaah ${jumlahMurojaah}×; nyala otomatis di bawah ${BATAS_KATA_BANTU}× atau bila ayat pernah salah.`}
+                  >
+                    <Lifebuoy size={18} weight={bantuKini ? 'fill' : 'duotone'} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={'sakelar-bantu ikon' + (intip ? ' nyala' : '')}
+                  onClick={() => setIntip((v) => !v)}
+                  aria-pressed={intip}
+                  aria-label={intip ? 'Tutup ayat' : 'Lihat seluruh ayat'}
+                  title={intip ? 'Tutup ayat' : 'Lihat seluruh ayat'}
+                >
+                  {intip ? <EyeSlash size={18} weight="duotone" /> : <Eye size={18} weight="duotone" />}
+                </button>
+              </span>
             )}
           </p>
           {tampilkanTeks || intip ? (
             <TeksAyat ayat={ayatKini} kelasKata={kelasKataSalah(ayatKini.ayat)} />
           ) : rukuk ? (
-            // K-52: saat murojaah yang tampil arti ayat; ragu → buka teks ayat ini saja.
-            <button type="button" className="teks-tertutup arti-murojaah" onClick={() => setIntip(true)}>
-              {/* K-55: hanya kata yang pernah salah yang terlihat; kata lain tetap kotak tertutup. */}
-              {(() => {
-                const token = susunToken(ayatKini).filter((t) => t.kata);
-                const adaSalah = token.some((t) => salahDi(ayatKini.ayat, t.kata!.urutan));
-                // K-61: ayat yang punya tanda kata salah selalu mendapat kata bantu,
-                // walau rukuk sudah 15× dimurojaah atau tombol Bantu dimatikan.
-                const bantuAyat = bantu || adaSalah ? kataBantu(ayatKini) : new Set<number>();
-                if (!adaSalah && bantuAyat.size === 0) return null;
-                return (
-                  <span className="ayat-salah" dir="rtl" lang="ar">
-                    {token.map((t, i) => {
-                      const tanda = salahDi(ayatKini.ayat, t.kata!.urutan);
-                      if (tanda)
-                        return (
-                          <span key={i} className="kata-salah">
-                            {t.teks}
-                            <small dir="ltr">{tanda.jumlah}×</small>
-                          </span>
-                        );
-                      if (bantuAyat.has(t.kata!.urutan))
-                        return (
-                          <span key={i} className="kata-bantu">
-                            {t.teks}
-                          </span>
-                        );
+            // K-52/K-65: saat murojaah yang tampil arti ayat; ketuk kotak → buka satu kata berikutnya.
+            <button
+              type="button"
+              className="teks-tertutup arti-murojaah"
+              onClick={() => setTerbuka((n) => n + 1)}
+              aria-label="Buka satu kata berikutnya"
+            >
+              {/* K-55: kata yang pernah salah merah; K-61: kata bantu hijau; K-65: kata yang dibuka gelap. */}
+              <span className="ayat-salah" dir="rtl" lang="ar">
+                {(() => {
+                  let sisaBuka = terbuka;
+                  return tokenKini.map((t, i) => {
+                    const tanda = salahDi(ayatKini.ayat, t.kata!.urutan);
+                    if (tanda)
                       return (
-                        <span
-                          key={i}
-                          className="kotak-kata"
-                          style={{ width: `${Math.min(84, Math.max(26, t.teks.length * 7))}px` }}
-                        />
+                        <span key={i} className="kata-salah">
+                          {t.teks}
+                          <small dir="ltr">{tanda.jumlah}×</small>
+                        </span>
                       );
-                    })}
-                  </span>
-                );
-              })()}
+                    if (bantuAyat.has(t.kata!.urutan))
+                      return (
+                        <span key={i} className="kata-bantu">
+                          {t.teks}
+                        </span>
+                      );
+                    if (sisaBuka > 0) {
+                      sisaBuka--;
+                      return (
+                        <span key={i} className="kata-terbuka">
+                          {t.teks}
+                        </span>
+                      );
+                    }
+                    return (
+                      <span
+                        key={i}
+                        className="kotak-kata"
+                        style={{ width: `${Math.min(84, Math.max(26, t.teks.length * 7))}px` }}
+                      />
+                    );
+                  });
+                })()}
+              </span>
               <span className="kicker">Arti ayat {ayatKini.ayat}</span>
               <span className="isi-arti">
                 {segmenAyat(ayatKini)
                   .map((g) => makna.get(`${surah.nomor}:${ayatKini.ayat}:${g.indeks}`)?.isi ?? g.maknaBawaan)
                   .join(' · ')}
-              </span>
-              <span className="buka-teks">
-                <Eye weight="duotone" /> Ragu? Ketuk untuk melihat ayat
               </span>
             </button>
           ) : (

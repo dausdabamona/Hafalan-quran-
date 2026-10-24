@@ -23,6 +23,13 @@ describe('kata bantu murojaah (K-61)', () => {
     expect(kataBantu(a).size).toBe(1);
   });
 
+  it('ayat dua kata: hanya kata pertama (K-65)', () => {
+    const a = cariAyat(55, 2)!; // 'allamal-Qur'an
+    const kata = segmenAyat(a).flatMap((g) => g.kata);
+    expect(kata).toHaveLength(2);
+    expect([...kataBantu(a)]).toEqual([kata[0].urutan]);
+  });
+
   it('semua ayat punya kata bantu', () => {
     for (let s = 1; s <= 114; s++)
       for (let n = 1; cariAyat(s, n); n++) expect(kataBantu(cariAyat(s, n)!).size).toBeGreaterThan(0);

@@ -142,9 +142,12 @@ export default function LayarRekam({
   // K-61/K-65: kata bantu ayat yang sedang dibaca.
   const tokenKini = susunToken(ayatKini).filter((t) => t.kata);
   const adaSalahKini = tokenKini.some((t) => salahDi(ayatKini.ayat, t.kata!.urutan));
+  // K-66: hafalan baru (tanpa rukuk) selalu mendapat kata bantu bawaan.
   const bantuKini =
-    bantuPilih ?? ((jumlahMurojaah !== null && jumlahMurojaah < BATAS_KATA_BANTU) || adaSalahKini);
-  const bantuAyat = rukuk && bantuKini ? kataBantu(ayatKini) : new Set<number>();
+    bantuPilih ??
+    (!rukuk || (jumlahMurojaah !== null && jumlahMurojaah < BATAS_KATA_BANTU) || adaSalahKini);
+  const bantuAyat = bantuKini ? kataBantu(ayatKini) : new Set<number>();
+  const siapBantu = !rukuk || jumlahMurojaah !== null;
 
   return (
     <>
@@ -191,7 +194,7 @@ export default function LayarRekam({
               Ayat {ayatKini.ayat} · {indeks + 1} dari {daftarAyat.length}
               {merekam && <span className="titik-rekam" role="img" aria-label="Sedang merekam" />}
             </span>
-            {rukuk && jumlahMurojaah !== null && !tampilkanTeks && (
+            {siapBantu && !tampilkanTeks && (
               <span className="ikon-status">
                 {!intip && (
                   <button
@@ -200,7 +203,11 @@ export default function LayarRekam({
                     onClick={() => setBantuPilih(!bantuKini)}
                     aria-pressed={bantuKini}
                     aria-label={bantuKini ? 'Sembunyikan kata bantu' : 'Tampilkan kata bantu'}
-                    title={`Kata bantu: awal ayat, awal tiap waqaf, dan akhir ayat. Rukuk ini sudah dimurojaah ${jumlahMurojaah}×; nyala otomatis di bawah ${BATAS_KATA_BANTU}× atau bila ayat pernah salah.`}
+                    title={
+                      rukuk
+                        ? `Kata bantu: awal ayat, awal tiap waqaf, dan akhir ayat. Rukuk ini sudah dimurojaah ${jumlahMurojaah}×; nyala otomatis di bawah ${BATAS_KATA_BANTU}× atau bila ayat pernah salah.`
+                        : 'Kata bantu: awal ayat, awal tiap waqaf, dan akhir ayat.'
+                    }
                   >
                     <Lifebuoy size={18} weight={bantuKini ? 'fill' : 'duotone'} />
                   </button>
@@ -220,8 +227,8 @@ export default function LayarRekam({
           </p>
           {tampilkanTeks || intip ? (
             <TeksAyat ayat={ayatKini} kelasKata={kelasKataSalah(ayatKini.ayat)} />
-          ) : rukuk ? (
-            // K-52/K-65: saat murojaah yang tampil arti ayat; ketuk kotak → buka satu kata berikutnya.
+          ) : (
+            // K-52/K-65/K-66: murojaah dan hafalan baru — arti ayat, kata bantu, ketuk → buka satu kata berikutnya.
             <button
               type="button"
               className="teks-tertutup arti-murojaah"
@@ -270,13 +277,6 @@ export default function LayarRekam({
                 {segmenAyat(ayatKini)
                   .map((g) => makna.get(`${surah.nomor}:${ayatKini.ayat}:${g.indeks}`)?.isi ?? g.maknaBawaan)
                   .join(' · ')}
-              </span>
-            </button>
-          ) : (
-            <button type="button" className="teks-tertutup" onClick={() => setTampilkanTeks(true)}>
-              Teks tertutup — bacalah dari hafalan
-              <span className="buka-teks">
-                <Eye weight="duotone" /> Lupa? Ketuk untuk melihat ayat
               </span>
             </button>
           )}

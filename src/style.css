@@ -1,5 +1,5 @@
 /* Sistem desain Broadsheet (K-38): gaya koran — serif di atas kertas, aksen cyan/magenta kecil,
-   tanpa kotak berbingkai. Sengaja tanpa mode gelap. Token lama dialihkan ke token baru. */
+   tanpa kotak berbingkai. Mode gelap lewat token (K-63, di akhir berkas). Token lama dialihkan ke token baru. */
 :root {
   --color-bg: #f2f5f0;
   --color-surface: #e4ece1;
@@ -90,7 +90,7 @@ a {
   gap: 12px;
   justify-content: space-between;
   padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
-  background: var(--teal);
+  background: var(--color-isi-tua);
   color: #fff;
 }
 
@@ -376,7 +376,7 @@ textarea:focus {
 
 .tombol.utama {
   border: none;
-  background: var(--teal);
+  background: var(--color-isi-tua);
   color: #fff;
 }
 
@@ -480,16 +480,16 @@ textarea:focus {
 
 /* Tanda kata salah lama (K-13): garis bawah merah putus-putus */
 .kata.tanda-lama {
-  text-decoration: underline dotted #c0392b;
+  text-decoration: underline dotted var(--color-salah-garis);
   text-decoration-thickness: 2px;
   text-underline-offset: 10px;
 }
 
 /* Kata yang ditandai salah pada sesi koreksi ini */
 .kata.salah-sesi {
-  background: #fbe3df;
-  color: #a12a1c;
-  box-shadow: inset 0 -3px 0 #c0392b;
+  background: var(--color-salah-latar);
+  color: var(--color-salah);
+  box-shadow: inset 0 -3px 0 var(--color-salah-garis);
 }
 
 .kaki-ayat {
@@ -512,7 +512,7 @@ textarea:focus {
 }
 
 .tombol-putar.aktif {
-  background: var(--teal);
+  background: var(--color-isi-tua);
   color: #fff;
 }
 
@@ -528,8 +528,8 @@ textarea:focus {
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  background: #fbe3df;
-  color: #8a2a1e;
+  background: var(--color-salah-latar);
+  color: var(--color-salah);
   border-radius: 10px;
   padding: 6px 12px;
   font-size: 0.88rem;
@@ -545,7 +545,7 @@ textarea:focus {
 
 .sambungan-bertanda .tautan,
 .info-tanda .tautan {
-  color: #8a2a1e;
+  color: var(--color-salah);
 }
 
 /* ---------- Rekam ---------- */
@@ -586,11 +586,11 @@ textarea:focus {
 }
 
 .ayat.kini.sedang-rekam {
-  border-color: #c0392b;
+  border-color: var(--color-salah-garis);
 }
 
 .indikator-rekam {
-  color: #c0392b;
+  color: var(--color-salah);
 }
 
 .teks-tertutup {
@@ -604,8 +604,8 @@ textarea:focus {
 }
 
 .pesan-galat {
-  background: #fbe3df;
-  color: #8a2a1e;
+  background: var(--color-salah-latar);
+  color: var(--color-salah);
   border-radius: 12px;
   padding: 12px;
   font-size: 0.92rem;
@@ -670,9 +670,9 @@ textarea:focus {
 }
 
 .sambungan.tertukar {
-  border-left-color: #c0392b;
-  background: #fbe3df;
-  color: #8a2a1e;
+  border-left-color: var(--color-salah-garis);
+  background: var(--color-salah-latar);
+  color: var(--color-salah);
   border-radius: 0 10px 10px 0;
 }
 
@@ -796,7 +796,7 @@ textarea:focus {
 }
 
 .telat {
-  color: #a12a1c;
+  color: var(--color-salah);
   font-size: 0.82rem;
 }
 
@@ -814,8 +814,8 @@ textarea:focus {
 }
 
 .label-kelompok.lama {
-  background: #f3ead4;
-  color: #7a5c1e;
+  background: var(--color-catatan-latar);
+  color: var(--color-catatan-teks);
 }
 
 .pilihan-arah {
@@ -872,7 +872,7 @@ textarea:focus {
 }
 
 .tombol-ikon.aktif {
-  background: var(--teal);
+  background: var(--color-isi-tua);
   color: #fff;
   border-color: var(--teal);
 }
@@ -1026,7 +1026,7 @@ button.judul-juz.tandai {
 }
 
 .tandai.semua .kotak {
-  background: var(--teal);
+  background: var(--color-isi-tua);
   border-color: var(--teal);
 }
 
@@ -1117,7 +1117,7 @@ button.judul-juz.tandai {
 }
 
 .chip.aktif {
-  background: var(--teal);
+  background: var(--color-isi-tua);
   border-color: var(--teal);
   color: #fff;
 }
@@ -1163,7 +1163,7 @@ button.judul-juz.tandai {
 }
 
 .status.perbaiki {
-  color: #a34a1f;
+  color: var(--color-oranye);
   font-weight: 650;
 }
 
@@ -1182,7 +1182,7 @@ button.judul-juz.tandai {
   gap: 8px;
   padding: 8px 8px 8px 14px;
   border-radius: 14px;
-  background: var(--teal);
+  background: var(--color-isi-tua);
   color: #fff;
   box-shadow: 0 4px 16px rgb(0 0 0 / 0.18);
   z-index: 20;
@@ -1278,8 +1278,8 @@ button.judul-juz.tandai {
 
 .ada-salah {
   margin: 4px 0 10px;
-  color: #a34a1f;
-  border-color: #e3b9a3;
+  color: var(--color-oranye);
+  border-color: var(--color-oranye-tepi);
 }
 
 .lembar-perbaikan {
@@ -1455,7 +1455,7 @@ input[type='checkbox'] {
   background: var(--color-accent-600);
 }
 .tombol.utama:active {
-  background: var(--color-accent-700);
+  background: var(--color-isi-tua);
 }
 .tombol.sekunder {
   background: transparent;
@@ -3004,7 +3004,7 @@ div.ayat.bisa-mundur:focus-visible {
   height: 36px;
 }
 .tombol.ikon-utama.merekam .bulat {
-  background: var(--color-accent-700);
+  background: var(--color-isi-tua);
   outline: 3px solid color-mix(in srgb, #d32f2f 55%, transparent);
   outline-offset: 3px;
 }
@@ -3102,6 +3102,18 @@ div.ayat.bisa-mundur:focus-visible {
   --shadow-lg: 0 16px 40px rgba(15, 61, 46, 0.18);
   --font-latin: 'Plus Jakarta Sans', system-ui, sans-serif;
   --kartu: var(--color-kartu);
+  /* K-63: token semantik (mode terang) */
+  --color-salah: #b42318;
+  --color-salah-garis: #d92d20;
+  --color-salah-latar: #fdf1f1;
+  --color-salah-tepi: #f3c2c4;
+  --color-oranye: #a34a1f;
+  --color-oranye-tepi: #e3b9a3;
+  --color-catatan-latar: #f3ead4;
+  --color-catatan-teks: #7a5c1e;
+  --color-kotak: #cfe3d6;
+  --color-isi-tua: #146b38;
+  --color-pahlawan: #0f3d2e;
 }
 body {
   font-family: var(--font-latin);
@@ -3161,7 +3173,7 @@ body {
 
 /* ---------- Hari ini: kepala hijau ---------- */
 .pahlawan {
-  background: var(--color-accent-800);
+  background: var(--color-pahlawan);
   color: #fff;
   padding: calc(var(--space-6) + env(safe-area-inset-top)) var(--space-4) 64px;
   display: flex;
@@ -3223,7 +3235,7 @@ body {
   width: 70px;
   height: 70px;
   border-radius: 50%;
-  background: var(--color-accent-800);
+  background: var(--color-pahlawan);
   display: grid;
   place-items: center;
   font-weight: 700;
@@ -3644,7 +3656,7 @@ body {
   font-family: var(--font-arab);
   font-size: 24px;
   text-align: right;
-  color: #c4282d;
+  color: var(--color-salah);
 }
 .daftar-kata-salah .letak {
   font-size: 13px;
@@ -3751,10 +3763,10 @@ body {
   font-weight: 600;
 }
 .status-target.tertinggal {
-  color: #b42318;
+  color: var(--color-salah);
 }
 .kicker.merah {
-  color: #c4282d !important;
+  color: var(--color-salah) !important;
 }
 .daftar-perhatian {
   list-style: none;
@@ -3783,7 +3795,7 @@ body {
 .daftar-perhatian .nilai {
   font-size: 13px;
   font-weight: 600;
-  color: #c4282d;
+  color: var(--color-salah);
   white-space: nowrap;
 }
 .form-target .isian {
@@ -3971,7 +3983,7 @@ body {
   display: inline-block;
   height: 18px;
   border-radius: 5px;
-  background: #cfe3d6;
+  background: var(--color-kotak);
 }
 .kata-salah {
   display: inline-flex;
@@ -3980,8 +3992,8 @@ body {
   font-family: var(--font-arab);
   font-size: calc(var(--ukuran-arab, 34px) * 0.75);
   line-height: 1.7;
-  color: #b42318;
-  border-bottom: 3px solid #d92d20;
+  color: var(--color-salah);
+  border-bottom: 3px solid var(--color-salah-garis);
 }
 .kata-salah small {
   font-family: var(--font-latin);
@@ -3989,9 +4001,9 @@ body {
   font-weight: 700;
 }
 .isi-rekam .kata.tanda-lama {
-  color: #b42318;
+  color: var(--color-salah);
   text-decoration: none;
-  border-bottom: 3px solid #d92d20;
+  border-bottom: 3px solid var(--color-salah-garis);
 }
 
 /* K-57/K-60: tanda kata lama di layar Koreksi — ringkas, tanpa judul */
@@ -4007,10 +4019,10 @@ body {
   gap: 4px;
   min-height: 36px;
   padding: 0 10px;
-  border: 1px solid #f3c2c4;
+  border: 1px solid var(--color-salah-tepi);
   border-radius: 999px;
-  background: #fdf1f1;
-  color: #b42318;
+  background: var(--color-salah-latar);
+  color: var(--color-salah);
   font: inherit;
   cursor: pointer;
 }
@@ -4018,7 +4030,7 @@ body {
   font-family: var(--font-arab);
   font-size: 20px;
   line-height: 1.4;
-  color: #b42318;
+  color: var(--color-salah);
 }
 .chip-tanda-lama .ket {
   font-size: 11px;
@@ -4127,8 +4139,8 @@ body {
   color: var(--color-accent-700);
 }
 .pesan-aturan.besar {
-  background: #fdf1f1;
-  color: #b42318;
+  background: var(--color-salah-latar);
+  color: var(--color-salah);
 }
 
 /* K-65: kata dibuka satu per satu, ikon bantu & lihat ayat */
@@ -4202,7 +4214,7 @@ body {
   margin-bottom: 18px;
 }
 .bilah-ikon-ringkas .bulat.salah {
-  color: #b42318;
+  color: var(--color-salah);
 }
 .bilah-ikon-ringkas .tombol.ikon-utama .keterangan,
 .bilah-ikon .tombol.ikon-utama .keterangan {
@@ -4254,4 +4266,114 @@ body {
 .menu-ikon .bulat svg {
   width: 26px;
   height: 26px;
+}
+
+/* ======================= K-63: MODE GELAP =======================
+   Terang / Gelap / Ikut HP (tema.ts). Hanya token yang berganti; huruf Arab memakai --color-text. */
+:root[data-tema='gelap'] {
+  --color-bg: #0e1512;
+  --color-surface: #18231e;
+  --color-kartu: #141e19;
+  --color-text: #e4ebe7;
+  --color-muted: #98a9a0;
+  --color-divider: #2a3832;
+  --color-accent: #2f9e5e;
+  --color-accent-100: #16301f;
+  --color-accent-200: #1f4630;
+  --color-accent-600: #4cc27f;
+  --color-accent-700: #74d49d;
+  --color-accent-800: #a8e7c3;
+  --color-accent-2: #ff5fa8;
+  --color-accent-2-100: #3a1527;
+  --color-accent-2-700: #ff8cc0;
+  --color-accent-2-800: #ffb3d6;
+  --color-neutral-100: #1b2420;
+  --color-neutral-800: #c8d1cc;
+  --color-salah: #ff8a7a;
+  --color-salah-garis: #ff6b5c;
+  --color-salah-latar: #36191a;
+  --color-salah-tepi: #6e2c2c;
+  --color-oranye: #f2a46f;
+  --color-oranye-tepi: #6b4030;
+  --color-catatan-latar: #2f2718;
+  --color-catatan-teks: #e8c98a;
+  --color-kotak: #2b3c34;
+  --color-isi-tua: #1e7a45;
+  --color-pahlawan: #0c2a1f;
+  --shadow-kartu: 0 6px 18px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema='terang']) {
+    --color-bg: #0e1512;
+    --color-surface: #18231e;
+    --color-kartu: #141e19;
+    --color-text: #e4ebe7;
+    --color-muted: #98a9a0;
+    --color-divider: #2a3832;
+    --color-accent: #2f9e5e;
+    --color-accent-100: #16301f;
+    --color-accent-200: #1f4630;
+    --color-accent-600: #4cc27f;
+    --color-accent-700: #74d49d;
+    --color-accent-800: #a8e7c3;
+    --color-accent-2: #ff5fa8;
+    --color-accent-2-100: #3a1527;
+    --color-accent-2-700: #ff8cc0;
+    --color-accent-2-800: #ffb3d6;
+    --color-neutral-100: #1b2420;
+    --color-neutral-800: #c8d1cc;
+    --color-salah: #ff8a7a;
+    --color-salah-garis: #ff6b5c;
+    --color-salah-latar: #36191a;
+    --color-salah-tepi: #6e2c2c;
+    --color-oranye: #f2a46f;
+    --color-oranye-tepi: #6b4030;
+    --color-catatan-latar: #2f2718;
+    --color-catatan-teks: #e8c98a;
+    --color-kotak: #2b3c34;
+    --color-isi-tua: #1e7a45;
+    --color-pahlawan: #0c2a1f;
+    --shadow-kartu: 0 6px 18px rgba(0, 0, 0, 0.35);
+    --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+  }
+}
+
+/* K-63: pilihan tampilan di Lainnya */
+.pilih-tema {
+  padding: 0 var(--space-3) var(--space-3);
+}
+.pilih-tema .kicker {
+  margin: 0 0 var(--space-2);
+}
+.segmen-tema {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.segmen-tema button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 2px);
+  background: transparent;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+}
+.segmen-tema button.aktif {
+  background: var(--color-kartu);
+  color: var(--color-accent-700);
+  box-shadow: var(--shadow-kartu);
 }

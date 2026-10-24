@@ -1,8 +1,10 @@
-import { ArrowsClockwise, BellRinging, Info, Link, ListChecks, Translate } from '@phosphor-icons/react';
+import { useState } from 'react';
+import { ArrowsClockwise, BellRinging, DeviceMobile, Info, Link, ListChecks, Moon, Sun, Translate } from '@phosphor-icons/react';
 import Kepala from '../komponen/Kepala';
 import { pergi } from '../navigasi';
 import { pengingatTersedia } from '../pengingat';
 import { peranSinkron } from '../sinkron/peran';
+import { bacaTema, simpanTema, type PilihanTema } from '../tema';
 
 // Semua fitur lain dalam satu layar (K-48), dibuka dari tab "Lainnya".
 export default function LayarLainnya() {
@@ -21,6 +23,7 @@ export default function LayarLainnya() {
   return (
     <>
       <Kepala judul="Lainnya" sub="Semua fitur Saku Hati" kembali={false} />
+      <PilihTema />
       <ul className="daftar-lainnya">
         {item.map((x) => {
           const Ikon = x.ikon;
@@ -40,5 +43,42 @@ export default function LayarLainnya() {
         })}
       </ul>
     </>
+  );
+}
+
+// K-63: Terang / Gelap / Ikut HP, tersimpan di perangkat ini.
+const PILIHAN: { nilai: PilihanTema; judul: string; ikon: typeof Sun }[] = [
+  { nilai: 'terang', judul: 'Terang', ikon: Sun },
+  { nilai: 'gelap', judul: 'Gelap', ikon: Moon },
+  { nilai: 'ikut', judul: 'Ikut HP', ikon: DeviceMobile },
+];
+
+function PilihTema() {
+  const [tema, setTema] = useState<PilihanTema>(bacaTema);
+  return (
+    <section className="pilih-tema" aria-label="Tampilan">
+      <p className="kicker">Tampilan</p>
+      <div className="segmen-tema" role="radiogroup" aria-label="Mode tampilan">
+        {PILIHAN.map((p) => {
+          const Ikon = p.ikon;
+          const aktif = tema === p.nilai;
+          return (
+            <button
+              key={p.nilai}
+              type="button"
+              role="radio"
+              aria-checked={aktif}
+              className={aktif ? 'aktif' : ''}
+              onClick={() => {
+                simpanTema(p.nilai);
+                setTema(p.nilai);
+              }}
+            >
+              <Ikon size={20} weight={aktif ? 'fill' : 'regular'} /> {p.judul}
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }

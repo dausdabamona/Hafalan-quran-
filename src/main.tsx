@@ -11,7 +11,9 @@ import { mintaPenyimpananTetap } from './db';
 import { pasangSatuSuara } from './pemutar';
 import { pasangPintasan } from './pintasan';
 import { pasangPapanKetik } from './papanKetik';
+import { pasangTema } from './tema';
 
+pasangTema();
 mintaPenyimpananTetap();
 pasangSatuSuara();
 pasangPintasan();

@@ -1,4 +1,4 @@
-package id.dabamona.rabth;
+package id.dabamona.sakuhati;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;

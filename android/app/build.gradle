@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "id.dabamona.rabth"
+    namespace = "id.dabamona.sakuhati"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "id.dabamona.rabth"
+        applicationId "id.dabamona.sakuhati"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Diisi workflow dari nomor build, agar setiap APK baru bisa dipasang menimpa yang lama.
@@ -17,22 +17,30 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    // Kunci tanda tangan dibaca dari variabel lingkungan yang disiapkan workflow (P-21).
+    // Dua saluran terbit (K-56), nama paket sama id.dabamona.sakuhati:
+    //   github — APK lengkap di GitHub Releases, termasuk Pengingat ayat (src/github)
+    //   play   — AAB untuk Google Play, tanpa Pengingat ayat (src/play)
+    flavorDimensions = ["saluran"]
+    productFlavors {
+        github { dimension "saluran" }
+        play { dimension "saluran" }
+    }
+    // Kunci unggah permanen dibaca dari variabel lingkungan yang disiapkan workflow (P-21).
     // Kunci yang sama di setiap build membuat APK baru bisa menimpa versi lama tanpa kehilangan data.
     signingConfigs {
         release {
-            def berkasKunci = System.getenv('RABTH_KEYSTORE_PATH')
+            def berkasKunci = System.getenv('SAKUHATI_KEYSTORE_PATH')
             if (berkasKunci) {
                 storeFile file(berkasKunci)
-                storePassword System.getenv('RABTH_KEYSTORE_PASSWORD')
-                keyAlias System.getenv('RABTH_KEY_ALIAS')
-                keyPassword System.getenv('RABTH_KEY_PASSWORD')
+                storePassword System.getenv('SAKUHATI_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('SAKUHATI_KEY_ALIAS')
+                keyPassword System.getenv('SAKUHATI_KEY_PASSWORD')
             }
         }
     }
     buildTypes {
         release {
-            if (System.getenv('RABTH_KEYSTORE_PATH')) {
+            if (System.getenv('SAKUHATI_KEYSTORE_PATH')) {
                 signingConfig signingConfigs.release
             }
             minifyEnabled false

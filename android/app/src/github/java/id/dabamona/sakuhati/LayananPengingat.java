@@ -1,4 +1,4 @@
-package id.dabamona.rabth;
+package id.dabamona.sakuhati;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -49,7 +49,7 @@ import org.json.JSONObject;
  */
 public class LayananPengingat extends Service {
 
-    static final String AKSI_COBA = "id.dabamona.rabth.COBA_KARTU";
+    static final String AKSI_COBA = "id.dabamona.sakuhati.COBA_KARTU";
     private static final String KANAL = "pengingat-ayat";
     private static final int ID_NOTIFIKASI = 3201;
     private static final long SELANG_PANTAU_MS = 2000;

@@ -54,45 +54,54 @@ jobs:
       - name: Salin ke proyek Android
         run: npx cap sync android
 
-      # Kunci permanen dari secret RABTH_KEYSTORE_BASE64 bila sudah diisi (P-21);
-      # bila belum, memakai kunci sementara yang ada di repositori.
+      # Kunci unggah permanen dari secret repositori (K-56, P-21). Tanpa kunci ini kode tetap dibangun
+      # (untuk memeriksa), tetapi tidak diterbitkan: APK dengan kunci lain tidak bisa menimpa aplikasi terpasang.
       - name: Siapkan kunci tanda tangan
         env:
-          KUNCI_BASE64: ${{ secrets.RABTH_KEYSTORE_BASE64 }}
-          KUNCI_SANDI: ${{ secrets.RABTH_KEYSTORE_PASSWORD }}
-          KUNCI_ALIAS: ${{ secrets.RABTH_KEY_ALIAS }}
+          KUNCI_BASE64: ${{ secrets.SAKUHATI_KEYSTORE_BASE64 }}
+          KUNCI_SANDI: ${{ secrets.SAKUHATI_KEYSTORE_PASSWORD }}
+          KUNCI_ALIAS: ${{ secrets.SAKUHATI_KEY_ALIAS }}
         run: |
-          if [ -n "$KUNCI_BASE64" ]; then
-            echo "$KUNCI_BASE64" | base64 -d > "$RUNNER_TEMP/rabth.jks"
-            {
-              echo "RABTH_KEYSTORE_PATH=$RUNNER_TEMP/rabth.jks"
-              echo "RABTH_KEYSTORE_PASSWORD=$KUNCI_SANDI"
-              echo "RABTH_KEY_PASSWORD=$KUNCI_SANDI"
-              echo "RABTH_KEY_ALIAS=$KUNCI_ALIAS"
-            } >> "$GITHUB_ENV"
-            echo "Memakai kunci permanen."
-          else
-            {
-              echo "RABTH_KEYSTORE_PATH=$GITHUB_WORKSPACE/android/kunci-sementara.jks"
-              echo "RABTH_KEYSTORE_PASSWORD=rabthsementara"
-              echo "RABTH_KEY_PASSWORD=rabthsementara"
-              echo "RABTH_KEY_ALIAS=rabth"
-            } >> "$GITHUB_ENV"
-            echo "::warning::Memakai kunci sementara (P-21 belum diisi)."
+          if [ -z "$KUNCI_BASE64" ] || [ -z "$KUNCI_SANDI" ] || [ -z "$KUNCI_ALIAS" ]; then
+            echo "ADA_KUNCI=0" >> "$GITHUB_ENV"
+            exit 0
           fi
+          echo "ADA_KUNCI=1" >> "$GITHUB_ENV"
+          echo "$KUNCI_BASE64" | base64 -d > "$RUNNER_TEMP/sakuhati.jks"
+          {
+            echo "SAKUHATI_KEYSTORE_PATH=$RUNNER_TEMP/sakuhati.jks"
+            echo "SAKUHATI_KEYSTORE_PASSWORD=$KUNCI_SANDI"
+            echo "SAKUHATI_KEY_PASSWORD=$KUNCI_SANDI"
+            echo "SAKUHATI_KEY_ALIAS=$KUNCI_ALIAS"
+          } >> "$GITHUB_ENV"
 
-      - name: Bangun APK
+      # APK lengkap untuk GitHub dan AAB tanpa Pengingat ayat untuk Google Play (K-56).
+      - name: Bangun APK dan AAB
         working-directory: android
-        run: ./gradlew assembleRelease --no-daemon -PversionCode=${{ github.run_number }} -PversionName=0.1.${{ github.run_number }}
+        run: ./gradlew assembleGithubRelease bundlePlayRelease --no-daemon -PversionCode=${{ github.run_number }} -PversionName=0.1.${{ github.run_number }}
+
+      - name: Kunci belum diisi
+        if: env.ADA_KUNCI != '1'
+        run: |
+          echo "::error::Kode berhasil dibangun, tetapi tidak diterbitkan: secret SAKUHATI_KEYSTORE_BASE64, SAKUHATI_KEYSTORE_PASSWORD, dan SAKUHATI_KEY_ALIAS belum diisi di Settings > Secrets and variables > Actions."
+          exit 1
 
       - name: Terbitkan ke GitHub Releases
+        if: env.ADA_KUNCI == '1'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp android/app/build/outputs/apk/release/app-release.apk saku-hati.apk
+          cp android/app/build/outputs/apk/github/release/app-github-release.apk saku-hati.apk
+          cp android/app/build/outputs/bundle/playRelease/app-play-release.aab saku-hati-play.aab
           gh release delete terbaru --yes --cleanup-tag || true
           gh release create terbaru saku-hati.apk \
             --target "$GITHUB_SHA" \
             --title "Saku Hati 0.1.${{ github.run_number }}" \
             --notes "APK terbaru dari commit ${GITHUB_SHA::7}. Unduh saku-hati.apk lalu pasang di HP." \
             --latest
+          gh release delete play-terbaru --yes --cleanup-tag || true
+          gh release create play-terbaru saku-hati-play.aab \
+            --target "$GITHUB_SHA" \
+            --title "Saku Hati untuk Google Play 0.1.${{ github.run_number }}" \
+            --notes "Berkas AAB (tanpa Pengingat ayat) dari commit ${GITHUB_SHA::7}. Diunggah ke Play Console, bukan dipasang langsung di HP." \
+            --prerelease

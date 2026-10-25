@@ -10,7 +10,7 @@
         <intent
             android:action="android.intent.action.VIEW"
             android:data="sakuhati-pintasan://murotal"
-            android:targetPackage="id.dabamona.rabth"
-            android:targetClass="id.dabamona.rabth.MainActivity" />
+            android:targetPackage="id.dabamona.sakuhati"
+            android:targetClass="id.dabamona.sakuhati.MainActivity" />
     </shortcut>
 </shortcuts>

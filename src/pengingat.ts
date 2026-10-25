@@ -4,7 +4,7 @@ import { ambilHafalan, db } from './db';
 import { ayatHafal } from './jadwal';
 
 // Pengingat ayat (K-32): kartu ayat hafalan tampil di atas aplikasi media sosial.
-// Bagian Android ada di android/app/src/main/java/id/dabamona/rabth/.
+// Bagian Android ada di android/app/src/github/java/id/dabamona/sakuhati/ (hanya versi GitHub, K-56).
 
 interface StatusPengingat {
   overlay: boolean;
@@ -35,8 +35,9 @@ interface PluginPengingat {
 
 export const Pengingat = registerPlugin<PluginPengingat>('PengingatAyat');
 
+// Hanya versi GitHub yang membawa plugin ini; versi Google Play tidak (K-56).
 export function pengingatTersedia(): boolean {
-  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
+  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android' && Capacitor.isPluginAvailable('PengingatAyat');
 }
 
 // Aplikasi Claude (K-44).

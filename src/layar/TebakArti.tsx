@@ -9,7 +9,7 @@ import { susunSoalArti, type SoalArti } from '../tebakArti';
 type Tahap = 'menebak' | 'periksa';
 
 // Latihan tebak ayat dari arti (K-41): arti tampil, ayat ditebak dan dibaca dari hafalan,
-// lalu teks dibuka dan dinilai sendiri. K-67: tanpa rekaman suara.
+// lalu teks dibuka dan dinilai sendiri. K-69: tanpa rekaman suara.
 export default function LayarTebakArti() {
   const [soal, setSoal] = useState<SoalArti[] | null>(null);
   const [indeks, setIndeks] = useState(0);

@@ -10,6 +10,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(PengingatAyatPlugin.class);
         registerPlugin(PusatSinkronPlugin.class);
         registerPlugin(PintasanPlugin.class);
+        registerPlugin(CadanganPlugin.class);
         // Aplikasi dibuka dari shortcut Murotal (K-42): tindakan disimpan sampai halaman siap.
         String t = PintasanPlugin.tindakanDari(getIntent());
         if (t != null) PintasanPlugin.simpan(t);

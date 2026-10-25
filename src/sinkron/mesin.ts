@@ -64,7 +64,7 @@ function teksKeBlob(t: { __blob: string; tipe: string }): Blob {
   return new Blob([bait], { type: t.tipe });
 }
 
-async function siapKirim(tabel: string, x: Rekaman, idSaya: string): Promise<Rekaman> {
+export async function siapKirim(tabel: string, x: Rekaman, idSaya: string): Promise<Rekaman> {
   const salin: Rekaman = { ...x };
   delete salin.terimaMs;
   if (tabel === 'sesi') delete salin.id;

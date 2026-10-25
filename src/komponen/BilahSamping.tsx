@@ -3,6 +3,7 @@ import {
   BellRinging,
   BookOpen,
   ChartBar,
+  FloppyDisk,
   Headphones,
   Info,
   Link,
@@ -43,6 +44,7 @@ export default function BilahSamping({ layar }: { layar: NamaLayar }) {
     ...(peranSinkron()
       ? [{ judul: 'Sinkron', hash: '#/sinkron', ikon: ikon(ArrowsClockwise), aktif: ['sinkron'] as NamaLayar[] }]
       : []),
+    { judul: 'Cadangan', hash: '#/cadangan', ikon: ikon(FloppyDisk), aktif: ['cadangan'] },
   ];
 
   return (

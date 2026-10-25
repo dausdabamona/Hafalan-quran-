@@ -19,6 +19,7 @@ import LayarMurotal, { BilahPemutar, LayarPilihMurotal } from './layar/Murotal';
 import { hashMurotal } from './murotal';
 import LayarPengingat from './layar/Pengingat';
 import LayarSinkron from './layar/Sinkron';
+import LayarCadangan from './layar/Cadangan';
 import { mulaiPusatOtomatis, mulaiSinkronOtomatis } from './sinkron/peran';
 import { Pengingat, pengingatTersedia, sinkronAyatKartu } from './pengingat';
 
@@ -135,6 +136,7 @@ export default function App() {
         {layar.nama === 'pilih-murotal' && <LayarPilihMurotal />}
         {layar.nama === 'pengingat' && <LayarPengingat />}
         {layar.nama === 'sinkron' && <LayarSinkron />}
+        {layar.nama === 'cadangan' && <LayarCadangan />}
         {layar.nama === 'murotal' && (
           <LayarMurotal key={hashMurotal(layar.rentang)} rentang={layar.rentang} putar={layar.putar} />
         )}

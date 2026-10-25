@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowsClockwise, BellRinging, DeviceMobile, Info, Link, ListChecks, Moon, Sun, Translate } from '@phosphor-icons/react';
+import { ArrowsClockwise, BellRinging, FloppyDisk, DeviceMobile, Info, Link, ListChecks, Moon, Sun, Translate } from '@phosphor-icons/react';
 import Kepala from '../komponen/Kepala';
 import { pergi } from '../navigasi';
 import { pengingatTersedia } from '../pengingat';
@@ -18,6 +18,7 @@ export default function LayarLainnya() {
     ...(peranSinkron()
       ? [{ judul: 'Sinkron HP ↔ Laptop', isi: 'Lewat Wi-Fi yang sama', ikon: ArrowsClockwise, hash: '#/sinkron' }]
       : []),
+    { judul: 'Cadangan', isi: 'Simpan & pulihkan semua data', ikon: FloppyDisk, hash: '#/cadangan' },
     { judul: 'Tentang Saku Hati', isi: 'Metode, sumber data, versi', ikon: Info, hash: '#/tentang' },
   ];
   return (

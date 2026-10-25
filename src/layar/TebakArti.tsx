@@ -1,25 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, Eye, Microphone, X } from '@phosphor-icons/react';
+import { Check, Eye, X } from '@phosphor-icons/react';
 import { catatTebakArti } from '../db';
 import { gulirKe } from '../komponen/gulir';
 import Kepala from '../komponen/Kepala';
 import TeksAyat from '../komponen/TeksAyat';
-import TombolPutar from '../komponen/TombolPutar';
-import { usePerekam } from '../perekam';
 import { susunSoalArti, type SoalArti } from '../tebakArti';
 
-type Tahap = 'menebak' | 'merekam' | 'periksa';
+type Tahap = 'menebak' | 'periksa';
 
-// Latihan tebak ayat dari arti (K-41): arti tampil, ayat ditebak sambil direkam, lalu
-// teks dibuka dan dinilai sendiri. Rekaman tebakan hanya untuk didengar, tidak disimpan.
+// Latihan tebak ayat dari arti (K-41): arti tampil, ayat ditebak dan dibaca dari hafalan,
+// lalu teks dibuka dan dinilai sendiri. K-67: tanpa rekaman suara.
 export default function LayarTebakArti() {
   const [soal, setSoal] = useState<SoalArti[] | null>(null);
   const [indeks, setIndeks] = useState(0);
   const [tahap, setTahap] = useState<Tahap>('menebak');
-  const [rekaman, setRekaman] = useState<Blob>();
   const [hasil, setHasil] = useState({ benar: 0, salah: 0 });
   const [menyimpan, setMenyimpan] = useState(false);
-  const { status, mulai, selesai, lepas } = usePerekam();
   const refJawaban = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,25 +30,13 @@ export default function LayarTebakArti() {
   if (!soal) return null;
   const kini = soal[indeks];
 
-  const mulaiRekam = async () => {
-    if (await mulai()) setTahap('merekam');
-  };
-
-  const selesaiRekam = async () => {
-    const h = await selesai();
-    setRekaman(h?.audio);
-    setTahap('periksa');
-  };
-
   const nilai = async (benar: boolean) => {
     setMenyimpan(true);
     await catatTebakArti(kini.surah.nomor, kini.ayat.ayat, benar);
     setMenyimpan(false);
     setHasil((h) => (benar ? { ...h, benar: h.benar + 1 } : { ...h, salah: h.salah + 1 }));
-    setRekaman(undefined);
     setTahap('menebak');
     setIndeks((i) => i + 1);
-    if (indeks + 1 >= soal.length) lepas();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -87,7 +71,6 @@ export default function LayarTebakArti() {
             <span>
               {kini.surah.nama}
               {kini.pernahSalah > 0 && <span className="redup"> · pernah salah {kini.pernahSalah}×</span>}
-              {tahap === 'merekam' && <span className="titik-rekam" role="img" aria-label="Sedang merekam" />}
             </span>
           </p>
           <div className="arti-soal">
@@ -106,22 +89,9 @@ export default function LayarTebakArti() {
                 {kini.surah.nama} · ayat {kini.ayat.ayat}
               </p>
               <TeksAyat ayat={kini.ayat} />
-              {rekaman && (
-                <div className="kaki-ayat">
-                  <TombolPutar audio={rekaman} label="Dengar bacaan Anda" />
-                </div>
-              )}
             </div>
           ) : (
-            <div className="teks-tertutup">
-              {tahap === 'merekam' ? 'Sedang merekam — bacalah ayatnya' : 'Teks tertutup — tebak dan bacalah dulu'}
-            </div>
-          )}
-
-          {status === 'ditolak' && (
-            <p className="pesan-galat">
-              Izin mikrofon belum diberikan. Buka Pengaturan HP → Aplikasi → Saku Hati → Izin, lalu aktifkan Mikrofon.
-            </p>
+            <div className="teks-tertutup">Teks tertutup — tebak dan bacalah dulu</div>
           )}
         </div>
       )}
@@ -129,43 +99,16 @@ export default function LayarTebakArti() {
       {kini && (
         <div className="bilah-aksi bilah-ikon-ringkas">
           {tahap === 'menebak' && (
-            <>
-              <button
-                type="button"
-                className="ikon-aksi"
-                onClick={() => setTahap('periksa')}
-                aria-label="Buka ayat"
-                title="Buka ayat"
-              >
-                <span className="bulat">
-                  <Eye weight="duotone" />
-                </span>
-              </button>
-              <button
-                type="button"
-                className="tombol utama ikon-utama"
-                onClick={mulaiRekam}
-                disabled={status === 'meminta-izin' || status === 'tidak-didukung'}
-                title="Rekam tebakan"
-              >
-                <span className="bulat">
-                  <Microphone weight="fill" />
-                </span>
-                <span className="keterangan">{status === 'meminta-izin' ? 'Meminta izin…' : 'Rekam'}</span>
-              </button>
-            </>
-          )}
-          {tahap === 'merekam' && (
             <button
               type="button"
-              className="tombol utama ikon-utama merekam"
-              onClick={selesaiRekam}
-              title="Selesai dan buka ayat"
+              className="tombol utama ikon-utama"
+              onClick={() => setTahap('periksa')}
+              title="Buka ayat"
             >
               <span className="bulat">
-                <Check weight="bold" />
+                <Eye weight="fill" />
               </span>
-              <span className="keterangan">Selesai</span>
+              <span className="keterangan">Buka</span>
             </button>
           )}
           {tahap === 'periksa' && (

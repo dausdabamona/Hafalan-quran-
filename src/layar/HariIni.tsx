@@ -191,7 +191,7 @@ export default function LayarHariIni() {
     {
       judul: 'Tebak ayat dari arti',
       pendek: 'Tebak arti',
-      isi: 'Arti satu ayat tampil, Anda menebak ayatnya dan membacanya sambil direkam, lalu periksa sendiri.',
+      isi: 'Arti satu ayat tampil, Anda menebak ayatnya dan membacanya dari hafalan, lalu periksa sendiri.',
       ikon: <Translate size={30} weight="duotone" className="ikon" />,
       buka: () => pergi('#/tebak-arti'),
       mati: jumlahHafal < 1,

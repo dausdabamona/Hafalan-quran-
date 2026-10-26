@@ -4701,3 +4701,100 @@ body {
   overflow-y: auto;
   white-space: pre-line;
 }
+
+/* ---------- K-78: pencarian hadits (hemat tempat) ---------- */
+.kotak-cari-hadits {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--color-bg);
+  padding: 0 var(--space-3) var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 760px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+.kolom-cari {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  height: 44px;
+  border-radius: 999px;
+  background: var(--color-kartu);
+  box-shadow: var(--shadow-kartu);
+  color: var(--color-muted);
+}
+.kolom-cari input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 16px;
+  outline: none;
+}
+.kolom-cari input::-webkit-search-cancel-button {
+  display: none;
+}
+.hapus-cari {
+  border: 0;
+  background: transparent;
+  color: var(--color-muted);
+  padding: 6px;
+  display: grid;
+  place-items: center;
+}
+.pilih-kitab-cari {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.pilih-kitab-cari::-webkit-scrollbar {
+  display: none;
+}
+.pilih-kitab-cari .chip {
+  flex: none;
+  white-space: nowrap;
+}
+.hasil-cari-hadits {
+  padding: 0 var(--space-3) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 760px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+.hasil-cari-info {
+  margin: 0;
+  padding: 0 var(--space-3);
+  max-width: 760px;
+  margin-inline: auto;
+}
+.hasil-cari-hadits .hasil-cari-info {
+  padding: 0;
+}
+.ringkas-hadits .cuplikan-hadits {
+  -webkit-line-clamp: 2;
+}
+.cuplikan-hadits mark {
+  background: color-mix(in srgb, var(--color-api, #f2a93b) 35%, transparent);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
+  font-weight: 700;
+}
+.cuplikan-hadits.arab-cuplikan {
+  font-family: var(--font-arab);
+  font-size: clamp(18px, calc(var(--ukuran-arab, 34px) * 0.6), 28px);
+  line-height: 1.9;
+  text-align: right;
+}

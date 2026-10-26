@@ -43,6 +43,7 @@ export interface KitabHadits {
 
 export interface InfoDataHadits {
   jenis: 'terkait' | 'lengkap';
+  indeks?: { versi: number; kataUmum: string[]; rentang: Record<string, [number, number]> }; // K-78
   jumlahHadits: number;
   jumlahAyat: number;
   kitab: KitabHadits[];
@@ -111,16 +112,21 @@ async function* bacaBaris(berkas: Blob): AsyncGenerator<string> {
 }
 
 async function kosongkan(d: SakuDB) {
-  await d.transaction('rw', [d.hadits, d.haditsAyat, d.haditsBagian, d.haditsBab, d.haditsKait, d.meta], async () => {
-    await Promise.all([
-      d.hadits.clear(),
-      d.haditsAyat.clear(),
-      d.haditsBagian.clear(),
-      d.haditsBab.clear(),
-      d.haditsKait.clear(),
-      d.meta.delete(KUNCI_META),
-    ]);
-  });
+  await d.transaction(
+    'rw',
+    [d.hadits, d.haditsAyat, d.haditsBagian, d.haditsBab, d.haditsKait, d.haditsIndeks, d.meta],
+    async () => {
+      await Promise.all([
+        d.haditsIndeks.clear(),
+        d.hadits.clear(),
+        d.haditsAyat.clear(),
+        d.haditsBagian.clear(),
+        d.haditsBab.clear(),
+        d.haditsKait.clear(),
+        d.meta.delete(KUNCI_META),
+      ]);
+    },
+  );
 }
 
 function susunAyat(perAyat: Map<string, Set<string>>): HaditsAyat[] {
@@ -201,6 +207,8 @@ export async function muatDataHadits(
     if (!x) kait.set(k, (x = { kunci: k, padanan: [], ayat: [] }));
     return x;
   };
+  const posting = new Map<string, number[]>();
+  const rentang: Record<string, [number, number]> = {};
   let batchHadits: Hadits[] = [];
   let batchBab: HaditsBab[] = [];
   let jumlahHadits = 0;
@@ -243,7 +251,17 @@ export async function muatDataHadits(
           string,
           string,
         ];
+        const urut = jumlahHadits;
+        for (const k of new Set([...kataDari(terjemah), ...kataDari(arab)])) {
+          let daftar = posting.get(k);
+          if (!daftar) posting.set(k, (daftar = []));
+          daftar.push(urut);
+        }
+        const rg = rentang[kitab];
+        if (rg) rg[1] = urut;
+        else rentang[kitab] = [urut, urut];
         batchHadits.push({
+          urut,
           kunci: `${kitab}:${nomor}`,
           kitab,
           nomor,
@@ -301,8 +319,24 @@ export async function muatDataHadits(
   const ayat = susunAyat(perAyat);
   await d.haditsAyat.bulkPut(ayat);
 
+  // K-78: indeks pencarian; kata yang ada di lebih dari separuh hadits tidak diindeks.
+  kabar?.({ tahap: 'Menyusun indeks pencarian', hadits: jumlahHadits, dari });
+  const kataUmum: string[] = [];
+  let batchIndeks: { kata: string; urut: Uint32Array }[] = [];
+  for (const [kata, daftar] of posting) {
+    if (daftar.length > jumlahHadits / 2) kataUmum.push(kata);
+    else batchIndeks.push({ kata, urut: Uint32Array.from(daftar) });
+    if (batchIndeks.length >= 5000) {
+      await d.haditsIndeks.bulkPut(batchIndeks);
+      batchIndeks = [];
+    }
+  }
+  if (batchIndeks.length) await d.haditsIndeks.bulkPut(batchIndeks);
+  posting.clear();
+
   const info: InfoDataHadits = {
     jenis: 'lengkap',
+    indeks: { versi: 1, kataUmum: kataUmum.sort(), rentang },
     jumlahHadits,
     jumlahAyat: ayat.length,
     kitab: (kepala.kitab ?? []).map((k) => ({ ...k, jumlah: jumlahKitab.get(k.kode) ?? 0 })),
@@ -391,4 +425,143 @@ export async function simpanSuntingan(kitab: string, nomor: number, isi: string,
       }
     });
   await d.maknaHadits.put({ kunci, kitab, nomor, isi: bersih, diubah: new Date().toISOString() });
+}
+
+// ---------- Pencarian (K-78) ----------
+
+const HARAKAT = /[ً-ٰٟۖ-ۭـ]/g;
+
+// Arab tanpa harakat; alif disamakan, ى→ي, ة→ه.
+export function arabPolos(teks: string): string {
+  return teks
+    .replace(HARAKAT, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه');
+}
+
+function normal(teks: string): string {
+  return arabPolos(teks.toLowerCase().replace(/['’`‘]/g, ''));
+}
+
+export function kataDari(teks: string): string[] {
+  return normal(teks).match(/[a-z0-9]+|[ء-ي]+/g) ?? [];
+}
+
+export const adaArab = (teks: string) => /[؀-ۿ]/.test(teks);
+
+export interface HasilCari {
+  urut: number[]; // urutan hadits yang cocok, naik
+  kataDipakai: string[];
+  kataDiabaikan: string[];
+}
+
+function irisan(a: Uint32Array | number[], b: Uint32Array | number[]): number[] {
+  const hasil: number[] = [];
+  let i = 0;
+  let j = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) {
+      hasil.push(a[i]);
+      i++;
+      j++;
+    } else if (a[i] < b[j]) i++;
+    else j++;
+  }
+  return hasil;
+}
+
+async function postingKata(kata: string, d: SakuDB): Promise<number[]> {
+  // Kata pendek dicocokkan utuh; 3 huruf atau lebih juga sebagai awalan.
+  const baris =
+    kata.length >= 3
+      ? await d.haditsIndeks.where('kata').startsWith(kata).limit(200).toArray()
+      : await d.haditsIndeks.where('kata').equals(kata).toArray();
+  if (baris.length === 1) return Array.from(baris[0].urut);
+  const gabung = new Set<number>();
+  for (const b of baris) for (const u of b.urut) gabung.add(u);
+  return [...gabung].sort((x, y) => x - y);
+}
+
+export async function cariHadits(
+  teks: string,
+  kitab: string | null,
+  info: InfoDataHadits,
+  d: SakuDB = db,
+): Promise<HasilCari> {
+  const umum = new Set(info.indeks?.kataUmum ?? []);
+  const semua = [...new Set(kataDari(teks))];
+  const kataDipakai = semua.filter((k) => !umum.has(k));
+  const kataDiabaikan = semua.filter((k) => umum.has(k));
+  if (!kataDipakai.length) return { urut: [], kataDipakai, kataDiabaikan };
+
+  let hasil: number[] | null = null;
+  for (const k of kataDipakai) {
+    const p = await postingKata(k, d);
+    hasil = hasil === null ? p : irisan(hasil, p);
+    if (!hasil.length) break;
+  }
+  const cocok = new Set(hasil ?? []);
+
+  // Suntingan terjemah sendiri ikut dicari (jumlahnya kecil, disaring langsung).
+  const sunting = await d.maknaHadits.toArray();
+  for (const s of sunting) {
+    const isi = normal(s.isi);
+    if (kataDipakai.every((k) => new RegExp(`(^|[^a-z0-9\\u0621-\\u064A])${k}`).test(isi))) {
+      const h = await d.hadits.get(s.kunci);
+      if (h?.urut !== undefined) cocok.add(h.urut);
+    }
+  }
+
+  let urut = [...cocok].sort((a, b) => a - b);
+  const rg = kitab ? info.indeks?.rentang[kitab] : null;
+  if (rg) urut = urut.filter((u) => u >= rg[0] && u <= rg[1]);
+  return { urut, kataDipakai, kataDiabaikan };
+}
+
+export async function haditsMenurutUrut(urut: number[], d: SakuDB = db): Promise<Hadits[]> {
+  const daftar = await d.hadits.where('urut').anyOf(urut).toArray();
+  return daftar.sort((a, b) => (a.urut ?? 0) - (b.urut ?? 0));
+}
+
+export interface Potongan {
+  teks: string;
+  tebal: boolean;
+}
+
+// Cuplikan di sekitar kata pertama yang cocok, dengan kata-kata yang cocok ditebalkan.
+export function cuplikan(teks: string, kata: string[], panjang = 220): Potongan[] {
+  const arab = kata.some(adaArab);
+  // Arab: tampil tanpa harakat saja; huruf yang disamakan (alif, ى, ة) hanya dipakai untuk mencocokkan.
+  // Penggantian itu satu huruf untuk satu huruf, sehingga posisi pada kedua teks sama.
+  const tampil = arab ? teks.replace(HARAKAT, '') : teks;
+  const banding = arab ? arabPolos(tampil) : tampil.toLowerCase();
+  if (!kata.length) return [{ teks: tampil.slice(0, panjang), tebal: false }];
+  const pola = new RegExp(
+    `(${kata
+      .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .sort((a, b) => b.length - a.length)
+      .join('|')})[a-z0-9\\u0621-\\u064A]*`,
+    'g',
+  );
+  const pertama = pola.exec(banding);
+  const awal = Math.max(0, (pertama?.index ?? 0) - 60);
+  const akhirPotong = Math.min(tampil.length, awal + panjang);
+  const hasil: Potongan[] = [];
+  if (awal > 0) hasil.push({ teks: '…', tebal: false });
+  let posisi = awal;
+  pola.lastIndex = awal;
+  for (let m: RegExpExecArray | null; (m = pola.exec(banding)) && m.index < akhirPotong;) {
+    if (m[0].length === 0) {
+      pola.lastIndex++;
+      continue;
+    }
+    const ujung = Math.min(m.index + m[0].length, akhirPotong);
+    if (m.index > posisi) hasil.push({ teks: tampil.slice(posisi, m.index), tebal: false });
+    hasil.push({ teks: tampil.slice(m.index, ujung), tebal: true });
+    posisi = ujung;
+  }
+  if (posisi < akhirPotong) hasil.push({ teks: tampil.slice(posisi, akhirPotong), tebal: false });
+  if (akhirPotong < tampil.length) hasil.push({ teks: '…', tebal: false });
+  return hasil;
 }

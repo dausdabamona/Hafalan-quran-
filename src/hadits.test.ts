@@ -119,3 +119,55 @@ describe('suntingan terjemah hadits (K-77)', () => {
     expect((await ambilSuntingan(['muslim:5'], d)).get('muslim:5')).toBe('gaya saya');
   });
 });
+
+describe('pencarian hadits (K-78)', () => {
+  it('indeks kata, awalan, Arab tanpa harakat, saring kitab, dan suntingan', async () => {
+    const { cariHadits, haditsMenurutUrut, cuplikan, simpanSuntingan, kataDari } = await import('./hadits');
+    expect(kataDari("Shallallahu 'alaihi, الصَّلَاةُ")).toEqual(['shallallahu', 'alaihi', 'الصلاه']);
+    const kepala = {
+      format: 'saku-hati-hadits',
+      versi: 2,
+      kitab: [
+        { kode: 'bukhari', nama: 'Bukhari', namaArab: '' },
+        { kode: 'muslim', nama: 'Muslim', namaArab: '' },
+      ],
+      jumlah: { hadits: 4 },
+    };
+    const baris = [
+      kepala,
+      ['g', 'bukhari', 1, '', 'Puasa'],
+      ['b', 'bukhari', 1, 1, '', 'Puasa'],
+      ['h', 'bukhari', 1, 1, 1, 'الصَّوْمُ جُنَّةٌ', 'telah menceritakan kepada kami: puasa adalah perisai'],
+      ['h', 'bukhari', 2, 1, 1, 'الصَّلَاةُ نُورٌ', 'telah menceritakan kepada kami: shalat adalah cahaya'],
+      ['g', 'muslim', 1, '', 'Puasa'],
+      ['b', 'muslim', 1, 1, '', 'Puasa'],
+      ['h', 'muslim', 1, 1, 1, 'الصِّيَامُ', 'telah menceritakan kepada kami: puasa Ramadhan'],
+      ['h', 'muslim', 2, 1, 1, 'الزَّكَاةُ', 'telah menceritakan kepada kami: zakat fitri'],
+    ];
+    const d = buatDb('uji-cari-hadits');
+    const info = await muatDataHadits(new Blob([gzipSync(baris.map((x) => JSON.stringify(x)).join('\n'))]), d);
+    expect(info.indeks?.kataUmum).toContain('telah');
+    const r1 = await cariHadits('Telah puasa', null, info, d);
+    expect(r1.kataDiabaikan).toEqual(['telah']);
+    expect((await haditsMenurutUrut(r1.urut, d)).map((h) => h.kunci)).toEqual(['bukhari:1', 'muslim:1']);
+    expect((await cariHadits('puas', 'muslim', info, d)).urut).toEqual([2]);
+    expect((await cariHadits('puasa ramadhan', null, info, d)).urut).toEqual([2]);
+    expect((await cariHadits('الصلاة', null, info, d)).urut).toEqual([1]);
+    expect((await cariHadits('zzz', null, info, d)).urut).toEqual([]);
+    await simpanSuntingan('muslim', 2, 'Zakat fitrah wajib bagi setiap muslim', 'x', d);
+    expect((await cariHadits('wajib', null, info, d)).urut).toEqual([3]);
+    const c = cuplikan('Rasulullah bersabda: puasa adalah perisai', ['puas']);
+    expect(c.filter((x) => x.tebal).map((x) => x.teks)).toEqual(['puasa']);
+  });
+});
+
+describe('cuplikan (K-78)', () => {
+  it('Arab tampil tanpa harakat tetapi huruf aslinya tetap', async () => {
+    const { cuplikan } = await import('./hadits');
+    const c = cuplikan('وَتُقِيمُ الصَّلَاةَ وَتُؤْتِيَ الزَّكَاةَ', ['الصلاه']);
+    expect(c.map((x) => x.teks).join('')).toBe('وتقيم الصلاة وتؤتي الزكاة');
+    expect(c.filter((x) => x.tebal).map((x) => x.teks)).toEqual(['الصلاة']);
+    const l = cuplikan('Puasa adalah perisai. PUASA', ['puasa']);
+    expect(l.filter((x) => x.tebal).map((x) => x.teks)).toEqual(['Puasa', 'PUASA']);
+  });
+});

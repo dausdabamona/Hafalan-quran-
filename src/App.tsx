@@ -140,7 +140,7 @@ export default function App() {
         {layar.nama === 'sinkron' && <LayarSinkron />}
         {layar.nama === 'cadangan' && <LayarCadangan />}
         {layar.nama === 'data-hadits' && <LayarDataHadits />}
-        {layar.nama === 'kitab-hadits' && <LayarKitabHadits />}
+        {layar.nama === 'kitab-hadits' && <LayarKitabHadits cariAwal={layar.cari} kitabAwal={layar.kitab} />}
         {layar.nama === 'bagian-hadits' && <LayarBagianHadits key={layar.kitab} kitab={layar.kitab} />}
         {layar.nama === 'daftar-hadits' && (
           <LayarDaftarHadits

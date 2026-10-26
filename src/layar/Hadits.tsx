@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BookOpenText, CaretLeft, CaretRight, NotePencil, Scroll } from '@phosphor-icons/react';
+import { BookOpenText, CaretLeft, CaretRight, MagnifyingGlass, NotePencil, Scroll, X } from '@phosphor-icons/react';
 import { cariSurah } from '../data';
 import type { Hadits, HaditsBagian, HaditsKait } from '../db';
 import {
@@ -7,15 +7,20 @@ import {
   ambilKait,
   ambilSatuHadits,
   ambilSuntingan,
+  adaArab,
+  cariHadits,
+  cuplikan,
   daftarBagian,
   haditsBagian,
+  haditsMenurutUrut,
   infoDataHadits,
   namaKitab,
   simpanSuntingan,
+  type HasilCari,
   type InfoDataHadits,
 } from '../hadits';
 import Kepala from '../komponen/Kepala';
-import { pergi } from '../navigasi';
+import { ganti, pergi } from '../navigasi';
 
 const angka = (n: number) => n.toLocaleString('id-ID');
 const PER_HALAMAN = 40;
@@ -59,9 +64,24 @@ function BelumAdaData({ info }: { info: InfoDataHadits | null }) {
   );
 }
 
-// #/hadits — daftar 9 kitab.
-export function LayarKitabHadits() {
+// #/hadits — kolom cari (K-78) dan daftar 9 kitab.
+export function LayarKitabHadits({ cariAwal = '', kitabAwal }: { cariAwal?: string; kitabAwal?: string }) {
   const info = useInfo();
+  const [teks, setTeks] = useState(cariAwal);
+  const [kitab, setKitab] = useState<string | null>(kitabAwal ?? null);
+
+  // Kata kunci disimpan di alamat (tanpa menambah riwayat) agar kembali dari halaman hadits tetap di hasil.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const p = new URLSearchParams();
+      if (teks.trim()) p.set('q', teks.trim());
+      if (kitab) p.set('k', kitab);
+      const tujuan = p.toString() ? `#/hadits?${p}` : '#/hadits';
+      if (window.location.hash !== tujuan) ganti(tujuan);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [teks, kitab]);
+
   if (info === undefined) return <Kepala judul="Hadits" />;
   if (!info || info.jenis !== 'lengkap')
     return (
@@ -70,28 +90,145 @@ export function LayarKitabHadits() {
         <BelumAdaData info={info} />
       </>
     );
+  const mencari = teks.trim().length > 0;
   return (
     <>
       <Kepala judul="Hadits" sub={`${angka(info.jumlahHadits)} hadits · ${info.kitab.length} kitab`} />
-      <ul className="daftar-lainnya daftar-kitab-hadits">
-        {info.kitab.map((k) => (
-          <li key={k.kode}>
-            <button onClick={() => pergi(`#/hadits/${k.kode}`)}>
-              <span className="ikon-kotak">
-                <BookOpenText size={24} weight="duotone" />
-              </span>
-              <span className="teks">
-                <strong>{k.nama}</strong>
-                <span>{angka(k.jumlah ?? 0)} hadits</span>
-              </span>
-              <span className="arab-kitab" lang="ar" dir="rtl">
-                {k.namaArab}
-              </span>
+      <div className="kotak-cari-hadits">
+        <label className="kolom-cari">
+          <MagnifyingGlass size={20} weight="bold" aria-hidden="true" />
+          <input
+            type="search"
+            value={teks}
+            onChange={(e) => setTeks(e.target.value)}
+            placeholder="Cari terjemah atau Arab…"
+            aria-label="Cari hadits"
+            enterKeyHint="search"
+          />
+          {teks && (
+            <button type="button" className="hapus-cari" onClick={() => setTeks('')} aria-label="Hapus kata kunci">
+              <X size={18} weight="bold" />
             </button>
-          </li>
-        ))}
-      </ul>
+          )}
+        </label>
+        {mencari && (
+          <div className="pilih-kitab-cari" role="radiogroup" aria-label="Saring kitab">
+            {[{ kode: '', nama: 'Semua' }, ...info.kitab].map((k) => (
+              <button
+                key={k.kode || 'semua'}
+                type="button"
+                role="radio"
+                aria-checked={(kitab ?? '') === k.kode}
+                className={'chip' + ((kitab ?? '') === k.kode ? ' aktif' : '')}
+                onClick={() => setKitab(k.kode || null)}
+              >
+                {k.nama.replace(/^(Shahih|Sunan|Musnad) /, '')}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      {mencari ? (
+        <HasilCariHadits teks={teks} kitab={kitab} info={info} />
+      ) : (
+        <ul className="daftar-lainnya daftar-kitab-hadits">
+          {info.kitab.map((k) => (
+            <li key={k.kode}>
+              <button onClick={() => pergi(`#/hadits/${k.kode}`)}>
+                <span className="ikon-kotak">
+                  <BookOpenText size={24} weight="duotone" />
+                </span>
+                <span className="teks">
+                  <strong>{k.nama}</strong>
+                  <span>{angka(k.jumlah ?? 0)} hadits</span>
+                </span>
+                <span className="arab-kitab" lang="ar" dir="rtl">
+                  {k.namaArab}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </>
+  );
+}
+
+const PER_HASIL = 30;
+
+function HasilCariHadits({ teks, kitab, info }: { teks: string; kitab: string | null; info: InfoDataHadits }) {
+  const [hasil, setHasil] = useState<HasilCari | null>(null);
+  const [hadits, setHadits] = useState<Hadits[]>([]);
+  const [sunting, setSunting] = useState<Map<string, string>>(new Map());
+  const [mencari, setMencari] = useState(false);
+
+  useEffect(() => {
+    if (!info.indeks) return;
+    let batal = false;
+    setMencari(true);
+    const t = setTimeout(async () => {
+      const h = await cariHadits(teks, kitab, info);
+      if (batal) return;
+      const awal = await haditsMenurutUrut(h.urut.slice(0, PER_HASIL));
+      const s = await ambilSuntingan(awal.map((x) => x.kunci));
+      if (batal) return;
+      setHasil(h);
+      setHadits(awal);
+      setSunting(s);
+      setMencari(false);
+    }, 300);
+    return () => {
+      batal = true;
+      clearTimeout(t);
+    };
+  }, [teks, kitab, info]);
+
+  const muatLagi = async () => {
+    if (!hasil) return;
+    const lagi = await haditsMenurutUrut(hasil.urut.slice(hadits.length, hadits.length + PER_HASIL));
+    const s = await ambilSuntingan(lagi.map((x) => x.kunci));
+    setHadits((lama) => [...lama, ...lagi]);
+    setSunting((lama) => new Map([...lama, ...s]));
+  };
+
+  if (!info.indeks)
+    return (
+      <p className="petunjuk">
+        Pencarian membutuhkan indeks. Buka <strong>Data hadits</strong> lalu muat ulang berkas data hadits sekali.
+      </p>
+    );
+  if (!hasil) return <p className="keterangan-kecil hasil-cari-info">Mencari…</p>;
+
+  const arab = hasil.kataDipakai.some(adaArab);
+  return (
+    <div className="hasil-cari-hadits">
+      <p className="keterangan-kecil hasil-cari-info">
+        {mencari
+          ? 'Mencari…'
+          : hasil.kataDipakai.length
+            ? `${angka(hasil.urut.length)} hadits`
+            : 'Tambahkan kata yang lebih khusus.'}
+        {hasil.kataDiabaikan.length > 0 && ` · kata umum diabaikan: ${hasil.kataDiabaikan.join(', ')}`}
+      </p>
+      {hadits.map((h) => (
+        <button key={h.kunci} className="ringkas-hadits" onClick={() => pergi(`#/hadits/${h.kitab}/${h.nomor}`)}>
+          <span className="nomor-hadits">
+            {namaKitab(info, h.kitab)} no. {angka(h.nomor)}
+            {sunting.has(h.kunci) && ' · suntingan sendiri'}
+          </span>
+          <span className={'cuplikan-hadits' + (arab ? ' arab-cuplikan' : '')} dir={arab ? 'rtl' : undefined}>
+            {cuplikan(arab ? h.arab : (sunting.get(h.kunci) ?? h.terjemah), hasil.kataDipakai).map((p, i) =>
+              p.tebal ? <mark key={i}>{p.teks}</mark> : <span key={i}>{p.teks}</span>,
+            )}
+          </span>
+        </button>
+      ))}
+      {hadits.length < hasil.urut.length && (
+        <button className="tombol" onClick={muatLagi}>
+          Tampilkan {angka(Math.min(PER_HASIL, hasil.urut.length - hadits.length))} hasil berikutnya
+        </button>
+      )}
+    </div>
   );
 }
 

@@ -117,6 +117,7 @@ export interface Hadits {
   nomor: number;
   bab: string; // judul bab (Indonesia)
   bagian?: number; // data lengkap (K-76)
+  urut?: number; // nomor urut seluruh data, untuk indeks pencarian (K-78)
   babId?: number;
   arab: string;
   terjemah: string;
@@ -139,6 +140,12 @@ export interface HaditsBab {
   bagian: number;
   judul: string;
   judulArab: string;
+}
+
+// K-78: indeks pencarian — satu kata → urutan hadits yang memuatnya (urut naik).
+export interface HaditsIndeks {
+  kata: string;
+  urut: Uint32Array;
 }
 
 // K-77: terjemah hadits yang disunting sendiri. Ikut sinkron dan cadangan.
@@ -183,6 +190,7 @@ export type SakuDB = Dexie & {
   haditsBab: EntityTable<HaditsBab, 'kunci'>;
   haditsKait: EntityTable<HaditsKait, 'kunci'>;
   maknaHadits: EntityTable<MaknaHadits, 'kunci'>;
+  haditsIndeks: EntityTable<HaditsIndeks, 'kata'>;
   meta: EntityTable<{ kunci: string; nilai: unknown }, 'kunci'>;
   /** true selama perubahan dari perangkat lain diterapkan (penanda waktu tidak diubah) */
   _terapkan?: boolean;
@@ -356,6 +364,9 @@ function siapkanSkema(db: SakuDB) {
 
   // Versi 14 (K-77): suntingan terjemah hadits, ikut sinkron.
   db.version(14).stores({ maknaHadits: 'kunci, kitab, terimaMs' });
+
+  // Versi 15 (K-78): indeks pencarian hadits.
+  db.version(15).stores({ hadits: 'kunci, kitab, [kitab+bagian+nomor], urut', haditsIndeks: 'kata' });
 }
 
 // Penanda sinkron otomatis untuk setiap penulisan lokal (K-37).

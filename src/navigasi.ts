@@ -20,7 +20,7 @@ export type Layar =
   | { nama: 'sinkron' }
   | { nama: 'cadangan' }
   | { nama: 'data-hadits' }
-  | { nama: 'kitab-hadits' }
+  | { nama: 'kitab-hadits'; cari?: string; kitab?: string }
   | { nama: 'bagian-hadits'; kitab: string }
   | { nama: 'daftar-hadits'; kitab: string; bagian: number }
   | { nama: 'hadits'; kitab: string; nomor: number }
@@ -62,6 +62,11 @@ export function bacaHash(): Layar {
   if (h === '#/data-hadits') return { nama: 'data-hadits' };
   // K-76: hadits lengkap — #/hadits, #/hadits/bukhari, #/hadits/bukhari/g2, #/hadits/bukhari/740
   if (h === '#/hadits') return { nama: 'kitab-hadits' };
+  // K-78: kata kunci pencarian disimpan di alamat, mis. #/hadits?q=puasa&k=bukhari
+  if (h.startsWith('#/hadits?')) {
+    const p = new URLSearchParams(h.slice('#/hadits?'.length));
+    return { nama: 'kitab-hadits', cari: p.get('q') ?? '', kitab: p.get('k') ?? undefined };
+  }
   m = /^#\/hadits\/([a-z]+)(?:\/(g?)(\d+))?$/.exec(h);
   if (m) {
     if (!m[3]) return { nama: 'bagian-hadits', kitab: m[1] };

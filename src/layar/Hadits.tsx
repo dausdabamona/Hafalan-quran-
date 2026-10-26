@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BookOpenText, CaretLeft, CaretRight, Scroll } from '@phosphor-icons/react';
+import { BookOpenText, CaretLeft, CaretRight, NotePencil, Scroll } from '@phosphor-icons/react';
 import { cariSurah } from '../data';
 import type { Hadits, HaditsBagian, HaditsKait } from '../db';
 import {
   ambilBagian,
   ambilKait,
   ambilSatuHadits,
+  ambilSuntingan,
   daftarBagian,
   haditsBagian,
   infoDataHadits,
   namaKitab,
+  simpanSuntingan,
   type InfoDataHadits,
 } from '../hadits';
 import Kepala from '../komponen/Kepala';
@@ -17,6 +19,20 @@ import { pergi } from '../navigasi';
 
 const angka = (n: number) => n.toLocaleString('id-ID');
 const PER_HALAMAN = 40;
+
+// K-77: ukuran huruf hadits memakai pengaturan yang sama dengan mushaf.
+function TombolUkuran({ aturUkuran }: { aturUkuran: (s: number) => void }) {
+  return (
+    <div className="atur-huruf">
+      <button className="tombol-ikon kecil" onClick={() => aturUkuran(-4)} aria-label="Perkecil huruf">
+        A−
+      </button>
+      <button className="tombol-ikon kecil" onClick={() => aturUkuran(4)} aria-label="Perbesar huruf">
+        A+
+      </button>
+    </div>
+  );
+}
 
 function useInfo() {
   const [info, setInfo] = useState<InfoDataHadits | null | undefined>(undefined);
@@ -110,16 +126,27 @@ export function LayarBagianHadits({ kitab }: { kitab: string }) {
 }
 
 // #/hadits/bukhari/g2 — hadits dalam satu bagian, dikelompokkan per bab, dimuat per halaman.
-export function LayarDaftarHadits({ kitab, bagian }: { kitab: string; bagian: number }) {
+export function LayarDaftarHadits({
+  kitab,
+  bagian,
+  aturUkuran,
+}: {
+  kitab: string;
+  bagian: number;
+  aturUkuran: (s: number) => void;
+}) {
   const info = useInfo();
   const [judul, setJudul] = useState<HaditsBagian>();
   const [hadits, setHadits] = useState<Hadits[]>([]);
   const [habis, setHabis] = useState(false);
   const [memuat, setMemuat] = useState(false);
+  const [sunting, setSunting] = useState<Map<string, string>>(new Map());
 
   const muatLagi = async (mulai: number) => {
     setMemuat(true);
     const baru = await haditsBagian(kitab, bagian, mulai, PER_HALAMAN);
+    const s = await ambilSuntingan(baru.map((h) => h.kunci));
+    setSunting((lama) => new Map([...(mulai === 0 ? [] : lama), ...s]));
     setHadits((lama) => (mulai === 0 ? baru : [...lama, ...baru]));
     setHabis(baru.length < PER_HALAMAN);
     setMemuat(false);
@@ -136,6 +163,7 @@ export function LayarDaftarHadits({ kitab, bagian }: { kitab: string; bagian: nu
       <Kepala
         judul={judul?.judul ?? 'Bagian'}
         sub={`${namaKitab(info, kitab)}${judul ? ` · ${angka(judul.jumlah)} hadits` : ''}`}
+        kanan={<TombolUkuran aturUkuran={aturUkuran} />}
       />
       <div className="daftar-hadits-bagian">
         {hadits.map((h, i) => (
@@ -143,7 +171,7 @@ export function LayarDaftarHadits({ kitab, bagian }: { kitab: string; bagian: nu
             {(i === 0 || hadits[i - 1].babId !== h.babId) && h.bab && <h3 className="judul-bab-hadits">{h.bab}</h3>}
             <button className="ringkas-hadits" onClick={() => pergi(`#/hadits/${kitab}/${h.nomor}`)}>
               <span className="nomor-hadits">No. {angka(h.nomor)}</span>
-              <span className="cuplikan-hadits">{h.terjemah}</span>
+              <span className="cuplikan-hadits">{sunting.get(h.kunci) ?? h.terjemah}</span>
             </button>
           </div>
         ))}
@@ -158,16 +186,29 @@ export function LayarDaftarHadits({ kitab, bagian }: { kitab: string; bagian: nu
 }
 
 // #/hadits/bukhari/740 — satu hadits lengkap.
-export function LayarHadits({ kitab, nomor }: { kitab: string; nomor: number }) {
+export function LayarHadits({
+  kitab,
+  nomor,
+  aturUkuran,
+}: {
+  kitab: string;
+  nomor: number;
+  aturUkuran: (s: number) => void;
+}) {
   const info = useInfo();
   const [hadits, setHadits] = useState<Hadits | null | undefined>(undefined);
   const [kait, setKait] = useState<HaditsKait>();
   const [bagian, setBagian] = useState<HaditsBagian>();
   const [ada, setAda] = useState({ sebelum: false, sesudah: false });
+  const [suntingan, setSuntingan] = useState<string>();
+  const [menyunting, setMenyunting] = useState(false);
+  const kunci = `${kitab}:${nomor}`;
 
   useEffect(() => {
     setHadits(undefined);
     setKait(undefined);
+    setSuntingan(undefined);
+    ambilSuntingan([`${kitab}:${nomor}`]).then((m) => setSuntingan(m.get(`${kitab}:${nomor}`)));
     window.scrollTo({ top: 0 });
     (async () => {
       const h = await ambilSatuHadits(kitab, nomor);
@@ -202,13 +243,21 @@ export function LayarHadits({ kitab, nomor }: { kitab: string; nomor: number }) 
 
   return (
     <>
-      <Kepala judul={judul} sub={bagian?.judul} />
+      <Kepala judul={judul} sub={bagian?.judul} kanan={<TombolUkuran aturUkuran={aturUkuran} />} />
       <article className="halaman-hadits">
         {hadits.bab && <p className="bab-hadits">{hadits.bab}</p>}
         <p className="arab-hadits besar" lang="ar" dir="rtl">
           {hadits.arab}
         </p>
-        <p className="terjemah-hadits">{hadits.terjemah}</p>
+        <div className="blok-terjemah">
+          <p className="terjemah-hadits">{suntingan ?? hadits.terjemah}</p>
+          <div className="aksi-terjemah">
+            {suntingan && <span className="tanda-suntingan">Suntingan sendiri</span>}
+            <button type="button" className="tautan" onClick={() => setMenyunting(true)}>
+              <NotePencil weight="duotone" /> Sunting terjemah
+            </button>
+          </div>
+        </div>
 
         {!!kait?.ayat.length && (
           <section className="kait-hadits">
@@ -244,6 +293,22 @@ export function LayarHadits({ kitab, nomor }: { kitab: string; nomor: number }) 
           </section>
         )}
       </article>
+
+      {menyunting && (
+        <LembarSuntingHadits
+          judul={judul}
+          asli={hadits.terjemah}
+          awal={suntingan ?? hadits.terjemah}
+          adaSuntingan={!!suntingan}
+          tutup={() => setMenyunting(false)}
+          simpan={async (isi) => {
+            await simpanSuntingan(kitab, nomor, isi, hadits.terjemah);
+            const m = await ambilSuntingan([kunci]);
+            setSuntingan(m.get(kunci));
+            setMenyunting(false);
+          }}
+        />
+      )}
 
       <div className="bilah-aksi bilah-ikon-ringkas">
         <button
@@ -283,5 +348,61 @@ export function LayarHadits({ kitab, nomor }: { kitab: string; nomor: number }) 
         </button>
       </div>
     </>
+  );
+}
+
+// K-77: sunting seluruh terjemah satu hadits dengan gaya bahasa sendiri.
+function LembarSuntingHadits({
+  judul,
+  asli,
+  awal,
+  adaSuntingan,
+  tutup,
+  simpan,
+}: {
+  judul: string;
+  asli: string;
+  awal: string;
+  adaSuntingan: boolean;
+  tutup: () => void;
+  simpan: (isi: string) => Promise<void>;
+}) {
+  const [isi, setIsi] = useState(awal);
+  const [lihatAsli, setLihatAsli] = useState(false);
+  return (
+    <div className="latar-lembar" onClick={tutup}>
+      <div
+        className="lembar lembar-sunting-hadits"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="pegangan" />
+        <p className="lokasi">{judul}</p>
+        <label className="label-catatan" htmlFor="terjemah-hadits">
+          Terjemah dengan gaya bahasa Anda
+        </label>
+        <textarea id="terjemah-hadits" value={isi} onChange={(e) => setIsi(e.target.value)} rows={10} />
+        {adaSuntingan && (
+          <button type="button" className="tautan" onClick={() => setLihatAsli((v) => !v)}>
+            {lihatAsli ? 'Sembunyikan terjemah asli' : 'Lihat terjemah asli'}
+          </button>
+        )}
+        {lihatAsli && <p className="kosong terjemah-asli">{asli}</p>}
+        <div className="aksi-lembar">
+          {adaSuntingan && (
+            <button className="tombol sekunder" onClick={() => simpan('')}>
+              Kembalikan ke asli
+            </button>
+          )}
+          <button className="tombol sekunder" onClick={tutup}>
+            Batal
+          </button>
+          <button className="tombol utama" onClick={() => simpan(isi)}>
+            Simpan
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

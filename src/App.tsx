@@ -143,9 +143,14 @@ export default function App() {
         {layar.nama === 'kitab-hadits' && <LayarKitabHadits />}
         {layar.nama === 'bagian-hadits' && <LayarBagianHadits key={layar.kitab} kitab={layar.kitab} />}
         {layar.nama === 'daftar-hadits' && (
-          <LayarDaftarHadits key={`${layar.kitab}:${layar.bagian}`} kitab={layar.kitab} bagian={layar.bagian} />
+          <LayarDaftarHadits
+            key={`${layar.kitab}:${layar.bagian}`}
+            kitab={layar.kitab}
+            bagian={layar.bagian}
+            aturUkuran={aturUkuran}
+          />
         )}
-        {layar.nama === 'hadits' && <LayarHadits kitab={layar.kitab} nomor={layar.nomor} />}
+        {layar.nama === 'hadits' && <LayarHadits kitab={layar.kitab} nomor={layar.nomor} aturUkuran={aturUkuran} />}
         {layar.nama === 'murotal' && (
           <LayarMurotal key={hashMurotal(layar.rentang)} rentang={layar.rentang} putar={layar.putar} />
         )}

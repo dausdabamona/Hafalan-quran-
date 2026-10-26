@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowSquareOut, CaretDown, CaretUp } from '@phosphor-icons/react';
 import { pergi } from '../navigasi';
 import type { Hadits } from '../db';
-import { ambilHadits, infoDataHadits, type KitabHadits } from '../hadits';
+import { ambilHadits, ambilSuntingan, infoDataHadits, type KitabHadits } from '../hadits';
 
 // Lembar hadits terkait satu ayat (K-75): nama kitab + nomor, bab, terjemahan, teks Arab (buka/tutup).
 export default function LembarHadits({ judul, kunci, tutup }: { judul: string; kunci: string[]; tutup: () => void }) {
@@ -10,9 +10,11 @@ export default function LembarHadits({ judul, kunci, tutup }: { judul: string; k
   const [kitab, setKitab] = useState<Map<string, KitabHadits>>(new Map());
   const [arabTerbuka, setArabTerbuka] = useState<Set<string>>(new Set());
   const [lengkap, setLengkap] = useState(false);
+  const [sunting, setSunting] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     ambilHadits(kunci).then(setHadits);
+    ambilSuntingan(kunci).then(setSunting);
     infoDataHadits().then((i) => {
       setKitab(new Map((i?.kitab ?? []).map((k) => [k.kode, k])));
       setLengkap(i?.jenis === 'lengkap');
@@ -44,7 +46,7 @@ export default function LembarHadits({ judul, kunci, tutup }: { judul: string; k
                 </strong>
                 {h.bab && <span className="bab-hadits">{h.bab}</span>}
               </p>
-              <p className="terjemah-hadits">{h.terjemah}</p>
+              <p className="terjemah-hadits">{sunting.get(h.kunci) ?? h.terjemah}</p>
               <div className="aksi-butir-hadits">
                 <button type="button" className="tautan" onClick={() => bukaTutupArab(h.kunci)}>
                   {arabTerbuka.has(h.kunci) ? <CaretUp weight="bold" /> : <CaretDown weight="bold" />}{' '}

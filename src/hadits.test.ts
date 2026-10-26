@@ -100,3 +100,22 @@ describe('hadits lengkap baris demi baris (K-76)', () => {
     expect((await haditsSurah(1, d)).get(1)).toEqual(['bukhari:2']);
   });
 });
+
+describe('suntingan terjemah hadits (K-77)', () => {
+  it('disimpan terpisah, dikembalikan ke asli, dan tercatat untuk sinkron', async () => {
+    const { simpanSuntingan, ambilSuntingan } = await import('./hadits');
+    const d = buatDb('uji-sunting-hadits');
+    await simpanSuntingan('bukhari', 1, '  Amal tergantung niat.  ', 'asli', d);
+    expect((await ambilSuntingan(['bukhari:1', 'bukhari:2'], d)).get('bukhari:1')).toBe('Amal tergantung niat.');
+    const x = (await d.maknaHadits.get('bukhari:1')) as unknown as { asal: string; ubahMs: number };
+    expect(x.asal).toBe('');
+    expect(x.ubahMs).toBeGreaterThan(0);
+    await simpanSuntingan('bukhari', 1, 'asli', 'asli', d);
+    expect((await ambilSuntingan(['bukhari:1'], d)).size).toBe(0);
+    expect(await d.hapus.get('maknaHadits|bukhari:1')).toBeTruthy();
+    // Hapus data hadits tidak menghapus suntingan.
+    await simpanSuntingan('muslim', 5, 'gaya saya', 'asli', d);
+    await hapusDataHadits(d);
+    expect((await ambilSuntingan(['muslim:5'], d)).get('muslim:5')).toBe('gaya saya');
+  });
+});

@@ -1,5 +1,6 @@
 import Dexie from 'dexie';
 import {
+  catatHapus,
   db,
   type Hadits,
   type HaditsAyat,
@@ -369,4 +370,25 @@ export async function ambilKait(kunci: string, d: SakuDB = db) {
 
 export async function ambilBab(kitab: string, id: number | undefined, d: SakuDB = db) {
   return id === undefined ? undefined : d.haditsBab.get(`${kitab}:${id}`);
+}
+
+// ---------- Suntingan terjemah (K-77) ----------
+
+export async function ambilSuntingan(kunci: string[], d: SakuDB = db): Promise<Map<string, string>> {
+  const ada = await d.maknaHadits.bulkGet(kunci);
+  return new Map(ada.filter((x): x is NonNullable<typeof x> => !!x).map((x) => [x.kunci, x.isi]));
+}
+
+// Isi kosong atau sama dengan terjemah asli → suntingan dihapus (kembali ke asli).
+export async function simpanSuntingan(kitab: string, nomor: number, isi: string, asli: string, d: SakuDB = db) {
+  const kunci = `${kitab}:${nomor}`;
+  const bersih = isi.trim();
+  if (!bersih || bersih === asli.trim())
+    return d.transaction('rw', d.maknaHadits, d.hapus, async () => {
+      if (await d.maknaHadits.get(kunci)) {
+        await d.maknaHadits.delete(kunci);
+        await catatHapus(d, 'maknaHadits', [kunci]);
+      }
+    });
+  await d.maknaHadits.put({ kunci, kitab, nomor, isi: bersih, diubah: new Date().toISOString() });
 }

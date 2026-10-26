@@ -141,6 +141,15 @@ export interface HaditsBab {
   judulArab: string;
 }
 
+// K-77: terjemah hadits yang disunting sendiri. Ikut sinkron dan cadangan.
+export interface MaknaHadits {
+  kunci: string; // "bukhari:740"
+  kitab: string;
+  nomor: number;
+  isi: string;
+  diubah: string;
+}
+
 // K-76: padanan antarkitab dan ayat terkait untuk satu hadits.
 export interface HaditsKait {
   kunci: string; // kunci hadits
@@ -173,6 +182,7 @@ export type SakuDB = Dexie & {
   haditsBagian: EntityTable<HaditsBagian, 'kunci'>;
   haditsBab: EntityTable<HaditsBab, 'kunci'>;
   haditsKait: EntityTable<HaditsKait, 'kunci'>;
+  maknaHadits: EntityTable<MaknaHadits, 'kunci'>;
   meta: EntityTable<{ kunci: string; nilai: unknown }, 'kunci'>;
   /** true selama perubahan dari perangkat lain diterapkan (penanda waktu tidak diubah) */
   _terapkan?: boolean;
@@ -343,6 +353,9 @@ function siapkanSkema(db: SakuDB) {
     haditsBab: 'kunci, kitab',
     haditsKait: 'kunci',
   });
+
+  // Versi 14 (K-77): suntingan terjemah hadits, ikut sinkron.
+  db.version(14).stores({ maknaHadits: 'kunci, kitab, terimaMs' });
 }
 
 // Penanda sinkron otomatis untuk setiap penulisan lokal (K-37).
@@ -383,6 +396,7 @@ export const TABEL_SINKRON = [
   'jadwalRukuk',
   'perbaikan',
   'setelan',
+  'maknaHadits',
 ] as const;
 export type TabelSinkron = (typeof TABEL_SINKRON)[number];
 

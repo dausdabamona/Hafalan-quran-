@@ -4,6 +4,8 @@ android/app/build/
 android/.gradle/
 *.keystore
 *.jks
+# Kunci sementara sengaja dikomit (K-74, Play ditunda); kunci permanen TIDAK boleh masuk repositori
+!android/kunci-sementara.jks
 .env
 .DS_Store
 

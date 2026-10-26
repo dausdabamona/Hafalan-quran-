@@ -4,7 +4,9 @@ android {
     namespace = "id.dabamona.sakuhati"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "id.dabamona.sakuhati"
+        // K-74: Google Play ditunda — nama paket tetap id.dabamona.rabth agar APK baru menimpa
+        // aplikasi yang sudah terpasang tanpa pindah data. Kode Java tetap di paket id.dabamona.sakuhati.
+        applicationId "id.dabamona.rabth"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Diisi workflow dari nomor build, agar setiap APK baru bisa dipasang menimpa yang lama.
@@ -17,7 +19,7 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    // Dua saluran terbit (K-56), nama paket sama id.dabamona.sakuhati:
+    // Dua saluran (K-56); saat ini hanya `github` yang dibangun (K-74, Play ditunda):
     //   github — APK lengkap di GitHub Releases, termasuk Pengingat ayat (src/github)
     //   play   — AAB untuk Google Play, tanpa Pengingat ayat (src/play)
     flavorDimensions = ["saluran"]

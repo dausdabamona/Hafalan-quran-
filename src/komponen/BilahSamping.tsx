@@ -5,6 +5,7 @@ import {
   ChartBar,
   FloppyDisk,
   Scroll,
+  BookOpenText,
   Headphones,
   Info,
   Link,
@@ -46,6 +47,12 @@ export default function BilahSamping({ layar }: { layar: NamaLayar }) {
     ...(peranSinkron()
       ? [{ judul: 'Sinkron', hash: '#/sinkron', ikon: ikon(ArrowsClockwise), aktif: ['sinkron'] as NamaLayar[] }]
       : []),
+    {
+      judul: 'Hadits',
+      hash: '#/hadits',
+      ikon: ikon(BookOpenText),
+      aktif: ['kitab-hadits', 'bagian-hadits', 'daftar-hadits', 'hadits'],
+    },
     { judul: 'Data hadits', hash: '#/data-hadits', ikon: ikon(Scroll), aktif: ['data-hadits'] },
     { judul: 'Cadangan', hash: '#/cadangan', ikon: ikon(FloppyDisk), aktif: ['cadangan'] },
   ];

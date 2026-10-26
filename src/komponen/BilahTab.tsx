@@ -13,7 +13,12 @@ const TAB: { judul: string; hash: string; ikon: typeof House; aktif: NamaLayar[]
   { judul: 'Mushaf', hash: '#/semua', ikon: BookOpen, aktif: ['daftar', 'rukuk'] },
   { judul: 'Kemajuan', hash: '#/kemajuan', ikon: ChartBar, aktif: ['kemajuan'] },
   { judul: 'Murotal', hash: '#/murotal', ikon: Headphones, aktif: ['pilih-murotal'] },
-  { judul: 'Lainnya', hash: '#/lainnya', ikon: DotsThreeCircle, aktif: ['lainnya'] },
+  {
+    judul: 'Lainnya',
+    hash: '#/lainnya',
+    ikon: DotsThreeCircle,
+    aktif: ['lainnya', 'kitab-hadits', 'bagian-hadits', 'daftar-hadits', 'hadits', 'data-hadits'],
+  },
 ];
 
 export default function BilahTab({ layar }: { layar: NamaLayar }) {

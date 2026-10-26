@@ -20,6 +20,10 @@ export type Layar =
   | { nama: 'sinkron' }
   | { nama: 'cadangan' }
   | { nama: 'data-hadits' }
+  | { nama: 'kitab-hadits' }
+  | { nama: 'bagian-hadits'; kitab: string }
+  | { nama: 'daftar-hadits'; kitab: string; bagian: number }
+  | { nama: 'hadits'; kitab: string; nomor: number }
   | { nama: 'murotal'; rentang: Rentang; putar?: boolean };
 
 function bacaPotongan(nomor: string, awal: string, akhir: string): Potongan | null {
@@ -56,6 +60,14 @@ export function bacaHash(): Layar {
   if (h === '#/sinkron') return { nama: 'sinkron' };
   if (h === '#/cadangan') return { nama: 'cadangan' };
   if (h === '#/data-hadits') return { nama: 'data-hadits' };
+  // K-76: hadits lengkap — #/hadits, #/hadits/bukhari, #/hadits/bukhari/g2, #/hadits/bukhari/740
+  if (h === '#/hadits') return { nama: 'kitab-hadits' };
+  m = /^#\/hadits\/([a-z]+)(?:\/(g?)(\d+))?$/.exec(h);
+  if (m) {
+    if (!m[3]) return { nama: 'bagian-hadits', kitab: m[1] };
+    if (m[2]) return { nama: 'daftar-hadits', kitab: m[1], bagian: Number(m[3]) };
+    return { nama: 'hadits', kitab: m[1], nomor: Number(m[3]) };
+  }
   if (h === '#/murotal/hafalan') return { nama: 'murotal', rentang: { jenis: 'hafalan' } };
   // Dari shortcut layar utama (K-42): langsung diputar.
   if (h === '#/murotal/hafalan/putar') return { nama: 'murotal', rentang: { jenis: 'hafalan' }, putar: true };

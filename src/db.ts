@@ -115,9 +115,37 @@ export interface Hadits {
   kunci: string; // "bukhari:740"
   kitab: string;
   nomor: number;
-  bab: string;
+  bab: string; // judul bab (Indonesia)
+  bagian?: number; // data lengkap (K-76)
+  babId?: number;
   arab: string;
   terjemah: string;
+}
+
+// K-76: bagian (kitab-kitab kecil) dan bab dalam satu kitab hadits.
+export interface HaditsBagian {
+  kunci: string; // "bukhari:2"
+  kitab: string;
+  id: number;
+  judul: string;
+  judulArab: string;
+  jumlah: number;
+}
+
+export interface HaditsBab {
+  kunci: string; // "bukhari:15"
+  kitab: string;
+  id: number;
+  bagian: number;
+  judul: string;
+  judulArab: string;
+}
+
+// K-76: padanan antarkitab dan ayat terkait untuk satu hadits.
+export interface HaditsKait {
+  kunci: string; // kunci hadits
+  padanan: string[];
+  ayat: string[]; // "surah:ayat" (penomoran Saku Hati)
 }
 
 export interface HaditsAyat {
@@ -142,6 +170,9 @@ export type SakuDB = Dexie & {
   setelan: EntityTable<Setelan, 'kunci'>;
   hadits: EntityTable<Hadits, 'kunci'>;
   haditsAyat: EntityTable<HaditsAyat, 'kunci'>;
+  haditsBagian: EntityTable<HaditsBagian, 'kunci'>;
+  haditsBab: EntityTable<HaditsBab, 'kunci'>;
+  haditsKait: EntityTable<HaditsKait, 'kunci'>;
   meta: EntityTable<{ kunci: string; nilai: unknown }, 'kunci'>;
   /** true selama perubahan dari perangkat lain diterapkan (penanda waktu tidak diubah) */
   _terapkan?: boolean;
@@ -304,6 +335,14 @@ function siapkanSkema(db: SakuDB) {
 
   // Versi 12 (K-75): hadits terkait ayat, khusus perangkat ini.
   db.version(12).stores({ hadits: 'kunci, kitab', haditsAyat: 'kunci, surah' });
+
+  // Versi 13 (K-76): hadits lengkap — bagian, bab, padanan, dan urutan per bagian.
+  db.version(13).stores({
+    hadits: 'kunci, kitab, [kitab+bagian+nomor]',
+    haditsBagian: 'kunci, kitab',
+    haditsBab: 'kunci, kitab',
+    haditsKait: 'kunci',
+  });
 }
 
 // Penanda sinkron otomatis untuk setiap penulisan lokal (K-37).

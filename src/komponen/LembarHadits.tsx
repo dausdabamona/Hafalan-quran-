@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { CaretDown, CaretUp } from '@phosphor-icons/react';
+import { ArrowSquareOut, CaretDown, CaretUp } from '@phosphor-icons/react';
+import { pergi } from '../navigasi';
 import type { Hadits } from '../db';
 import { ambilHadits, infoDataHadits, type KitabHadits } from '../hadits';
 
@@ -8,10 +9,14 @@ export default function LembarHadits({ judul, kunci, tutup }: { judul: string; k
   const [hadits, setHadits] = useState<Hadits[] | null>(null);
   const [kitab, setKitab] = useState<Map<string, KitabHadits>>(new Map());
   const [arabTerbuka, setArabTerbuka] = useState<Set<string>>(new Set());
+  const [lengkap, setLengkap] = useState(false);
 
   useEffect(() => {
     ambilHadits(kunci).then(setHadits);
-    infoDataHadits().then((i) => setKitab(new Map((i?.kitab ?? []).map((k) => [k.kode, k]))));
+    infoDataHadits().then((i) => {
+      setKitab(new Map((i?.kitab ?? []).map((k) => [k.kode, k])));
+      setLengkap(i?.jenis === 'lengkap');
+    });
   }, [kunci]);
 
   const bukaTutupArab = (k: string) =>
@@ -40,10 +45,17 @@ export default function LembarHadits({ judul, kunci, tutup }: { judul: string; k
                 {h.bab && <span className="bab-hadits">{h.bab}</span>}
               </p>
               <p className="terjemah-hadits">{h.terjemah}</p>
-              <button type="button" className="tautan" onClick={() => bukaTutupArab(h.kunci)}>
-                {arabTerbuka.has(h.kunci) ? <CaretUp weight="bold" /> : <CaretDown weight="bold" />}{' '}
-                {arabTerbuka.has(h.kunci) ? 'Tutup teks Arab' : 'Teks Arab'}
-              </button>
+              <div className="aksi-butir-hadits">
+                <button type="button" className="tautan" onClick={() => bukaTutupArab(h.kunci)}>
+                  {arabTerbuka.has(h.kunci) ? <CaretUp weight="bold" /> : <CaretDown weight="bold" />}{' '}
+                  {arabTerbuka.has(h.kunci) ? 'Tutup teks Arab' : 'Teks Arab'}
+                </button>
+                {lengkap && (
+                  <button type="button" className="tautan" onClick={() => pergi(`#/hadits/${h.kitab}/${h.nomor}`)}>
+                    <ArrowSquareOut weight="bold" /> Buka lengkap
+                  </button>
+                )}
+              </div>
               {arabTerbuka.has(h.kunci) && (
                 <p className="arab-hadits" lang="ar" dir="rtl">
                   {h.arab}

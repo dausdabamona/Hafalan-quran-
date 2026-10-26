@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   ArrowsClockwise,
+  BookOpenText,
   BellRinging,
   FloppyDisk,
   Scroll,
@@ -31,7 +32,8 @@ export default function LayarLainnya() {
     ...(peranSinkron()
       ? [{ judul: 'Sinkron HP ↔ Laptop', isi: 'Lewat Wi-Fi yang sama', ikon: ArrowsClockwise, hash: '#/sinkron' }]
       : []),
-    { judul: 'Data hadits', isi: 'Hadits terkait ayat (berkas pribadi)', ikon: Scroll, hash: '#/data-hadits' },
+    { judul: 'Hadits', isi: '9 kitab: jelajah per bagian dan bab', ikon: BookOpenText, hash: '#/hadits' },
+    { judul: 'Data hadits', isi: 'Muat atau hapus data hadits (berkas pribadi)', ikon: Scroll, hash: '#/data-hadits' },
     { judul: 'Cadangan', isi: 'Simpan & pulihkan semua data', ikon: FloppyDisk, hash: '#/cadangan' },
     { judul: 'Tentang Saku Hati', isi: 'Metode, sumber data, versi', ikon: Info, hash: '#/tentang' },
   ];

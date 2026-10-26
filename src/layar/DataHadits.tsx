@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Trash, UploadSimple } from '@phosphor-icons/react';
-import { hapusDataHadits, infoDataHadits, muatDataHadits, type InfoDataHadits } from '../hadits';
+import { hapusDataHadits, infoDataHadits, muatDataHadits, type InfoDataHadits, type Kemajuan } from '../hadits';
 import Kepala from '../komponen/Kepala';
 
 const tanggal = (iso: string) =>
@@ -16,6 +16,7 @@ const tanggal = (iso: string) =>
 export default function LayarDataHadits() {
   const [info, setInfo] = useState<InfoDataHadits | null | undefined>(undefined);
   const [sibuk, setSibuk] = useState(false);
+  const [kemajuan, setKemajuan] = useState<Kemajuan>();
   const [pesan, setPesan] = useState<{ jenis: 'baik' | 'galat'; teks: string }>();
   const refBerkas = useRef<HTMLInputElement>(null);
 
@@ -28,16 +29,20 @@ export default function LayarDataHadits() {
     setSibuk(true);
     setPesan(undefined);
     try {
-      const i = await muatDataHadits(berkas);
+      const i = await muatDataHadits(berkas, undefined, setKemajuan);
       setInfo(i);
       setPesan({
         jenis: 'baik',
-        teks: `${i.jumlahHadits.toLocaleString('id-ID')} hadits untuk ${i.jumlahAyat.toLocaleString('id-ID')} ayat sudah dimuat. Buka surah mana pun, lalu ketuk "hadits" di bawah ayat.`,
+        teks:
+          i.jenis === 'lengkap'
+            ? `${i.jumlahHadits.toLocaleString('id-ID')} hadits dari ${i.kitab.length} kitab sudah dimuat. Buka Lainnya → Hadits, atau ketuk "hadits" di bawah ayat.`
+            : `${i.jumlahHadits.toLocaleString('id-ID')} hadits untuk ${i.jumlahAyat.toLocaleString('id-ID')} ayat sudah dimuat. Buka surah mana pun, lalu ketuk "hadits" di bawah ayat.`,
       });
     } catch (e) {
       setPesan({ jenis: 'galat', teks: e instanceof Error ? e.message : 'Data hadits gagal dimuat.' });
     }
     if (refBerkas.current) refBerkas.current.value = '';
+    setKemajuan(undefined);
     setSibuk(false);
   };
 
@@ -53,7 +58,13 @@ export default function LayarDataHadits() {
       <Kepala judul="Data hadits" sub="Hadits yang berkaitan dengan ayat" />
       <div className="isi-kemajuan isi-cadangan">
         <section className="kartu-kemajuan">
-          <h2>{info ? 'Data hadits terpasang' : 'Belum ada data hadits'}</h2>
+          <h2>
+            {info
+              ? info.jenis === 'lengkap'
+                ? 'Hadits lengkap terpasang'
+                : 'Hadits terkait ayat terpasang'
+              : 'Belum ada data hadits'}
+          </h2>
           {info ? (
             <>
               <p className="ringkas-cadangan">
@@ -66,9 +77,10 @@ export default function LayarDataHadits() {
             </>
           ) : (
             <p className="keterangan-kecil">
-              Saku Hati tidak membawa data hadits. Muat berkas <code>saku-hati-hadits.json.gz</code> yang Anda simpan
-              sendiri. Data hanya tersimpan di perangkat ini, tidak ikut sinkron dan tidak ikut cadangan — muat sekali
-              di HP dan sekali di laptop.
+              Saku Hati tidak membawa data hadits. Muat berkas <code>saku-hati-hadits-lengkap.jsonl.gz</code> (9 kitab)
+              atau <code>saku-hati-hadits.json.gz</code> (hanya yang terkait ayat) yang Anda simpan sendiri. Data hanya
+              tersimpan di perangkat ini, tidak ikut sinkron dan tidak ikut cadangan — muat sekali di HP dan sekali di
+              laptop.
             </p>
           )}
           <button className="tombol utama" onClick={() => refBerkas.current?.click()} disabled={sibuk}>
@@ -82,6 +94,27 @@ export default function LayarDataHadits() {
             onChange={(e) => muat(e.target.files?.[0])}
             aria-label="Berkas data hadits"
           />
+          {sibuk && kemajuan && (
+            <div
+              className="kemajuan-muat"
+              role="progressbar"
+              aria-valuenow={kemajuan.hadits}
+              aria-valuemax={kemajuan.dari}
+            >
+              <p className="keterangan-kecil">
+                {kemajuan.tahap}: {kemajuan.hadits.toLocaleString('id-ID')}
+                {kemajuan.dari ? ` dari ${kemajuan.dari.toLocaleString('id-ID')}` : ''}
+              </p>
+              <p className="keterangan-kecil">
+                Biarkan layar ini tetap terbuka sampai selesai (di HP bisa beberapa menit).
+              </p>
+              {kemajuan.dari > 0 && (
+                <div className="batang-muat">
+                  <span style={{ width: `${Math.min(100, (kemajuan.hadits / kemajuan.dari) * 100)}%` }} />
+                </div>
+              )}
+            </div>
+          )}
           {info && (
             <button className="tombol" onClick={hapus} disabled={sibuk}>
               <Trash size={20} weight="bold" /> Hapus data hadits

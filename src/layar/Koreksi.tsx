@@ -18,6 +18,7 @@ import {
 import { ganti, hashPotongan } from '../navigasi';
 import Kepala from '../komponen/Kepala';
 import TeksAyat from '../komponen/TeksAyat';
+import { ambilTandaMurojaah, kunciSesiRekam } from '../tandaMurojaah';
 import TombolPutar from '../komponen/TombolPutar';
 
 // Koreksi mandiri (F-03, F-06): dengarkan rekaman sambil melihat ayat, ketuk
@@ -43,7 +44,8 @@ export default function LayarKoreksi({
   const daftarAyat = daftarMuat ?? [];
   const [rekaman, setRekaman] = useState<Map<string, Rekaman>>(new Map());
   const [tanda, setTanda] = useState<TandaSurah>({ salah: new Map(), tertukar: new Map() });
-  const [salahSesi, setSalahSesi] = useState<Set<string>>(new Set()); // "ayat:urutan"
+  // K-72: tanda yang dibuat langsung saat murojaah ikut terisi di sini.
+  const [salahSesi, setSalahSesi] = useState<Set<string>>(() => ambilTandaMurojaah(kunciSesiRekam(potongan, rukuk))); // "ayat:urutan"
   const [sudahBenar, setSudahBenar] = useState<Set<string>>(new Set()); // tanda lama yang kini benar (K-57)
   const [tertukarSesi, setTertukarSesi] = useState<Map<number, number>>(new Map()); // ayatAsal → ayatKeliru
   const [hasil, setHasil] = useState<HasilSimpan | null>(null);
@@ -86,10 +88,13 @@ export default function LayarKoreksi({
       surah: surah.nomor,
       ayatAwal: potongan.ayatAwal,
       ayatAkhir: potongan.ayatAkhir,
-      kataSalah: [...salahSesi].map((k) => {
-        const [ayat, urutan] = k.split(':').map(Number);
-        return { ayat, urutan };
-      }),
+      kataSalah: [...salahSesi]
+        .map((k) => {
+          const [ayat, urutan] = k.split(':').map(Number);
+          return { ayat, urutan };
+        })
+        // Hanya ayat yang dikoreksi (mis. murojaah dihentikan di tengah, K-53).
+        .filter((k) => daftarAyat.some((a) => a.ayat === k.ayat)),
       tertukar: [...tertukarSesi].map(([ayatAsal, ayatKeliru]) => ({ ayatAsal, ayatKeliru })),
       // Ayat tidak berurutan (hafalan lama per ayat): catat ayat yang benar-benar dikoreksi.
       ...(daftarAyat.length !== potongan.ayatAkhir - potongan.ayatAwal + 1
@@ -174,10 +179,10 @@ export default function LayarKoreksi({
       <Kepala
         judul={`Koreksi · ${surah.nama}`}
         sub={
-            perbaikan
-              ? `Perbaiki ${labelPotongan(potongan)}`
-              : `${rukuk ? 'Murojaah rukuk' : 'Potongan'} ${rukuk && daftarAyat.length ? labelDaftarAyat(daftarAyat) : labelPotongan(potongan)}`
-          }
+          perbaikan
+            ? `Perbaiki ${labelPotongan(potongan)}`
+            : `${rukuk ? 'Murojaah rukuk' : 'Potongan'} ${rukuk && daftarAyat.length ? labelDaftarAyat(daftarAyat) : labelPotongan(potongan)}`
+        }
       />
       <p className="petunjuk">
         Putar rekaman sambil melihat ayat. Ketuk kata yang salah; ketuk lagi untuk membatalkan. Bila urutan ayat

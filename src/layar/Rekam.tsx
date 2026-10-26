@@ -27,6 +27,7 @@ import { ganti, hashPotongan } from '../navigasi';
 import { usePerekam } from '../perekam';
 import Kepala from '../komponen/Kepala';
 import TeksAyat from '../komponen/TeksAyat';
+import { buangTandaMurojaah, kunciSesiRekam, titipTandaMurojaah } from '../tandaMurojaah';
 
 // Rekam berurutan per ayat (K-12, K-14). Teks ayat yang sedang dibaca tertutup
 // sampai "Selesai ayat ini" ditekan (K-16); bisa dibuka untuk hafalan baru.
@@ -61,6 +62,24 @@ export default function LayarRekam({
   // K-65: jumlah kata yang dibuka satu per satu dengan mengetuk kotak ayat.
   // K-71: kata yang dibuka disimpan per urutan kata, agar satu kotak bisa dibuka langsung.
   const [terbuka, setTerbuka] = useState<Set<number>>(() => new Set());
+  // K-72: kata yang ditandai salah langsung saat murojaah ("ayat:urutan"), diteruskan ke Koreksi.
+  const [tandaSesi, setTandaSesi] = useState<Set<string>>(() => {
+    buangTandaMurojaah();
+    return new Set();
+  });
+  const ditandai = (ayat: number, urutan: number) => tandaSesi.has(`${ayat}:${urutan}`);
+  const tandaiKata = (ayat: number, urutan: number) =>
+    setTandaSesi((lama) => {
+      const baru = new Set(lama);
+      const k = `${ayat}:${urutan}`;
+      if (baru.has(k)) baru.delete(k);
+      else baru.add(k);
+      return baru;
+    });
+  const keKoreksi = (sampai?: number) => {
+    titipTandaMurojaah(kunciSesiRekam(potongan, rukuk), tandaSesi);
+    ganti(hashPotongan('koreksi', potongan, rukuk, sampai, sampai ? undefined : perbaikan));
+  };
   const refKini = useRef<HTMLDivElement>(null);
 
   const ayatKini = daftarAyat[indeks];
@@ -98,7 +117,7 @@ export default function LayarRekam({
     setMenyimpan(false);
     if (terakhir) {
       lepas();
-      ganti(hashPotongan('koreksi', potongan, rukuk, undefined, perbaikan));
+      keKoreksi();
       return;
     }
     setIndeks((i) => i + 1);
@@ -120,7 +139,7 @@ export default function LayarRekam({
     setMenyimpan(false);
     if (!sampai) return;
     lepas();
-    ganti(hashPotongan('koreksi', potongan, rukuk, sampai));
+    keKoreksi(sampai);
   };
 
   // Membuang rekaman ayat yang sedang berjalan lalu mulai lagi dari awal ayat itu.
@@ -226,7 +245,15 @@ export default function LayarRekam({
             )}
           </p>
           {tampilkanTeks || intip ? (
-            <TeksAyat ayat={ayatKini} kelasKata={kelasKataSalah(ayatKini.ayat)} />
+            <TeksAyat
+              ayat={ayatKini}
+              kelasKata={(k) =>
+                [kelasKataSalah(ayatKini.ayat)(k), ditandai(ayatKini.ayat, k.urutan) ? 'salah-sesi' : '']
+                  .join(' ')
+                  .trim()
+              }
+              ketukKata={(k) => tandaiKata(ayatKini.ayat, k.urutan)}
+            />
           ) : (
             // K-52/K-65/K-66: murojaah dan hafalan baru — arti ayat, kata bantu, ketuk → buka satu kata berikutnya.
             <button
@@ -249,22 +276,32 @@ export default function LayarRekam({
                 {(() => {
                   return tokenKini.map((t, i) => {
                     const tanda = salahDi(ayatKini.ayat, t.kata!.urutan);
+                    // K-72: kata yang terlihat (pernah salah, kata bantu, dibuka) diketuk → tandai salah.
+                    const u = t.kata!.urutan;
+                    const tandai = {
+                      onClick: (e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        tandaiKata(ayatKini.ayat, u);
+                      },
+                      title: ditandai(ayatKini.ayat, u) ? 'Batalkan tanda salah' : 'Tandai salah',
+                    };
+                    const kelasTanda = ditandai(ayatKini.ayat, u) ? ' ditandai' : '';
                     if (tanda)
                       return (
-                        <span key={i} className="kata-salah">
+                        <span key={i} className={'kata-salah' + kelasTanda} {...tandai}>
                           {t.teks}
                           <small dir="ltr">{tanda.jumlah}×</small>
                         </span>
                       );
                     if (bantuAyat.has(t.kata!.urutan))
                       return (
-                        <span key={i} className="kata-bantu">
+                        <span key={i} className={'kata-bantu' + kelasTanda} {...tandai}>
                           {t.teks}
                         </span>
                       );
                     if (terbuka.has(t.kata!.urutan)) {
                       return (
-                        <span key={i} className="kata-terbuka">
+                        <span key={i} className={'kata-terbuka' + kelasTanda} {...tandai}>
                           {t.teks}
                         </span>
                       );

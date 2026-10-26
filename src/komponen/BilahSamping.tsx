@@ -14,6 +14,7 @@ import {
 import type { Layar } from '../navigasi';
 import { pergi } from '../navigasi';
 import { pengingatTersedia } from '../pengingat';
+import { PilihTema } from '../layar/Lainnya';
 import { peranSinkron } from '../sinkron/peran';
 import Plat from './Plat';
 
@@ -71,6 +72,7 @@ export default function BilahSamping({ layar }: { layar: NamaLayar }) {
         ))}
       </ul>
       <div className="kaki-samping">
+        <PilihTema ringkas />
         <button className={layar === 'tentang' ? 'aktif' : ''} onClick={() => pergi('#/tentang')}>
           {ikon(Info)} Tentang
         </button>

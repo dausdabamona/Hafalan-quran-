@@ -1,5 +1,17 @@
 import { useState } from 'react';
-import { ArrowsClockwise, BellRinging, FloppyDisk, DeviceMobile, Info, Link, ListChecks, Moon, Sun, Translate } from '@phosphor-icons/react';
+import {
+  ArrowsClockwise,
+  BellRinging,
+  FloppyDisk,
+  DeviceMobile,
+  Info,
+  Link,
+  ListChecks,
+  Desktop,
+  Moon,
+  Sun,
+  Translate,
+} from '@phosphor-icons/react';
 import Kepala from '../komponen/Kepala';
 import { pergi } from '../navigasi';
 import { pengingatTersedia } from '../pengingat';
@@ -54,14 +66,14 @@ const PILIHAN: { nilai: PilihanTema; judul: string; ikon: typeof Sun }[] = [
   { nilai: 'ikut', judul: 'Ikut HP', ikon: DeviceMobile },
 ];
 
-function PilihTema() {
+export function PilihTema({ ringkas = false }: { ringkas?: boolean }) {
   const [tema, setTema] = useState<PilihanTema>(bacaTema);
   return (
-    <section className="pilih-tema" aria-label="Tampilan">
-      <p className="kicker">Tampilan</p>
+    <section className={'pilih-tema' + (ringkas ? ' ringkas' : '')} aria-label="Tampilan">
+      {!ringkas && <p className="kicker">Tampilan</p>}
       <div className="segmen-tema" role="radiogroup" aria-label="Mode tampilan">
         {PILIHAN.map((p) => {
-          const Ikon = p.ikon;
+          const Ikon = ringkas && p.nilai === 'ikut' ? Desktop : p.ikon;
           const aktif = tema === p.nilai;
           return (
             <button
@@ -70,12 +82,14 @@ function PilihTema() {
               role="radio"
               aria-checked={aktif}
               className={aktif ? 'aktif' : ''}
+              title={ringkas && p.nilai === 'ikut' ? 'Ikut tema Windows' : p.judul}
+              aria-label={ringkas && p.nilai === 'ikut' ? 'Ikut tema Windows' : p.judul}
               onClick={() => {
                 simpanTema(p.nilai);
                 setTema(p.nilai);
               }}
             >
-              <Ikon size={20} weight={aktif ? 'fill' : 'regular'} /> {p.judul}
+              <Ikon size={20} weight={aktif ? 'fill' : 'regular'} /> {!ringkas && p.judul}
             </button>
           );
         })}

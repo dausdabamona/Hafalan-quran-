@@ -110,6 +110,23 @@ export interface Setelan {
   nilai: unknown;
 }
 
+// Hadits terkait ayat (K-75). Dimuat dari berkas pribadi; tidak ikut sinkron maupun cadangan.
+export interface Hadits {
+  kunci: string; // "bukhari:740"
+  kitab: string;
+  nomor: number;
+  bab: string;
+  arab: string;
+  terjemah: string;
+}
+
+export interface HaditsAyat {
+  kunci: string; // "surah:ayat" (penomoran Saku Hati)
+  surah: number;
+  ayat: number;
+  hadits: string[]; // kunci hadits, urut kitab lalu nomor
+}
+
 export type SakuDB = Dexie & {
   keterangan: EntityTable<Keterangan, 'kunci'>;
   makna: EntityTable<Makna, 'kunci'>;
@@ -123,6 +140,8 @@ export type SakuDB = Dexie & {
   perbaikan: EntityTable<EntriPerbaikan, 'kunci'>;
   hapus: EntityTable<Penghapusan, 'kunci'>;
   setelan: EntityTable<Setelan, 'kunci'>;
+  hadits: EntityTable<Hadits, 'kunci'>;
+  haditsAyat: EntityTable<HaditsAyat, 'kunci'>;
   meta: EntityTable<{ kunci: string; nilai: unknown }, 'kunci'>;
   /** true selama perubahan dari perangkat lain diterapkan (penanda waktu tidak diubah) */
   _terapkan?: boolean;
@@ -282,6 +301,9 @@ function siapkanSkema(db: SakuDB) {
           await tx.table('setelan').put({ kunci, nilai: lama.nilai, ubahMs: kini, terimaMs: kini, asal: '' });
       }
     });
+
+  // Versi 12 (K-75): hadits terkait ayat, khusus perangkat ini.
+  db.version(12).stores({ hadits: 'kunci, kitab', haditsAyat: 'kunci, surah' });
 }
 
 // Penanda sinkron otomatis untuk setiap penulisan lokal (K-37).

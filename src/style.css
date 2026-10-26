@@ -4449,3 +4449,55 @@ body {
   color: var(--color-salah);
   box-shadow: inset 0 -3px 0 var(--color-salah-garis);
 }
+
+/* ---------- K-75: Hadits terkait ayat ---------- */
+.lembar-hadits {
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+.daftar-hadits {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: var(--space-2);
+}
+.butir-hadits {
+  background: var(--color-surface);
+  border-radius: var(--radius-md, 12px);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.kepala-hadits {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.kepala-hadits strong {
+  color: var(--color-isi-tua);
+}
+.bab-hadits {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--color-muted);
+}
+.terjemah-hadits {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+.arab-hadits {
+  margin: 0;
+  font-family: var(--font-arab);
+  font-size: calc(var(--ukuran-arab, 34px) * 0.7);
+  line-height: 1.9;
+  text-align: right;
+}
+.butir-hadits .tautan {
+  align-self: flex-start;
+}

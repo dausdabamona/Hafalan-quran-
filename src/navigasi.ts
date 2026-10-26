@@ -19,6 +19,7 @@ export type Layar =
   | { nama: 'pengingat' }
   | { nama: 'sinkron' }
   | { nama: 'cadangan' }
+  | { nama: 'data-hadits' }
   | { nama: 'murotal'; rentang: Rentang; putar?: boolean };
 
 function bacaPotongan(nomor: string, awal: string, akhir: string): Potongan | null {
@@ -54,6 +55,7 @@ export function bacaHash(): Layar {
   if (h === '#/pengingat') return { nama: 'pengingat' };
   if (h === '#/sinkron') return { nama: 'sinkron' };
   if (h === '#/cadangan') return { nama: 'cadangan' };
+  if (h === '#/data-hadits') return { nama: 'data-hadits' };
   if (h === '#/murotal/hafalan') return { nama: 'murotal', rentang: { jenis: 'hafalan' } };
   // Dari shortcut layar utama (K-42): langsung diputar.
   if (h === '#/murotal/hafalan/putar') return { nama: 'murotal', rentang: { jenis: 'hafalan' }, putar: true };

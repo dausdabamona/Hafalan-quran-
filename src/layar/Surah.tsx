@@ -9,6 +9,7 @@ import {
   NotePencil,
   Pause,
   Play,
+  Scroll,
   Warning,
 } from '@phosphor-icons/react';
 import {
@@ -53,6 +54,8 @@ import { hashPotongan, pergi } from '../navigasi';
 import { hashMurotal } from '../murotal';
 import Kepala from '../komponen/Kepala';
 import TeksAyat from '../komponen/TeksAyat';
+import LembarHadits from '../komponen/LembarHadits';
+import { haditsSurah } from '../hadits';
 import { gulirKe } from '../komponen/gulir';
 import { susunMurotal } from '../murotalData';
 import { mulai, putarJeda } from '../pemutar';
@@ -73,7 +76,8 @@ function bacaTampilMakna(): boolean {
 type Lembar =
   | { jenis: 'kata'; indeks: number } // indeks pada daftar kata se-surah
   | { jenis: 'ayat'; ayat: Ayat }
-  | { jenis: 'makna'; ayat: Ayat; segmen: Segmen };
+  | { jenis: 'makna'; ayat: Ayat; segmen: Segmen }
+  | { jenis: 'hadits'; ayat: Ayat }; // K-75
 
 export default function LayarSurah({
   surah,
@@ -98,6 +102,8 @@ export default function LayarSurah({
   const [dari, setDari] = useState('');
   const [sampai, setSampai] = useState('');
   const [pesanTandai, setPesanTandai] = useState('');
+  // K-75: hadits terkait ayat (bila data hadits sudah dimuat di perangkat ini).
+  const [haditsAyat, setHaditsAyat] = useState<Map<number, string[]>>(new Map());
 
   const semuaKata = useMemo(() => surah.ayat.flatMap((a) => a.kata.map((k) => ({ ayat: a, kata: k }))), [surah]);
 
@@ -121,6 +127,10 @@ export default function LayarSurah({
   useEffect(() => {
     muat();
   }, [muat]);
+
+  useEffect(() => {
+    haditsSurah(surah.nomor).then(setHaditsAyat);
+  }, [surah.nomor]);
 
   // Posisi gulir surah diingat selama aplikasi terbuka, lalu dipulihkan saat kembali
   // dari layar Rekam, Koreksi, atau Murotal.
@@ -483,6 +493,11 @@ export default function LayarSurah({
                                 <button className="tautan" onClick={() => setLembar({ jenis: 'ayat', ayat: a })}>
                                   <NotePencil weight="duotone" /> {ketAyat ? 'Ubah keterangan' : 'Keterangan'}
                                 </button>
+                                {haditsAyat.get(a.ayat) && (
+                                  <button className="tautan" onClick={() => setLembar({ jenis: 'hadits', ayat: a })}>
+                                    <Scroll weight="duotone" /> {haditsAyat.get(a.ayat)!.length} hadits
+                                  </button>
+                                )}
                                 {rek && (
                                   <button
                                     className={'tombol sekunder kecil' + (ayatDiputar === a.ayat ? ' aktif' : '')}
@@ -534,6 +549,13 @@ export default function LayarSurah({
           tanda={tanda}
           tutup={() => setLembar(null)}
           sesudahSimpan={muat}
+        />
+      )}
+      {lembar?.jenis === 'hadits' && (
+        <LembarHadits
+          judul={`${surah.nama} · ayat ${lembar.ayat.ayat}`}
+          kunci={haditsAyat.get(lembar.ayat.ayat) ?? []}
+          tutup={() => setLembar(null)}
         />
       )}
       {lembar?.jenis === 'ayat' && (

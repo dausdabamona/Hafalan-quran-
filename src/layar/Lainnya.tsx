@@ -3,6 +3,7 @@ import {
   ArrowsClockwise,
   BellRinging,
   FloppyDisk,
+  Scroll,
   DeviceMobile,
   Info,
   Link,
@@ -30,6 +31,7 @@ export default function LayarLainnya() {
     ...(peranSinkron()
       ? [{ judul: 'Sinkron HP ↔ Laptop', isi: 'Lewat Wi-Fi yang sama', ikon: ArrowsClockwise, hash: '#/sinkron' }]
       : []),
+    { judul: 'Data hadits', isi: 'Hadits terkait ayat (berkas pribadi)', ikon: Scroll, hash: '#/data-hadits' },
     { judul: 'Cadangan', isi: 'Simpan & pulihkan semua data', ikon: FloppyDisk, hash: '#/cadangan' },
     { judul: 'Tentang Saku Hati', isi: 'Metode, sumber data, versi', ikon: Info, hash: '#/tentang' },
   ];

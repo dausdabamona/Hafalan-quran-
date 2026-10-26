@@ -1,6 +1,6 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { db, type SakuDB } from './db';
-import { bacaMeta, SEMUA_TABEL, siapKirim, terapkan, tulisMeta, type Rekaman } from './sinkron/mesin';
+import { SEMUA_TABEL, siapKirim, terapkan, type Rekaman } from './sinkron/mesin';
 
 // Cadangan ke satu berkas (F-05, K-67). Isinya semua data yang ikut sinkron — hafalan, jadwal,
 // tanda, makna suntingan, riwayat sesi, rekaman suara — ditambah target dan setelan tampilan.
@@ -8,7 +8,8 @@ import { bacaMeta, SEMUA_TABEL, siapKirim, terapkan, tulisMeta, type Rekaman } f
 
 export const FORMAT_CADANGAN = 'saku-hati-cadangan';
 const VERSI_CADANGAN = 1;
-const META_IKUT = ['target', 'catatanHari'] as const;
+// Cadangan lama (sebelum K-73) menyimpan target & catatan hari di bagian meta.
+const META_LAMA = ['target', 'catatanHari'] as const;
 const SETELAN_IKUT = ['ukuranHuruf', 'tema', 'tampilMakna', 'tampilanMurotal'] as const;
 const KUNCI_TERAKHIR = 'cadanganTerakhir';
 
@@ -42,11 +43,8 @@ function tulisSetelan(k: string, v: string) {
 
 // Isi berkas cadangan sebagai potongan teks JSON (agar rekaman besar tidak menjadi satu string raksasa).
 export async function susunCadangan(d: SakuDB = db): Promise<string[]> {
+  // Target & catatan hari kini ada di tabel setelan (K-73) dan ikut bagian tabel.
   const meta: Record<string, unknown> = {};
-  for (const k of META_IKUT) {
-    const v = await bacaMeta(d, k);
-    if (v !== undefined && v !== null) meta[k] = v;
-  }
   const setelan: Record<string, string> = {};
   for (const k of SETELAN_IKUT) {
     const v = bacaSetelan(k);
@@ -111,9 +109,9 @@ export async function imporCadangan(teks: string, d: SakuDB = db): Promise<Hasil
     }
   }
   // Target dan setelan hanya diisi bila di sini belum ada.
-  for (const k of META_IKUT) {
+  for (const k of META_LAMA) {
     const v = isi.meta?.[k];
-    if (v !== undefined && (await bacaMeta(d, k)) === undefined) await tulisMeta(d, k, v);
+    if (v !== undefined && v !== null && !(await d.setelan.get(k))) await d.setelan.put({ kunci: k, nilai: v });
   }
   for (const k of SETELAN_IKUT) {
     const v = isi.setelan?.[k];

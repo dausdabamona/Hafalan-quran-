@@ -104,6 +104,12 @@ export interface Sesi {
   perbaikan?: boolean; // sesi "Perbaiki ayat" (K-62); tidak dihitung sebagai murojaah rukuk
 }
 
+// Setelan yang ikut sinkron (K-73): target hafalan dan catatan warna per hari.
+export interface Setelan {
+  kunci: string; // 'target' | 'catatanHari'
+  nilai: unknown;
+}
+
 export type SakuDB = Dexie & {
   keterangan: EntityTable<Keterangan, 'kunci'>;
   makna: EntityTable<Makna, 'kunci'>;
@@ -116,6 +122,7 @@ export type SakuDB = Dexie & {
   jadwalRukuk: EntityTable<EntriJadwal, 'nomor'>;
   perbaikan: EntityTable<EntriPerbaikan, 'kunci'>;
   hapus: EntityTable<Penghapusan, 'kunci'>;
+  setelan: EntityTable<Setelan, 'kunci'>;
   meta: EntityTable<{ kunci: string; nilai: unknown }, 'kunci'>;
   /** true selama perubahan dari perangkat lain diterapkan (penanda waktu tidak diubah) */
   _terapkan?: boolean;
@@ -263,6 +270,18 @@ function siapkanSkema(db: SakuDB) {
 
   // Versi 10 (K-62): ayat yang perlu diperbaiki sesudah kesalahan kecil saat murojaah.
   db.version(10).stores({ perbaikan: 'kunci, surah, jatuhTempo, terimaMs' });
+
+  // Versi 11 (K-73): target dan catatan hari pindah dari meta (lokal) ke tabel setelan (ikut sinkron).
+  db.version(11)
+    .stores({ setelan: 'kunci, terimaMs' })
+    .upgrade(async (tx: Transaction) => {
+      const kini = Date.now();
+      for (const kunci of ['target', 'catatanHari']) {
+        const lama = (await tx.table('meta').get(kunci)) as { nilai: unknown } | undefined;
+        if (lama && lama.nilai !== undefined && lama.nilai !== null)
+          await tx.table('setelan').put({ kunci, nilai: lama.nilai, ubahMs: kini, terimaMs: kini, asal: '' });
+      }
+    });
 }
 
 // Penanda sinkron otomatis untuk setiap penulisan lokal (K-37).
@@ -302,6 +321,7 @@ export const TABEL_SINKRON = [
   'hafalan',
   'jadwalRukuk',
   'perbaikan',
+  'setelan',
 ] as const;
 export type TabelSinkron = (typeof TABEL_SINKRON)[number];
 
@@ -520,7 +540,7 @@ export type HasilSimpan = Sesi & {
   jumlahKata?: number;
   ayatDiperbaiki?: number[]; // ayat yang masuk "Perbaiki ayat"
   perbaikanSelesai?: number[]; // ayat perbaikan yang tuntas di sesi ini
-}
+};
 
 async function catatTanda(h: HasilKoreksi, sekarang: string) {
   for (const k of h.kataSalah) {

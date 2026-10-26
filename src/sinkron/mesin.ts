@@ -151,6 +151,20 @@ export function gabung(tabel: TabelSinkron, lokal: Rekaman, jauh: Rekaman): Reka
       ubahMs: Math.max(angka(lokal.ubahMs), angka(jauh.ubahMs)),
     };
   }
+  if (tabel === 'setelan' && lokal.kunci === 'catatanHari') {
+    // Catatan warna per hari digabung: hijau mengalahkan kuning, hari dari kedua perangkat dipakai.
+    const a = (lokal.nilai ?? {}) as Record<string, string>;
+    const b = (jauh.nilai ?? {}) as Record<string, string>;
+    const nilai: Record<string, string> = { ...a };
+    for (const [hari, w] of Object.entries(b)) if (nilai[hari] !== 'hijau') nilai[hari] = w;
+    const baru = angka(jauh.ubahMs) > angka(lokal.ubahMs) ? jauh : lokal;
+    const urut = Object.fromEntries(
+      Object.keys(nilai)
+        .sort()
+        .map((k) => [k, nilai[k]]),
+    );
+    return { ...baru, nilai: urut, ubahMs: Math.max(angka(lokal.ubahMs), angka(jauh.ubahMs)) };
+  }
   if (tabel === 'jadwalRukuk') {
     // Murojaah yang terakhir dipakai; bila di hari yang sama, kesalahan (jatuh tempo lebih dekat) dipakai.
     const ta = String(lokal.terakhir);

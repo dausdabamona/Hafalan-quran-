@@ -182,4 +182,41 @@ describe('sinkron HP ↔ laptop (K-37)', () => {
     expect((await hp.jadwalRukuk.get(7))?.jatuhTempo).toBe('2026-10-20');
     expect((await laptop.jadwalRukuk.get(7))?.jatuhTempo).toBe('2026-10-20');
   });
+
+  it('K-73: target dan catatan hari ikut tersinkron; catatan hari digabung', async () => {
+    const { hp, laptop, kirim } = await pasangan();
+    await hp.setelan.put({ kunci: 'target', nilai: { jenis: 'surah', nomor: 67, mulai: '2026-10-23', hari: 14 } });
+    await hp.setelan.put({ kunci: 'catatanHari', nilai: { '2026-10-24': 'kuning', '2026-10-25': 'hijau' } });
+    await tidur();
+    await laptop.setelan.put({ kunci: 'catatanHari', nilai: { '2026-10-24': 'hijau', '2026-10-26': 'kuning' } });
+    await sinkronkan(laptop, kirim);
+    await sinkronkan(laptop, kirim);
+    expect(((await laptop.setelan.get('target'))?.nilai as { nomor: number }).nomor).toBe(67);
+    const harap = { '2026-10-24': 'hijau', '2026-10-25': 'hijau', '2026-10-26': 'kuning' };
+    expect((await hp.setelan.get('catatanHari'))?.nilai).toEqual(harap);
+    expect((await laptop.setelan.get('catatanHari'))?.nilai).toEqual(harap);
+    // Target diubah di laptop → HP ikut.
+    await tidur();
+    await laptop.setelan.put({ kunci: 'target', nilai: { jenis: 'juz', nomor: 29, mulai: '2026-10-27', hari: 60 } });
+    await sinkronkan(laptop, kirim);
+    expect(((await hp.setelan.get('target'))?.nilai as { nomor: number }).nomor).toBe(29);
+  });
+
+  it('K-73: pusat versi lama (tanpa daftar tabel) tidak diminta tabel setelan', async () => {
+    const { hp, laptop, kirim } = await pasangan();
+    const diminta: string[] = [];
+    const kirimLama: Kirim = async (jalur, isi) => {
+      if (jalur === '/tarik') {
+        diminta.push(String(isi.tabel));
+        if (isi.tabel === 'setelan') throw new Error('tabel tidak ada di pusat lama');
+      }
+      const r = await kirim(jalur, isi);
+      if (jalur === '/halo') delete r.tabel;
+      return r;
+    };
+    await hp.makna.put({ kunci: '1:2:0', surah: 1, ayat: 2, segmen: 0, isi: 'dari HP', diubah: '' });
+    await sinkronkan(laptop, kirimLama);
+    expect(diminta).not.toContain('setelan');
+    expect((await laptop.makna.get('1:2:0'))?.isi).toBe('dari HP');
+  });
 });

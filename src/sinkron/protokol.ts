@@ -18,6 +18,9 @@ import { idAcak } from '../db';
 //   /tarik  → anggota mengambil perubahan dari pusat (kecuali yang berasal darinya)
 
 export const VERSI_PROTOKOL = 1;
+
+// Tabel yang ditambahkan sesudah pusat mulai mengirim daftar tabelnya di /halo.
+const TABEL_BARU_K73: string[] = ['setelan'];
 export const PORT_BAWAAN = 47310;
 
 export interface Anggota {
@@ -78,7 +81,15 @@ async function periksaToken(d: SakuDB, isi: Rekaman): Promise<Anggota> {
 export async function layani(d: SakuDB, jalur: string, isi: Rekaman): Promise<Rekaman> {
   const idPusat = await idPerangkat(d);
   if (jalur === '/halo') {
-    return { aplikasi: 'saku-hati', versi: VERSI_PROTOKOL, id: idPusat, nama: 'HP Saku Hati', jam: Date.now() };
+    // K-73: daftar tabel yang dikenal pusat, agar anggota versi baru tidak meminta tabel yang belum ada.
+    return {
+      aplikasi: 'saku-hati',
+      versi: VERSI_PROTOKOL,
+      id: idPusat,
+      nama: 'HP Saku Hati',
+      jam: Date.now(),
+      tabel: SEMUA_TABEL,
+    };
   }
   if (jalur === '/pasang') {
     if (!kodeAktif || kodeAktif.kode !== String(isi.kode) || Date.now() > kodeAktif.berlakuSampai) {
@@ -101,6 +112,7 @@ export async function layani(d: SakuDB, jalur: string, isi: Rekaman): Promise<Re
     return { ...h };
   }
   if (jalur === '/tarik') {
+    if (!SEMUA_TABEL.includes(isi.tabel as TabelSinkron)) return { item: [], berikut: null };
     const r = await ambilPerubahan(d, isi.tabel as TabelSinkron | 'hapus', {
       sejak: Number(isi.sejak) || 0,
       sampai: Number(isi.sampai),
@@ -149,11 +161,7 @@ export async function pasang(d: SakuDB, kirim: Kirim, alamat: string, kode: stri
   return pusat;
 }
 
-export async function sinkronkan(
-  d: SakuDB,
-  kirim: Kirim,
-  kabar?: (pesan: string) => void,
-): Promise<HasilSinkron> {
+export async function sinkronkan(d: SakuDB, kirim: Kirim, kabar?: (pesan: string) => void): Promise<HasilSinkron> {
   const pusat = await bacaMeta<Pusat>(d, 'pusat');
   if (!pusat) throw new Error('Belum dipasangkan dengan HP.');
   const idSaya = await idPerangkat(d);
@@ -180,9 +188,13 @@ export async function sinkronkan(
   await tulisMeta(d, 'dorongSejak', dorongSampai);
 
   // 2. Tarik perubahan dari pusat sampai jam pusat saat /halo.
+  // Pusat versi lama tidak mengirim daftar tabel dan belum punya tabel setelan (K-73).
+  const tabelPusat = Array.isArray(halo.tabel)
+    ? SEMUA_TABEL.filter((t) => (halo.tabel as string[]).includes(t))
+    : SEMUA_TABEL.filter((t) => !TABEL_BARU_K73.includes(t));
   const tarikSejak = (await bacaMeta<number>(d, 'tarikSejak')) ?? 0;
   const tarikSampai = Number(halo.jam);
-  for (const tabel of SEMUA_TABEL) {
+  for (const tabel of tabelPusat) {
     let mulai: number | null = 0;
     while (mulai !== null) {
       const r = await kirim('/tarik', { ...kredensial, tabel, sejak: tarikSejak, sampai: tarikSampai, mulai });

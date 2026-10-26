@@ -4,7 +4,6 @@ import { cariSurah, daftarSurah, juzAyat, type Potongan } from './data';
 import { db, type Sesi } from './db';
 import { hariLokal } from './kemajuan';
 import { selisihHari, tambahHari } from './jadwal';
-import { bacaMeta, tulisMeta } from './sinkron/mesin';
 
 export interface Target {
   jenis: 'juz' | 'surah';
@@ -112,13 +111,17 @@ export function warnaHariIni(baruSelesai: boolean, ulangSisa: number, ulangSeles
 
 // ---------- Penyimpanan ----------
 
-export const ambilTarget = () => bacaMeta<Target>(db, 'target');
-export const simpanTarget = (t: Target | null) => tulisMeta(db, 'target', t);
+// K-73: disimpan di tabel setelan agar ikut sinkron HP ↔ laptop.
+export const ambilTarget = async () =>
+  ((await db.setelan.get('target'))?.nilai as Target | null | undefined) ?? undefined;
+export const simpanTarget = async (t: Target | null) => {
+  await db.setelan.put({ kunci: 'target', nilai: t });
+};
 export const ambilCatatanHari = async () =>
-  (await bacaMeta<Record<string, 'hijau' | 'kuning'>>(db, 'catatanHari')) ?? {};
+  ((await db.setelan.get('catatanHari'))?.nilai as Record<string, 'hijau' | 'kuning'> | undefined) ?? {};
 export async function catatHari(hari: string, warna: 'hijau' | 'kuning') {
   const c = await ambilCatatanHari();
   if (c[hari] === warna || c[hari] === 'hijau') return;
   c[hari] = warna;
-  await tulisMeta(db, 'catatanHari', c);
+  await db.setelan.put({ kunci: 'catatanHari', nilai: c });
 }

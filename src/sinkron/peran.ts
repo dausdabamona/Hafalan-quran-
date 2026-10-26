@@ -121,7 +121,8 @@ export function kirimKe(alamat: string): Kirim {
     } catch {
       // jawaban bukan JSON
     }
-    if (r.status === 0) throw new GalatSinkron(0, 'HP tidak terjangkau. Pastikan Saku Hati terbuka di HP dan satu Wi-Fi.');
+    if (r.status === 0)
+      throw new GalatSinkron(0, 'HP tidak terjangkau. Pastikan Saku Hati terbuka di HP dan satu Wi-Fi.');
     if (r.status !== 200) throw new GalatSinkron(r.status, String(isiJawab.pesan || `Galat ${r.status}`));
     return isiJawab;
   };

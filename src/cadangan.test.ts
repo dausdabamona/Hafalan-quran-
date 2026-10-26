@@ -2,7 +2,6 @@ import 'fake-indexeddb/auto';
 import { describe, expect, it } from 'vitest';
 import { buatDb, catatHapus } from './db';
 import { imporCadangan, namaBerkasCadangan, susunCadangan } from './cadangan';
-import { tulisMeta, bacaMeta } from './sinkron/mesin';
 
 describe('cadangan ke berkas (K-67)', () => {
   it('ekspor lalu impor ke aplikasi kosong memulihkan semua data, termasuk rekaman suara', async () => {
@@ -24,7 +23,7 @@ describe('cadangan ke berkas (K-67)', () => {
       sambunganTertukar: 0,
       lancar: false,
     });
-    await tulisMeta(lama, 'target', { jenis: 'juz', nomor: 30, mulai: '2026-10-01', hari: 30 });
+    await lama.setelan.put({ kunci: 'target', nilai: { jenis: 'juz', nomor: 30, mulai: '2026-10-01', hari: 30 } });
 
     const teks = (await susunCadangan(lama)).join('');
     const isi = JSON.parse(teks);
@@ -32,14 +31,14 @@ describe('cadangan ke berkas (K-67)', () => {
     expect(isi.tabel.rekaman[0].asal).toBeUndefined();
 
     const h = await imporCadangan(teks, baru);
-    expect(h.diterima).toBe(4);
+    expect(h.diterima).toBe(5);
     expect((await baru.makna.get('1:2:0'))?.isi).toBe('makna saya');
     expect(await baru.hapus.count()).toBe(1);
     const r = await baru.rekaman.get('1:3');
     expect(new Uint8Array(await r!.audio.arrayBuffer())).toEqual(new Uint8Array([0, 1, 2, 200, 255]));
     expect((r as unknown as { asal: string }).asal).toBe('');
     expect(await baru.sesi.count()).toBe(1);
-    expect((await bacaMeta<{ nomor: number }>(baru, 'target'))?.nomor).toBe(30);
+    expect(((await baru.setelan.get('target'))?.nilai as { nomor: number }).nomor).toBe(30);
 
     // Impor kedua kali tidak menggandakan apa pun.
     const h2 = await imporCadangan(teks, baru);
@@ -58,6 +57,18 @@ describe('cadangan ke berkas (K-67)', () => {
     expect((await baru.makna.get('1:2:0'))?.isi).toBe('lebih baru');
     await expect(imporCadangan('{"a":1}', baru)).rejects.toThrow(/bukan cadangan/);
     await expect(imporCadangan('bukan json', baru)).rejects.toThrow(/bukan cadangan/);
+  });
+
+  it('cadangan lama dengan target di bagian meta tetap dipulihkan', async () => {
+    const baru = buatDb('uji-cadangan-b3');
+    const teks = JSON.stringify({
+      format: 'saku-hati-cadangan',
+      versi: 1,
+      meta: { target: { jenis: 'surah', nomor: 67, mulai: '2026-10-20', hari: 14 } },
+      tabel: {},
+    });
+    await imporCadangan(teks, baru);
+    expect(((await baru.setelan.get('target'))?.nilai as { nomor: number }).nomor).toBe(67);
   });
 
   it('nama berkas memakai tanggal', () => {

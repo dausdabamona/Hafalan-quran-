@@ -75,9 +75,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp android/app/build/outputs/apk/github/release/app-github-release.apk saku-hati.apk
-          gh release delete terbaru --yes --cleanup-tag || true
-          gh release create terbaru saku-hati.apk \
-            --target "$GITHUB_SHA" \
-            --title "Saku Hati 0.1.${{ github.run_number }}" \
-            --notes "APK terbaru dari commit ${GITHUB_SHA::7}. Unduh saku-hati.apk lalu pasang di HP." \
-            --latest
+          # Dicoba hingga 3 kali: layanan Releases GitHub kadang gagal sesaat.
+          for coba in 1 2 3; do
+            gh release delete terbaru --yes --cleanup-tag || true
+            sleep 5
+            if gh release create terbaru saku-hati.apk \
+              --target "$GITHUB_SHA" \
+              --title "Saku Hati 0.1.${{ github.run_number }}" \
+              --notes "APK terbaru dari commit ${GITHUB_SHA::7}. Unduh saku-hati.apk lalu pasang di HP." \
+              --latest; then
+              exit 0
+            fi
+            echo "Percobaan $coba gagal, diulang…"
+            sleep 15
+          done
+          exit 1

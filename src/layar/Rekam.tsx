@@ -59,7 +59,8 @@ export default function LayarRekam({
   // K-65: null = otomatis (di bawah 15× atau ayat pernah salah); true/false = dipilih lewat tombol.
   const [bantuPilih, setBantuPilih] = useState<boolean | null>(null);
   // K-65: jumlah kata yang dibuka satu per satu dengan mengetuk kotak ayat.
-  const [terbuka, setTerbuka] = useState(0);
+  // K-71: kata yang dibuka disimpan per urutan kata, agar satu kotak bisa dibuka langsung.
+  const [terbuka, setTerbuka] = useState<Set<number>>(() => new Set());
   const refKini = useRef<HTMLDivElement>(null);
 
   const ayatKini = daftarAyat[indeks];
@@ -81,7 +82,7 @@ export default function LayarRekam({
   // Pindah ayat (maju atau mundur): teks yang dibuka sementara ditutup lagi.
   useEffect(() => {
     setIntip(false);
-    setTerbuka(0);
+    setTerbuka(new Set());
   }, [indeks]);
 
   // Ayat yang sedang direkam selalu tampil di tengah layar.
@@ -144,8 +145,7 @@ export default function LayarRekam({
   const adaSalahKini = tokenKini.some((t) => salahDi(ayatKini.ayat, t.kata!.urutan));
   // K-66: hafalan baru (tanpa rukuk) selalu mendapat kata bantu bawaan.
   const bantuKini =
-    bantuPilih ??
-    (!rukuk || (jumlahMurojaah !== null && jumlahMurojaah < BATAS_KATA_BANTU) || adaSalahKini);
+    bantuPilih ?? (!rukuk || (jumlahMurojaah !== null && jumlahMurojaah < BATAS_KATA_BANTU) || adaSalahKini);
   const bantuAyat = bantuKini ? kataBantu(ayatKini) : new Set<number>();
   const siapBantu = !rukuk || jumlahMurojaah !== null;
 
@@ -232,13 +232,21 @@ export default function LayarRekam({
             <button
               type="button"
               className="teks-tertutup arti-murojaah"
-              onClick={() => setTerbuka((n) => n + 1)}
+              onClick={() => {
+                // Ketuk di luar kotak: buka kata tertutup pertama berikutnya (K-65).
+                const berikut = tokenKini.find(
+                  (t) =>
+                    !salahDi(ayatKini.ayat, t.kata!.urutan) &&
+                    !bantuAyat.has(t.kata!.urutan) &&
+                    !terbuka.has(t.kata!.urutan),
+                );
+                if (berikut) setTerbuka((s) => new Set(s).add(berikut.kata!.urutan));
+              }}
               aria-label="Buka satu kata berikutnya"
             >
               {/* K-55: kata yang pernah salah merah; K-61: kata bantu hijau; K-65: kata yang dibuka gelap. */}
               <span className="ayat-salah" dir="rtl" lang="ar">
                 {(() => {
-                  let sisaBuka = terbuka;
                   return tokenKini.map((t, i) => {
                     const tanda = salahDi(ayatKini.ayat, t.kata!.urutan);
                     if (tanda)
@@ -254,8 +262,7 @@ export default function LayarRekam({
                           {t.teks}
                         </span>
                       );
-                    if (sisaBuka > 0) {
-                      sisaBuka--;
+                    if (terbuka.has(t.kata!.urutan)) {
                       return (
                         <span key={i} className="kata-terbuka">
                           {t.teks}
@@ -263,10 +270,17 @@ export default function LayarRekam({
                       );
                     }
                     return (
+                      // K-71: ketuk kotak ini → hanya kata ini yang dibuka.
                       <span
                         key={i}
                         className="kotak-kata"
+                        title="Buka kata ini"
                         style={{ width: `${Math.min(84, Math.max(26, t.teks.length * 7))}px` }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const u = t.kata!.urutan;
+                          setTerbuka((s) => new Set(s).add(u));
+                        }}
                       />
                     );
                   });
@@ -324,9 +338,7 @@ export default function LayarRekam({
             <span className="bulat">
               <Microphone weight="fill" />
             </span>
-            <span className="keterangan">
-              {status === 'meminta-izin' ? 'Meminta izin…' : `Rekam ${ayatKini.ayat}`}
-            </span>
+            <span className="keterangan">{status === 'meminta-izin' ? 'Meminta izin…' : `Rekam ${ayatKini.ayat}`}</span>
           </button>
         ) : (
           <button
@@ -336,9 +348,7 @@ export default function LayarRekam({
             disabled={menyimpan}
           >
             <span className="bulat">{terakhir ? <CheckCircle weight="fill" /> : <Check weight="bold" />}</span>
-            <span className="keterangan">
-              {menyimpan ? 'Menyimpan…' : terakhir ? 'Koreksi' : 'Selesai'}
-            </span>
+            <span className="keterangan">{menyimpan ? 'Menyimpan…' : terakhir ? 'Koreksi' : 'Selesai'}</span>
           </button>
         )}
         <button

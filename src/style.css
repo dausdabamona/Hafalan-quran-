@@ -3981,6 +3981,8 @@ body {
 }
 .kotak-kata {
   display: inline-block;
+  position: relative;
+  cursor: pointer;
   height: 18px;
   border-radius: 5px;
   background: var(--color-kotak);
@@ -4425,4 +4427,11 @@ body {
 .bilah-samping .segmen-tema button.aktif {
   border-left: 0 !important;
   background: var(--color-kartu);
+}
+
+/* K-71: bidang ketuk kotak kata diperbesar tanpa mengubah tampilannya. */
+.kotak-kata::after {
+  content: '';
+  position: absolute;
+  inset: -10px -3px;
 }

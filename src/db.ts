@@ -142,6 +142,30 @@ export interface HaditsBab {
   judulArab: string;
 }
 
+// K-79: hadits yang disimpan, catatan hadits, dan kaitan manual ayat ↔ hadits. Ikut sinkron.
+export interface HaditsSimpan {
+  kunci: string; // kunci hadits "bukhari:1"
+  kitab: string;
+  nomor: number;
+  disimpan: string;
+}
+
+export interface CatatanHadits {
+  kunci: string; // kunci hadits
+  kitab: string;
+  nomor: number;
+  isi: string;
+  diubah: string;
+}
+
+export interface KaitanAyatHadits {
+  kunci: string; // "surah:ayat|kitab:nomor"
+  surah: number;
+  ayat: number;
+  hadits: string;
+  dibuat: string;
+}
+
 // K-78: indeks pencarian — satu kata → urutan hadits yang memuatnya (urut naik).
 export interface HaditsIndeks {
   kata: string;
@@ -191,6 +215,9 @@ export type SakuDB = Dexie & {
   haditsKait: EntityTable<HaditsKait, 'kunci'>;
   maknaHadits: EntityTable<MaknaHadits, 'kunci'>;
   haditsIndeks: EntityTable<HaditsIndeks, 'kata'>;
+  haditsSimpan: EntityTable<HaditsSimpan, 'kunci'>;
+  catatanHadits: EntityTable<CatatanHadits, 'kunci'>;
+  kaitanAyatHadits: EntityTable<KaitanAyatHadits, 'kunci'>;
   meta: EntityTable<{ kunci: string; nilai: unknown }, 'kunci'>;
   /** true selama perubahan dari perangkat lain diterapkan (penanda waktu tidak diubah) */
   _terapkan?: boolean;
@@ -367,6 +394,13 @@ function siapkanSkema(db: SakuDB) {
 
   // Versi 15 (K-78): indeks pencarian hadits.
   db.version(15).stores({ hadits: 'kunci, kitab, [kitab+bagian+nomor], urut', haditsIndeks: 'kata' });
+
+  // Versi 16 (K-79): simpan, catatan, dan kaitan manual hadits — ikut sinkron.
+  db.version(16).stores({
+    haditsSimpan: 'kunci, terimaMs',
+    catatanHadits: 'kunci, terimaMs',
+    kaitanAyatHadits: 'kunci, surah, hadits, terimaMs',
+  });
 }
 
 // Penanda sinkron otomatis untuk setiap penulisan lokal (K-37).
@@ -408,6 +442,9 @@ export const TABEL_SINKRON = [
   'perbaikan',
   'setelan',
   'maknaHadits',
+  'haditsSimpan',
+  'catatanHadits',
+  'kaitanAyatHadits',
 ] as const;
 export type TabelSinkron = (typeof TABEL_SINKRON)[number];
 

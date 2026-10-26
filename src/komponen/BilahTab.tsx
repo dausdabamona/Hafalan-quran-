@@ -17,7 +17,7 @@ const TAB: { judul: string; hash: string; ikon: typeof House; aktif: NamaLayar[]
     judul: 'Lainnya',
     hash: '#/lainnya',
     ikon: DotsThreeCircle,
-    aktif: ['lainnya', 'kitab-hadits', 'bagian-hadits', 'daftar-hadits', 'hadits', 'data-hadits'],
+    aktif: ['lainnya', 'kitab-hadits', 'hadits-tersimpan', 'bagian-hadits', 'daftar-hadits', 'hadits', 'data-hadits'],
   },
 ];
 

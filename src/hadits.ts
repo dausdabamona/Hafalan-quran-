@@ -360,8 +360,17 @@ export function namaKitab(info: InfoDataHadits | undefined | null, kode: string)
 // ---------- Hadits terkait ayat ----------
 
 export async function haditsSurah(surah: number, d: SakuDB = db): Promise<Map<number, string[]>> {
-  const daftar = await d.haditsAyat.where('surah').equals(surah).toArray();
-  return new Map(daftar.map((x) => [x.ayat, x.hadits]));
+  const [daftar, manual] = await Promise.all([
+    d.haditsAyat.where('surah').equals(surah).toArray(),
+    d.kaitanAyatHadits.where('surah').equals(surah).toArray(),
+  ]);
+  const peta = new Map(daftar.map((x) => [x.ayat, [...x.hadits]]));
+  // K-79: kaitan manual ikut tampil (didahulukan).
+  for (const k of manual.sort((a, b) => urutKunci(a.hadits, b.hadits))) {
+    const ada = peta.get(k.ayat) ?? [];
+    if (!ada.includes(k.hadits)) peta.set(k.ayat, [k.hadits, ...ada]);
+  }
+  return peta;
 }
 
 export async function ambilHadits(kunci: string[], d: SakuDB = db): Promise<Hadits[]> {
@@ -564,4 +573,97 @@ export function cuplikan(teks: string, kata: string[], panjang = 220): Potongan[
   if (posisi < akhirPotong) hasil.push({ teks: tampil.slice(posisi, akhirPotong), tebal: false });
   if (akhirPotong < tampil.length) hasil.push({ teks: '…', tebal: false });
   return hasil;
+}
+
+// ---------- Simpan, catatan, kaitan manual (K-79) ----------
+
+const pecah = (kunci: string) => {
+  const [kitab, n] = kunci.split(':');
+  return { kitab, nomor: Number(n) };
+};
+
+export async function apakahDisimpan(kunci: string, d: SakuDB = db) {
+  return !!(await d.haditsSimpan.get(kunci));
+}
+
+// Mengembalikan status baru (true = tersimpan).
+export async function ubahSimpan(kunci: string, d: SakuDB = db): Promise<boolean> {
+  return d.transaction('rw', d.haditsSimpan, d.hapus, async () => {
+    if (await d.haditsSimpan.get(kunci)) {
+      await d.haditsSimpan.delete(kunci);
+      await catatHapus(d, 'haditsSimpan', [kunci]);
+      return false;
+    }
+    await d.haditsSimpan.put({ kunci, ...pecah(kunci), disimpan: new Date().toISOString() });
+    return true;
+  });
+}
+
+export async function ambilCatatanHadits(kunci: string, d: SakuDB = db) {
+  return (await d.catatanHadits.get(kunci))?.isi;
+}
+
+export async function simpanCatatanHadits(kunci: string, isi: string, d: SakuDB = db) {
+  const bersih = isi.trim();
+  if (!bersih)
+    return d.transaction('rw', d.catatanHadits, d.hapus, async () => {
+      if (await d.catatanHadits.get(kunci)) {
+        await d.catatanHadits.delete(kunci);
+        await catatHapus(d, 'catatanHadits', [kunci]);
+      }
+    });
+  await d.catatanHadits.put({ kunci, ...pecah(kunci), isi: bersih, diubah: new Date().toISOString() });
+}
+
+export async function kaitanManual(hadits: string, d: SakuDB = db): Promise<string[]> {
+  const daftar = await d.kaitanAyatHadits.where('hadits').equals(hadits).toArray();
+  return daftar.sort((a, b) => a.surah - b.surah || a.ayat - b.ayat).map((k) => `${k.surah}:${k.ayat}`);
+}
+
+export async function tambahKaitan(surah: number, ayat: number, hadits: string, d: SakuDB = db) {
+  await d.kaitanAyatHadits.put({
+    kunci: `${surah}:${ayat}|${hadits}`,
+    surah,
+    ayat,
+    hadits,
+    dibuat: new Date().toISOString(),
+  });
+}
+
+export async function hapusKaitan(surah: number, ayat: number, hadits: string, d: SakuDB = db) {
+  const kunci = `${surah}:${ayat}|${hadits}`;
+  await d.transaction('rw', d.kaitanAyatHadits, d.hapus, async () => {
+    await d.kaitanAyatHadits.delete(kunci);
+    await catatHapus(d, 'kaitanAyatHadits', [kunci]);
+  });
+}
+
+export interface ButirTersimpan {
+  kunci: string;
+  disimpan: boolean;
+  catatan?: string;
+  waktu: string;
+}
+
+// Hadits yang disimpan dan/atau punya catatan, terbaru dulu.
+export async function daftarTersimpan(d: SakuDB = db): Promise<ButirTersimpan[]> {
+  const [simpan, catatan] = await Promise.all([d.haditsSimpan.toArray(), d.catatanHadits.toArray()]);
+  const peta = new Map<string, ButirTersimpan>();
+  for (const s of simpan) peta.set(s.kunci, { kunci: s.kunci, disimpan: true, waktu: s.disimpan });
+  for (const c of catatan) {
+    const ada = peta.get(c.kunci);
+    if (ada) {
+      ada.catatan = c.isi;
+      if (c.diubah > ada.waktu) ada.waktu = c.diubah;
+    } else peta.set(c.kunci, { kunci: c.kunci, disimpan: false, catatan: c.isi, waktu: c.diubah });
+  }
+  return [...peta.values()].sort((a, b) => b.waktu.localeCompare(a.waktu));
+}
+
+// Hadits hari ini: dipilih dari tanggal sehingga sama di semua perangkat.
+export async function haditsHariIni(info: InfoDataHadits, tanggal = new Date(), d: SakuDB = db) {
+  if (!info.indeks || !info.jumlahHadits) return undefined;
+  const hari = Math.floor(Date.UTC(tanggal.getFullYear(), tanggal.getMonth(), tanggal.getDate()) / 86400000);
+  const urut = (hari * 7919) % info.jumlahHadits;
+  return d.hadits.where('urut').equals(urut).first();
 }

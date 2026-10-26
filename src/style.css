@@ -4798,3 +4798,122 @@ body {
   line-height: 1.9;
   text-align: right;
 }
+
+/* ---------- K-79: simpan, catatan, kaitan, hadits hari ini ---------- */
+.aksi-hadits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.aksi-hadits .chip,
+.chip-manual button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.catatan-hadits {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-3);
+  border: 0;
+  border-left: 3px solid var(--color-api, #f2a93b);
+  border-radius: var(--radius-md, 12px);
+  background: var(--color-catatan-latar, #f3ead4);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  white-space: pre-line;
+}
+.chip-manual {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 4px;
+}
+.chip-manual button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+}
+.chip-manual .lepas {
+  padding: 2px 4px;
+  color: var(--color-muted);
+}
+.pilih-ayat-kaitan {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-3);
+}
+.pilih-ayat-kaitan label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pilih-ayat-kaitan select,
+.pilih-ayat-kaitan input {
+  font: inherit;
+  font-size: 16px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--color-divider);
+  background: var(--color-kartu);
+  color: var(--color-text);
+}
+.atas-hadits {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0 var(--space-3) var(--space-3);
+  max-width: 760px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+.kartu-hadits-hari-ini {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--color-pahlawan, #0f3d2e);
+  color: #fff;
+  font: inherit;
+  text-align: left;
+}
+.kartu-hadits-hari-ini .kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #cfe9d9;
+}
+.kartu-hadits-hari-ini .bab-hadits {
+  color: #cfe9d9;
+}
+.kartu-hadits-hari-ini .cuplikan-hadits {
+  -webkit-line-clamp: 4;
+  font-size: 15px;
+}
+.baris-tersimpan {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 12px var(--space-3);
+  border: 0;
+  border-radius: var(--radius-md, 12px);
+  background: var(--color-kartu);
+  box-shadow: var(--shadow-kartu);
+  color: var(--color-isi-tua);
+  font: inherit;
+  font-weight: 700;
+}
+.baris-tersimpan svg:last-child {
+  margin-left: auto;
+}
+.catatan-ringkas {
+  font-size: 13px;
+  color: var(--color-catatan-teks, #7a5c1e);
+}

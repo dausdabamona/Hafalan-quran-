@@ -1,5 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BookOpenText, CaretLeft, CaretRight, MagnifyingGlass, NotePencil, Scroll, X } from '@phosphor-icons/react';
+import {
+  BookmarkSimple,
+  BookOpenText,
+  CaretLeft,
+  CaretRight,
+  LinkSimple,
+  MagnifyingGlass,
+  Note,
+  NotePencil,
+  Scroll,
+  Sun,
+  X,
+} from '@phosphor-icons/react';
+import { daftarSurah } from '../data';
 import { cariSurah } from '../data';
 import type { Hadits, HaditsBagian, HaditsKait } from '../db';
 import {
@@ -7,6 +20,15 @@ import {
   ambilKait,
   ambilSatuHadits,
   ambilSuntingan,
+  ambilCatatanHadits,
+  apakahDisimpan,
+  daftarTersimpan,
+  hapusKaitan,
+  haditsHariIni,
+  kaitanManual,
+  simpanCatatanHadits,
+  tambahKaitan,
+  ubahSimpan,
   adaArab,
   cariHadits,
   cuplikan,
@@ -16,6 +38,7 @@ import {
   infoDataHadits,
   namaKitab,
   simpanSuntingan,
+  type ButirTersimpan,
   type HasilCari,
   type InfoDataHadits,
 } from '../hadits';
@@ -131,24 +154,33 @@ export function LayarKitabHadits({ cariAwal = '', kitabAwal }: { cariAwal?: stri
       {mencari ? (
         <HasilCariHadits teks={teks} kitab={kitab} info={info} />
       ) : (
-        <ul className="daftar-lainnya daftar-kitab-hadits">
-          {info.kitab.map((k) => (
-            <li key={k.kode}>
-              <button onClick={() => pergi(`#/hadits/${k.kode}`)}>
-                <span className="ikon-kotak">
-                  <BookOpenText size={24} weight="duotone" />
-                </span>
-                <span className="teks">
-                  <strong>{k.nama}</strong>
-                  <span>{angka(k.jumlah ?? 0)} hadits</span>
-                </span>
-                <span className="arab-kitab" lang="ar" dir="rtl">
-                  {k.namaArab}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <>
+          <div className="atas-hadits">
+            <KartuHaditsHariIni info={info} />
+            <button className="baris-tersimpan" onClick={() => pergi('#/hadits/tersimpan')}>
+              <BookmarkSimple weight="duotone" /> Hadits tersimpan & catatan
+              <CaretRight weight="bold" />
+            </button>
+          </div>
+          <ul className="daftar-lainnya daftar-kitab-hadits">
+            {info.kitab.map((k) => (
+              <li key={k.kode}>
+                <button onClick={() => pergi(`#/hadits/${k.kode}`)}>
+                  <span className="ikon-kotak">
+                    <BookOpenText size={24} weight="duotone" />
+                  </span>
+                  <span className="teks">
+                    <strong>{k.nama}</strong>
+                    <span>{angka(k.jumlah ?? 0)} hadits</span>
+                  </span>
+                  <span className="arab-kitab" lang="ar" dir="rtl">
+                    {k.namaArab}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </>
   );
@@ -340,6 +372,17 @@ export function LayarHadits({
   const [suntingan, setSuntingan] = useState<string>();
   const [menyunting, setMenyunting] = useState(false);
   const kunci = `${kitab}:${nomor}`;
+  // K-79: simpan, catatan, kaitan manual.
+  const [disimpan, setDisimpan] = useState(false);
+  const [catatan, setCatatan] = useState<string>();
+  const [manual, setManual] = useState<string[]>([]);
+  const [lembar, setLembar] = useState<'catatan' | 'kaitan' | null>(null);
+  useEffect(() => {
+    const k = `${kitab}:${nomor}`;
+    apakahDisimpan(k).then(setDisimpan);
+    ambilCatatanHadits(k).then(setCatatan);
+    kaitanManual(k).then(setManual);
+  }, [kitab, nomor]);
 
   useEffect(() => {
     setHadits(undefined);
@@ -396,18 +439,65 @@ export function LayarHadits({
           </div>
         </div>
 
-        {!!kait?.ayat.length && (
+        <div className="aksi-hadits">
+          <button
+            type="button"
+            className={'chip' + (disimpan ? ' aktif' : '')}
+            aria-pressed={disimpan}
+            onClick={async () => setDisimpan(await ubahSimpan(kunci))}
+          >
+            <BookmarkSimple weight={disimpan ? 'fill' : 'duotone'} /> {disimpan ? 'Tersimpan' : 'Simpan'}
+          </button>
+          <button type="button" className="chip" onClick={() => setLembar('catatan')}>
+            <Note weight="duotone" /> {catatan ? 'Ubah catatan' : 'Catatan'}
+          </button>
+          <button type="button" className="chip" onClick={() => setLembar('kaitan')}>
+            <LinkSimple weight="bold" /> Kaitkan ke ayat
+          </button>
+        </div>
+
+        {catatan && (
+          <button type="button" className="catatan-hadits" onClick={() => setLembar('catatan')}>
+            <span className="kicker">Catatan saya</span>
+            <span>{catatan}</span>
+          </button>
+        )}
+
+        {!!(kait?.ayat.length || manual.length) && (
           <section className="kait-hadits">
             <h2>Ayat terkait</h2>
             <div className="chip-kait">
-              {kait.ayat.map((a) => {
+              {manual.map((a) => {
                 const [s, n] = a.split(':').map(Number);
                 return (
-                  <button key={a} className="chip" onClick={() => pergi(`#/surah/${s}/${n}`)}>
-                    {cariSurah(s)?.nama ?? s} {n}
-                  </button>
+                  <span key={'m' + a} className="chip chip-manual">
+                    <button type="button" onClick={() => pergi(`#/surah/${s}/${n}`)}>
+                      <LinkSimple weight="bold" /> {cariSurah(s)?.nama ?? s} {n}
+                    </button>
+                    <button
+                      type="button"
+                      className="lepas"
+                      aria-label={`Lepas kaitan ${cariSurah(s)?.nama ?? s} ${n}`}
+                      onClick={async () => {
+                        await hapusKaitan(s, n, kunci);
+                        setManual(await kaitanManual(kunci));
+                      }}
+                    >
+                      <X weight="bold" />
+                    </button>
+                  </span>
                 );
               })}
+              {(kait?.ayat ?? [])
+                .filter((a) => !manual.includes(a))
+                .map((a) => {
+                  const [s, n] = a.split(':').map(Number);
+                  return (
+                    <button key={a} className="chip" onClick={() => pergi(`#/surah/${s}/${n}`)}>
+                      {cariSurah(s)?.nama ?? s} {n}
+                    </button>
+                  );
+                })}
             </div>
           </section>
         )}
@@ -431,6 +521,29 @@ export function LayarHadits({
         )}
       </article>
 
+      {lembar === 'catatan' && (
+        <LembarCatatanHadits
+          judul={judul}
+          awal={catatan ?? ''}
+          tutup={() => setLembar(null)}
+          simpan={async (isi) => {
+            await simpanCatatanHadits(kunci, isi);
+            setCatatan(await ambilCatatanHadits(kunci));
+            setLembar(null);
+          }}
+        />
+      )}
+      {lembar === 'kaitan' && (
+        <LembarKaitanAyat
+          judul={judul}
+          tutup={() => setLembar(null)}
+          simpan={async (s, n) => {
+            await tambahKaitan(s, n, kunci);
+            setManual(await kaitanManual(kunci));
+            setLembar(null);
+          }}
+        />
+      )}
       {menyunting && (
         <LembarSuntingHadits
           judul={judul}
@@ -541,5 +654,170 @@ function LembarSuntingHadits({
         </div>
       </div>
     </div>
+  );
+}
+
+// K-79: catatan pribadi untuk satu hadits.
+function LembarCatatanHadits({
+  judul,
+  awal,
+  tutup,
+  simpan,
+}: {
+  judul: string;
+  awal: string;
+  tutup: () => void;
+  simpan: (isi: string) => Promise<void>;
+}) {
+  const [isi, setIsi] = useState(awal);
+  return (
+    <div className="latar-lembar" onClick={tutup}>
+      <div className="lembar" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <div className="pegangan" />
+        <p className="lokasi">{judul}</p>
+        <label className="label-catatan" htmlFor="catatan-hadits">
+          Catatan saya
+        </label>
+        <textarea
+          id="catatan-hadits"
+          value={isi}
+          onChange={(e) => setIsi(e.target.value)}
+          rows={5}
+          placeholder="Pelajaran, kaitan, atau pengingat dari hadits ini"
+        />
+        <div className="aksi-lembar">
+          {awal && (
+            <button className="tombol sekunder" onClick={() => simpan('')}>
+              Hapus catatan
+            </button>
+          )}
+          <button className="tombol sekunder" onClick={tutup}>
+            Batal
+          </button>
+          <button className="tombol utama" onClick={() => simpan(isi)}>
+            Simpan
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// K-79: kaitkan hadits ke satu ayat secara manual.
+function LembarKaitanAyat({
+  judul,
+  tutup,
+  simpan,
+}: {
+  judul: string;
+  tutup: () => void;
+  simpan: (surah: number, ayat: number) => Promise<void>;
+}) {
+  const [surah, setSurah] = useState(1);
+  const [ayat, setAyat] = useState(1);
+  const jumlah = cariSurah(surah)?.jumlahAyat ?? 1;
+  return (
+    <div className="latar-lembar" onClick={tutup}>
+      <div className="lembar" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <div className="pegangan" />
+        <p className="lokasi">{judul} · kaitkan ke ayat</p>
+        <div className="pilih-ayat-kaitan">
+          <label>
+            <span className="label-catatan">Surah</span>
+            <select
+              value={surah}
+              onChange={(e) => {
+                setSurah(Number(e.target.value));
+                setAyat(1);
+              }}
+            >
+              {daftarSurah.map((x) => (
+                <option key={x.nomor} value={x.nomor}>
+                  {x.nomor}. {x.nama}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span className="label-catatan">Ayat (1–{jumlah})</span>
+            <input
+              type="number"
+              min={1}
+              max={jumlah}
+              value={ayat}
+              onChange={(e) => setAyat(Math.min(jumlah, Math.max(1, Number(e.target.value) || 1)))}
+            />
+          </label>
+        </div>
+        <div className="aksi-lembar">
+          <button className="tombol sekunder" onClick={tutup}>
+            Batal
+          </button>
+          <button className="tombol utama" onClick={() => simpan(surah, ayat)}>
+            Kaitkan
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// #/hadits/tersimpan — hadits yang disimpan dan yang punya catatan (K-79).
+export function LayarTersimpanHadits() {
+  const info = useInfo();
+  const [butir, setButir] = useState<ButirTersimpan[] | null>(null);
+  const [hadits, setHadits] = useState<Map<string, Hadits>>(new Map());
+  useEffect(() => {
+    (async () => {
+      const b = await daftarTersimpan();
+      const h = await Promise.all(b.map((x) => ambilSatuHadits(x.kunci.split(':')[0], Number(x.kunci.split(':')[1]))));
+      setHadits(new Map(h.filter((x): x is Hadits => !!x).map((x) => [x.kunci, x])));
+      setButir(b);
+    })();
+  }, []);
+  return (
+    <>
+      <Kepala judul="Hadits tersimpan" sub={butir ? `${butir.length} hadits` : undefined} />
+      <div className="hasil-cari-hadits">
+        {butir?.length === 0 && (
+          <p className="keterangan-kecil">Belum ada. Ketuk Simpan atau Catatan di halaman hadits.</p>
+        )}
+        {butir?.map((b) => {
+          const [kb, n] = b.kunci.split(':');
+          const h = hadits.get(b.kunci);
+          return (
+            <button key={b.kunci} className="ringkas-hadits" onClick={() => pergi(`#/hadits/${kb}/${n}`)}>
+              <span className="nomor-hadits">
+                {b.disimpan && <BookmarkSimple weight="fill" />} {namaKitab(info, kb)} no. {angka(Number(n))}
+              </span>
+              {b.catatan && <span className="catatan-ringkas">Catatan: {b.catatan}</span>}
+              <span className="cuplikan-hadits">{h ? h.terjemah : 'Data hadits belum dimuat di perangkat ini.'}</span>
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+// K-79: hadits hari ini di atas daftar kitab.
+function KartuHaditsHariIni({ info }: { info: InfoDataHadits }) {
+  const [h, setH] = useState<Hadits>();
+  useEffect(() => {
+    haditsHariIni(info).then(async (x) => {
+      if (!x) return;
+      const s = await ambilSuntingan([x.kunci]);
+      setH({ ...x, terjemah: s.get(x.kunci) ?? x.terjemah });
+    });
+  }, [info]);
+  if (!h) return null;
+  return (
+    <button className="kartu-hadits-hari-ini" onClick={() => pergi(`#/hadits/${h.kitab}/${h.nomor}`)}>
+      <span className="kicker">
+        <Sun weight="duotone" /> Hadits hari ini · {namaKitab(info, h.kitab)} no. {angka(h.nomor)}
+      </span>
+      {h.bab && <span className="bab-hadits">{h.bab}</span>}
+      <span className="cuplikan-hadits">{h.terjemah}</span>
+    </button>
   );
 }

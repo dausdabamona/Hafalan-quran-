@@ -21,7 +21,13 @@ import LayarPengingat from './layar/Pengingat';
 import LayarSinkron from './layar/Sinkron';
 import LayarCadangan from './layar/Cadangan';
 import LayarDataHadits from './layar/DataHadits';
-import { LayarBagianHadits, LayarDaftarHadits, LayarHadits, LayarKitabHadits } from './layar/Hadits';
+import {
+  LayarBagianHadits,
+  LayarDaftarHadits,
+  LayarHadits,
+  LayarKitabHadits,
+  LayarTersimpanHadits,
+} from './layar/Hadits';
 import { mulaiPusatOtomatis, mulaiSinkronOtomatis } from './sinkron/peran';
 import { Pengingat, pengingatTersedia, sinkronAyatKartu } from './pengingat';
 
@@ -141,6 +147,7 @@ export default function App() {
         {layar.nama === 'cadangan' && <LayarCadangan />}
         {layar.nama === 'data-hadits' && <LayarDataHadits />}
         {layar.nama === 'kitab-hadits' && <LayarKitabHadits cariAwal={layar.cari} kitabAwal={layar.kitab} />}
+        {layar.nama === 'hadits-tersimpan' && <LayarTersimpanHadits />}
         {layar.nama === 'bagian-hadits' && <LayarBagianHadits key={layar.kitab} kitab={layar.kitab} />}
         {layar.nama === 'daftar-hadits' && (
           <LayarDaftarHadits

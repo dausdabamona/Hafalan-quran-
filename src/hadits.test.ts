@@ -171,3 +171,24 @@ describe('cuplikan (K-78)', () => {
     expect(l.filter((x) => x.tebal).map((x) => x.teks)).toEqual(['Puasa', 'PUASA']);
   });
 });
+
+describe('simpan, catatan, kaitan manual (K-79)', () => {
+  it('bekerja dan kaitan manual ikut di hadits per ayat', async () => {
+    const h = await import('./hadits');
+    const d = buatDb('uji-k79');
+    expect(await h.ubahSimpan('bukhari:1', d)).toBe(true);
+    expect(await h.apakahDisimpan('bukhari:1', d)).toBe(true);
+    await h.simpanCatatanHadits('muslim:5', 'pelajaran', d);
+    const t = await h.daftarTersimpan(d);
+    expect(t.map((x) => x.kunci).sort()).toEqual(['bukhari:1', 'muslim:5']);
+    expect(await h.ubahSimpan('bukhari:1', d)).toBe(false);
+    expect(await d.hapus.get('haditsSimpan|bukhari:1')).toBeTruthy();
+    await h.tambahKaitan(112, 1, 'muslim:5', d);
+    expect(await h.kaitanManual('muslim:5', d)).toEqual(['112:1']);
+    expect((await h.haditsSurah(112, d)).get(1)).toEqual(['muslim:5']);
+    await h.hapusKaitan(112, 1, 'muslim:5', d);
+    expect((await h.haditsSurah(112, d)).size).toBe(0);
+    await h.simpanCatatanHadits('muslim:5', '', d);
+    expect(await h.daftarTersimpan(d)).toEqual([]);
+  });
+});

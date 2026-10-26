@@ -51,7 +51,7 @@ export default function BilahSamping({ layar }: { layar: NamaLayar }) {
       judul: 'Hadits',
       hash: '#/hadits',
       ikon: ikon(BookOpenText),
-      aktif: ['kitab-hadits', 'bagian-hadits', 'daftar-hadits', 'hadits'],
+      aktif: ['kitab-hadits', 'hadits-tersimpan', 'bagian-hadits', 'daftar-hadits', 'hadits'],
     },
     { judul: 'Data hadits', hash: '#/data-hadits', ikon: ikon(Scroll), aktif: ['data-hadits'] },
     { judul: 'Cadangan', hash: '#/cadangan', ikon: ikon(FloppyDisk), aktif: ['cadangan'] },

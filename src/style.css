@@ -4955,3 +4955,10 @@ body {
 .isi-cadangan .tambah-ejaan .tombol {
   margin-top: 0;
 }
+
+/* ---------- K-81: sanad disembunyikan ---------- */
+.tombol-sanad {
+  align-self: flex-start;
+  font-size: 13px;
+  color: var(--color-muted);
+}

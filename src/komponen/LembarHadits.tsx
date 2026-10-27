@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowSquareOut, CaretDown, CaretUp } from '@phosphor-icons/react';
 import { pergi } from '../navigasi';
 import { useEjaan } from './useEjaan';
+import { matanAtauUtuh, pisahArab } from '../matan';
 import type { Hadits } from '../db';
 import { ambilHadits, ambilSuntingan, infoDataHadits, type KitabHadits } from '../hadits';
 
@@ -48,7 +49,7 @@ export default function LembarHadits({ judul, kunci, tutup }: { judul: string; k
                 </strong>
                 {h.bab && <span className="bab-hadits">{eja(h.bab)}</span>}
               </p>
-              <p className="terjemah-hadits">{sunting.get(h.kunci) ?? eja(h.terjemah)}</p>
+              <p className="terjemah-hadits">{sunting.get(h.kunci) ?? eja(matanAtauUtuh(h.terjemah))}</p>
               <div className="aksi-butir-hadits">
                 <button type="button" className="tautan" onClick={() => bukaTutupArab(h.kunci)}>
                   {arabTerbuka.has(h.kunci) ? <CaretUp weight="bold" /> : <CaretDown weight="bold" />}{' '}
@@ -62,7 +63,7 @@ export default function LembarHadits({ judul, kunci, tutup }: { judul: string; k
               </div>
               {arabTerbuka.has(h.kunci) && (
                 <p className="arab-hadits" lang="ar" dir="rtl">
-                  {h.arab}
+                  {pisahArab(h.arab)?.matan ?? h.arab}
                 </p>
               )}
             </article>

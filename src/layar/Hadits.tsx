@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   BookmarkSimple,
   BookOpenText,
+  CaretDown,
   CaretLeft,
   CaretRight,
   LinkSimple,
@@ -44,6 +45,7 @@ import {
 } from '../hadits';
 import Kepala from '../komponen/Kepala';
 import { useEjaan } from '../komponen/useEjaan';
+import { matanAtauUtuh, pisahArab, pisahTerjemah } from '../matan';
 import { ganti, pergi } from '../navigasi';
 
 const angka = (n: number) => n.toLocaleString('id-ID');
@@ -345,7 +347,7 @@ export function LayarDaftarHadits({
             )}
             <button className="ringkas-hadits" onClick={() => pergi(`#/hadits/${kitab}/${h.nomor}`)}>
               <span className="nomor-hadits">No. {angka(h.nomor)}</span>
-              <span className="cuplikan-hadits">{sunting.get(h.kunci) ?? eja(h.terjemah)}</span>
+              <span className="cuplikan-hadits">{sunting.get(h.kunci) ?? eja(matanAtauUtuh(h.terjemah))}</span>
             </button>
           </div>
         ))}
@@ -383,6 +385,10 @@ export function LayarHadits({
   const [catatan, setCatatan] = useState<string>();
   const [manual, setManual] = useState<string[]>([]);
   const [lembar, setLembar] = useState<'catatan' | 'kaitan' | null>(null);
+  // K-81: sanad disembunyikan bila awal matan dikenali.
+  const [lihatSanad, setLihatSanad] = useState(false);
+  const pisahAr = useMemo(() => (hadits ? pisahArab(hadits.arab) : null), [hadits]);
+  const pisahId = useMemo(() => (hadits && !suntingan ? pisahTerjemah(hadits.terjemah) : null), [hadits, suntingan]);
   useEffect(() => {
     const k = `${kitab}:${nomor}`;
     apakahDisimpan(k).then(setDisimpan);
@@ -394,6 +400,7 @@ export function LayarHadits({
     setHadits(undefined);
     setKait(undefined);
     setSuntingan(undefined);
+    setLihatSanad(false);
     ambilSuntingan([`${kitab}:${nomor}`]).then((m) => setSuntingan(m.get(`${kitab}:${nomor}`)));
     window.scrollTo({ top: 0 });
     (async () => {
@@ -432,11 +439,24 @@ export function LayarHadits({
       <Kepala judul={judul} sub={bagian?.judul} kanan={<TombolUkuran aturUkuran={aturUkuran} />} />
       <article className="halaman-hadits">
         {hadits.bab && <p className="bab-hadits">{eja(hadits.bab)}</p>}
+        {(pisahAr || pisahId) && (
+          <button
+            type="button"
+            className="tautan tombol-sanad"
+            aria-expanded={lihatSanad}
+            onClick={() => setLihatSanad((v) => !v)}
+          >
+            {lihatSanad ? <CaretDown weight="bold" /> : <CaretRight weight="bold" />}{' '}
+            {lihatSanad ? 'Sembunyikan sanad' : 'Sanad'}
+          </button>
+        )}
         <p className="arab-hadits besar" lang="ar" dir="rtl">
-          {hadits.arab}
+          {lihatSanad || !pisahAr ? hadits.arab : pisahAr.matan}
         </p>
         <div className="blok-terjemah">
-          <p className="terjemah-hadits">{suntingan ?? eja(hadits.terjemah)}</p>
+          <p className="terjemah-hadits">
+            {suntingan ?? eja(lihatSanad || !pisahId ? hadits.terjemah : pisahId.matan)}
+          </p>
           <div className="aksi-terjemah">
             {suntingan && <span className="tanda-suntingan">Suntingan sendiri</span>}
             <button type="button" className="tautan" onClick={() => setMenyunting(true)}>
@@ -799,7 +819,7 @@ export function LayarTersimpanHadits() {
               </span>
               {b.catatan && <span className="catatan-ringkas">Catatan: {b.catatan}</span>}
               <span className="cuplikan-hadits">
-                {h ? eja(h.terjemah) : 'Data hadits belum dimuat di perangkat ini.'}
+                {h ? eja(matanAtauUtuh(h.terjemah)) : 'Data hadits belum dimuat di perangkat ini.'}
               </span>
             </button>
           );
@@ -828,7 +848,7 @@ function KartuHaditsHariIni({ info }: { info: InfoDataHadits }) {
         <Sun weight="duotone" /> Hadits hari ini · {namaKitab(info, h.kitab)} no. {angka(h.nomor)}
       </span>
       {h.bab && <span className="bab-hadits">{eja(h.bab)}</span>}
-      <span className="cuplikan-hadits">{sunting ?? eja(h.terjemah)}</span>
+      <span className="cuplikan-hadits">{sunting ?? eja(matanAtauUtuh(h.terjemah))}</span>
     </button>
   );
 }

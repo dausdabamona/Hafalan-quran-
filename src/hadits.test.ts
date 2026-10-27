@@ -192,3 +192,56 @@ describe('simpan, catatan, kaitan manual (K-79)', () => {
     expect(await h.daftarTersimpan(d)).toEqual([]);
   });
 });
+
+describe('ejaan (K-80)', () => {
+  it('kunci ejaan menyamakan variasi transliterasi', async () => {
+    const { kunciEjaan } = await import('./hadits');
+    expect(new Set(['ramadlan', 'ramadhan', 'ramadan'].map(kunciEjaan)).size).toBe(1);
+    expect(new Set(['zhuhur', 'dzuhur', 'zuhur'].map(kunciEjaan)).size).toBe(1);
+    expect(new Set(['subuh', 'shubuh'].map(kunciEjaan)).size).toBe(1);
+    expect(kunciEjaan('hajji')).toBe(kunciEjaan('haji'));
+    expect(kunciEjaan('الصلاه')).toBe('الصلاه');
+  });
+
+  it('pencarian menemukan semua ejaan dan padanan kata', async () => {
+    const { cariHadits } = await import('./hadits');
+    const baris = [
+      {
+        format: 'saku-hati-hadits',
+        versi: 2,
+        kitab: [{ kode: 'bukhari', nama: 'Bukhari', namaArab: '' }],
+        jumlah: { hadits: 5 },
+      },
+      ['g', 'bukhari', 1, '', 'Puasa'],
+      ['b', 'bukhari', 1, 1, '', 'Puasa'],
+      ['h', 'bukhari', 1, 1, 1, 'ع', 'puasa Ramadlan'],
+      ['h', 'bukhari', 2, 1, 1, 'ع', 'bulan Ramadhan'],
+      ['h', 'bukhari', 3, 1, 1, 'ع', 'Ramadan tiba'],
+      ['h', 'bukhari', 4, 1, 1, 'ع', 'memberi shadaqah'],
+      ['h', 'bukhari', 5, 1, 1, 'ع', 'sedekah rahasia'],
+    ];
+    const d = buatDb('uji-ejaan');
+    const info = await muatDataHadits(new Blob([gzipSync(baris.map((x) => JSON.stringify(x)).join('\n'))]), d);
+    const r = await cariHadits('ramadhan', null, info, d);
+    expect(r.urut).toEqual([0, 1, 2]);
+    expect(r.kataSorot.sort()).toEqual(['ramadan', 'ramadhan', 'ramadlan']);
+    expect((await cariHadits('sedekah', null, info, d)).urut).toEqual([3, 4]);
+  });
+
+  it('ejaan pilihan hanya mengganti kata utuh dan menjaga huruf besar', async () => {
+    const { terapkanEjaan, simpanEjaan, daftarEjaan, hapusEjaan } = await import('./hadits');
+    const aturan = [
+      { dari: 'Ramadlan', ke: 'Ramadhan' },
+      { dari: 'wudlu', ke: 'Wudhu' },
+    ];
+    expect(terapkanEjaan('Bulan Ramadlan dan ramadlan, RAMADLAN; ramadlannya; berwudlu, wudlu.', aturan)).toBe(
+      'Bulan Ramadhan dan ramadhan, RAMADHAN; ramadlannya; berwudlu, wudhu.',
+    );
+    const d = buatDb('uji-ejaan-simpan');
+    await simpanEjaan('Ramadlan', 'Ramadhan', d);
+    expect(await daftarEjaan(d)).toEqual([{ dari: 'Ramadlan', ke: 'Ramadhan' }]);
+    await hapusEjaan('ramadlan', d);
+    expect(await daftarEjaan(d)).toEqual([]);
+    expect(await d.hapus.get('ejaanHadits|ramadlan')).toBeTruthy();
+  });
+});

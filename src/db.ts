@@ -166,6 +166,14 @@ export interface KaitanAyatHadits {
   dibuat: string;
 }
 
+// K-80: ejaan pilihan saat menampilkan terjemah hadits. Ikut sinkron.
+export interface EjaanHadits {
+  kunci: string; // kata asal, huruf kecil
+  dari: string;
+  ke: string;
+  diubah: string;
+}
+
 // K-78: indeks pencarian — satu kata → urutan hadits yang memuatnya (urut naik).
 export interface HaditsIndeks {
   kata: string;
@@ -218,6 +226,7 @@ export type SakuDB = Dexie & {
   haditsSimpan: EntityTable<HaditsSimpan, 'kunci'>;
   catatanHadits: EntityTable<CatatanHadits, 'kunci'>;
   kaitanAyatHadits: EntityTable<KaitanAyatHadits, 'kunci'>;
+  ejaanHadits: EntityTable<EjaanHadits, 'kunci'>;
   meta: EntityTable<{ kunci: string; nilai: unknown }, 'kunci'>;
   /** true selama perubahan dari perangkat lain diterapkan (penanda waktu tidak diubah) */
   _terapkan?: boolean;
@@ -401,6 +410,9 @@ function siapkanSkema(db: SakuDB) {
     catatanHadits: 'kunci, terimaMs',
     kaitanAyatHadits: 'kunci, surah, hadits, terimaMs',
   });
+
+  // Versi 17 (K-80): ejaan pilihan terjemah hadits — ikut sinkron.
+  db.version(17).stores({ ejaanHadits: 'kunci, terimaMs' });
 }
 
 // Penanda sinkron otomatis untuk setiap penulisan lokal (K-37).
@@ -445,6 +457,7 @@ export const TABEL_SINKRON = [
   'haditsSimpan',
   'catatanHadits',
   'kaitanAyatHadits',
+  'ejaanHadits',
 ] as const;
 export type TabelSinkron = (typeof TABEL_SINKRON)[number];
 

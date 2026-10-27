@@ -43,6 +43,7 @@ import {
   type InfoDataHadits,
 } from '../hadits';
 import Kepala from '../komponen/Kepala';
+import { useEjaan } from '../komponen/useEjaan';
 import { ganti, pergi } from '../navigasi';
 
 const angka = (n: number) => n.toLocaleString('id-ID');
@@ -189,6 +190,7 @@ export function LayarKitabHadits({ cariAwal = '', kitabAwal }: { cariAwal?: stri
 const PER_HASIL = 30;
 
 function HasilCariHadits({ teks, kitab, info }: { teks: string; kitab: string | null; info: InfoDataHadits }) {
+  const eja = useEjaan();
   const [hasil, setHasil] = useState<HasilCari | null>(null);
   const [hadits, setHadits] = useState<Hadits[]>([]);
   const [sunting, setSunting] = useState<Map<string, string>>(new Map());
@@ -249,7 +251,7 @@ function HasilCariHadits({ teks, kitab, info }: { teks: string; kitab: string | 
             {sunting.has(h.kunci) && ' · suntingan sendiri'}
           </span>
           <span className={'cuplikan-hadits' + (arab ? ' arab-cuplikan' : '')} dir={arab ? 'rtl' : undefined}>
-            {cuplikan(arab ? h.arab : (sunting.get(h.kunci) ?? h.terjemah), hasil.kataDipakai).map((p, i) =>
+            {cuplikan(arab ? h.arab : (sunting.get(h.kunci) ?? eja(h.terjemah)), hasil.kataSorot).map((p, i) =>
               p.tebal ? <mark key={i}>{p.teks}</mark> : <span key={i}>{p.teks}</span>,
             )}
           </span>
@@ -304,6 +306,7 @@ export function LayarDaftarHadits({
   bagian: number;
   aturUkuran: (s: number) => void;
 }) {
+  const eja = useEjaan();
   const info = useInfo();
   const [judul, setJudul] = useState<HaditsBagian>();
   const [hadits, setHadits] = useState<Hadits[]>([]);
@@ -337,10 +340,12 @@ export function LayarDaftarHadits({
       <div className="daftar-hadits-bagian">
         {hadits.map((h, i) => (
           <div key={h.kunci}>
-            {(i === 0 || hadits[i - 1].babId !== h.babId) && h.bab && <h3 className="judul-bab-hadits">{h.bab}</h3>}
+            {(i === 0 || hadits[i - 1].babId !== h.babId) && h.bab && (
+              <h3 className="judul-bab-hadits">{eja(h.bab)}</h3>
+            )}
             <button className="ringkas-hadits" onClick={() => pergi(`#/hadits/${kitab}/${h.nomor}`)}>
               <span className="nomor-hadits">No. {angka(h.nomor)}</span>
-              <span className="cuplikan-hadits">{sunting.get(h.kunci) ?? h.terjemah}</span>
+              <span className="cuplikan-hadits">{sunting.get(h.kunci) ?? eja(h.terjemah)}</span>
             </button>
           </div>
         ))}
@@ -364,6 +369,7 @@ export function LayarHadits({
   nomor: number;
   aturUkuran: (s: number) => void;
 }) {
+  const eja = useEjaan();
   const info = useInfo();
   const [hadits, setHadits] = useState<Hadits | null | undefined>(undefined);
   const [kait, setKait] = useState<HaditsKait>();
@@ -425,12 +431,12 @@ export function LayarHadits({
     <>
       <Kepala judul={judul} sub={bagian?.judul} kanan={<TombolUkuran aturUkuran={aturUkuran} />} />
       <article className="halaman-hadits">
-        {hadits.bab && <p className="bab-hadits">{hadits.bab}</p>}
+        {hadits.bab && <p className="bab-hadits">{eja(hadits.bab)}</p>}
         <p className="arab-hadits besar" lang="ar" dir="rtl">
           {hadits.arab}
         </p>
         <div className="blok-terjemah">
-          <p className="terjemah-hadits">{suntingan ?? hadits.terjemah}</p>
+          <p className="terjemah-hadits">{suntingan ?? eja(hadits.terjemah)}</p>
           <div className="aksi-terjemah">
             {suntingan && <span className="tanda-suntingan">Suntingan sendiri</span>}
             <button type="button" className="tautan" onClick={() => setMenyunting(true)}>
@@ -764,6 +770,7 @@ function LembarKaitanAyat({
 
 // #/hadits/tersimpan — hadits yang disimpan dan yang punya catatan (K-79).
 export function LayarTersimpanHadits() {
+  const eja = useEjaan();
   const info = useInfo();
   const [butir, setButir] = useState<ButirTersimpan[] | null>(null);
   const [hadits, setHadits] = useState<Map<string, Hadits>>(new Map());
@@ -791,7 +798,9 @@ export function LayarTersimpanHadits() {
                 {b.disimpan && <BookmarkSimple weight="fill" />} {namaKitab(info, kb)} no. {angka(Number(n))}
               </span>
               {b.catatan && <span className="catatan-ringkas">Catatan: {b.catatan}</span>}
-              <span className="cuplikan-hadits">{h ? h.terjemah : 'Data hadits belum dimuat di perangkat ini.'}</span>
+              <span className="cuplikan-hadits">
+                {h ? eja(h.terjemah) : 'Data hadits belum dimuat di perangkat ini.'}
+              </span>
             </button>
           );
         })}
@@ -802,12 +811,14 @@ export function LayarTersimpanHadits() {
 
 // K-79: hadits hari ini di atas daftar kitab.
 function KartuHaditsHariIni({ info }: { info: InfoDataHadits }) {
+  const eja = useEjaan();
   const [h, setH] = useState<Hadits>();
+  const [sunting, setSunting] = useState<string>();
   useEffect(() => {
     haditsHariIni(info).then(async (x) => {
       if (!x) return;
-      const s = await ambilSuntingan([x.kunci]);
-      setH({ ...x, terjemah: s.get(x.kunci) ?? x.terjemah });
+      setSunting((await ambilSuntingan([x.kunci])).get(x.kunci));
+      setH(x);
     });
   }, [info]);
   if (!h) return null;
@@ -816,8 +827,8 @@ function KartuHaditsHariIni({ info }: { info: InfoDataHadits }) {
       <span className="kicker">
         <Sun weight="duotone" /> Hadits hari ini · {namaKitab(info, h.kitab)} no. {angka(h.nomor)}
       </span>
-      {h.bab && <span className="bab-hadits">{h.bab}</span>}
-      <span className="cuplikan-hadits">{h.terjemah}</span>
+      {h.bab && <span className="bab-hadits">{eja(h.bab)}</span>}
+      <span className="cuplikan-hadits">{sunting ?? eja(h.terjemah)}</span>
     </button>
   );
 }

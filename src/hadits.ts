@@ -141,6 +141,7 @@ export async function muatDataHadits(
   d: SakuDB = db,
   kabar?: (k: Kemajuan) => void,
 ): Promise<InfoDataHadits> {
+  petaIndeks = null;
   const baris = bacaBaris(berkas);
   let kepala: Kepala;
   try {
@@ -348,6 +349,7 @@ export async function muatDataHadits(
 }
 
 export async function hapusDataHadits(d: SakuDB = db) {
+  petaIndeks = null;
   await kosongkan(d);
 }
 
@@ -462,6 +464,7 @@ export const adaArab = (teks: string) => /[؀-ۿ]/.test(teks);
 export interface HasilCari {
   urut: number[]; // urutan hadits yang cocok, naik
   kataDipakai: string[];
+  kataSorot: string[]; // bentuk-bentuk kata di data yang cocok (untuk ditebalkan)
   kataDiabaikan: string[];
 }
 
@@ -480,12 +483,73 @@ function irisan(a: Uint32Array | number[], b: Uint32Array | number[]): number[] 
   return hasil;
 }
 
-async function postingKata(kata: string, d: SakuDB): Promise<number[]> {
-  // Kata pendek dicocokkan utuh; 3 huruf atau lebih juga sebagai awalan.
-  const baris =
-    kata.length >= 3
-      ? await d.haditsIndeks.where('kata').startsWith(kata).limit(200).toArray()
-      : await d.haditsIndeks.where('kata').equals(kata).toArray();
+// ---------- Kunci ejaan (K-80 A) ----------
+
+// Kata Latin disederhanakan agar variasi ejaan transliterasi dianggap sama:
+// dl→dh, dz/zh→z, h sesudah s/d/t/z dibuang, huruf ganda jadi satu.
+export function kunciEjaan(kata: string): string {
+  if (/[\u0600-\u06FF]/.test(kata)) return kata;
+  return kata
+    .replace(/dl/g, 'dh')
+    .replace(/dz|zh/g, 'z')
+    .replace(/([sdtz])h/g, '$1')
+    .replace(/(.)\1+/g, '$1');
+}
+
+// Kata yang beda bentuk (bukan sekadar ejaan) tetapi bermakna sama.
+const PADANAN_KATA: string[][] = [
+  ['sedekah', 'shadaqah', 'shodaqoh', 'sadaqah', 'shadaqoh'],
+  ['shalat', 'sholat', 'salat', 'solat'],
+  ['jumat', 'jumuah', 'jumah'],
+  ['isya', 'isyak'],
+];
+const PETA_PADANAN = new Map<string, string[]>();
+for (const grup of PADANAN_KATA) {
+  const kunci = [...new Set(grup.map(kunciEjaan))];
+  for (const k of kunci) PETA_PADANAN.set(k, kunci);
+}
+
+// Daftar kata indeks yang sudah disederhanakan, urut, untuk mencari awalan. Disusun sekali per sesi.
+let petaIndeks: { kunci: string[]; asli: string[] } | null = null;
+async function ambilPetaIndeks(d: SakuDB) {
+  if (petaIndeks) return petaIndeks;
+  const semua = (await d.haditsIndeks.toCollection().primaryKeys()) as string[];
+  const pasangan = semua
+    .map((k) => [kunciEjaan(k), k] as const)
+    .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+  petaIndeks = { kunci: pasangan.map((p) => p[0]), asli: pasangan.map((p) => p[1]) };
+  return petaIndeks;
+}
+
+function batasBawah(daftar: string[], cari: string): number {
+  let lo = 0;
+  let hi = daftar.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (daftar[mid] < cari) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+// Kata-kata indeks yang cocok dengan satu kata pencarian (utuh bila pendek, awalan bila ≥3 huruf).
+async function kataCocok(kata: string, d: SakuDB): Promise<string[]> {
+  const peta = await ambilPetaIndeks(d);
+  const k = kunciEjaan(kata);
+  const varian = PETA_PADANAN.get(k) ?? [k];
+  const hasil = new Set<string>();
+  for (const v of varian) {
+    for (let i = batasBawah(peta.kunci, v); i < peta.kunci.length && hasil.size < 300; i++) {
+      const kk = peta.kunci[i];
+      if (v.length >= 3 ? !kk.startsWith(v) : kk !== v) break;
+      hasil.add(peta.asli[i]);
+    }
+  }
+  return [...hasil];
+}
+
+async function postingKata(kata: string[], d: SakuDB): Promise<number[]> {
+  const baris = (await d.haditsIndeks.bulkGet(kata)).filter((x): x is NonNullable<typeof x> => !!x);
   if (baris.length === 1) return Array.from(baris[0].urut);
   const gabung = new Set<number>();
   for (const b of baris) for (const u of b.urut) gabung.add(u);
@@ -498,34 +562,48 @@ export async function cariHadits(
   info: InfoDataHadits,
   d: SakuDB = db,
 ): Promise<HasilCari> {
-  const umum = new Set(info.indeks?.kataUmum ?? []);
+  const umum = new Set((info.indeks?.kataUmum ?? []).map(kunciEjaan));
   const semua = [...new Set(kataDari(teks))];
-  const kataDipakai = semua.filter((k) => !umum.has(k));
-  const kataDiabaikan = semua.filter((k) => umum.has(k));
-  if (!kataDipakai.length) return { urut: [], kataDipakai, kataDiabaikan };
+  const kataDipakai = semua.filter((k) => !umum.has(kunciEjaan(k)));
+  const kataDiabaikan = semua.filter((k) => umum.has(kunciEjaan(k)));
+  if (!kataDipakai.length) return { urut: [], kataDipakai, kataDiabaikan, kataSorot: [] };
 
   let hasil: number[] | null = null;
+  const sorot = new Set<string>();
+  const cocokPerKata: string[][] = [];
   for (const k of kataDipakai) {
-    const p = await postingKata(k, d);
+    const cocokKata = await kataCocok(k, d);
+    cocokPerKata.push(cocokKata);
+    cocokKata.forEach((x) => sorot.add(x));
+    const p = await postingKata(cocokKata, d);
     hasil = hasil === null ? p : irisan(hasil, p);
     if (!hasil.length) break;
   }
   const cocok = new Set(hasil ?? []);
 
-  // Suntingan terjemah sendiri ikut dicari (jumlahnya kecil, disaring langsung).
+  // Suntingan terjemah sendiri ikut dicari (jumlahnya kecil, disaring langsung) dengan kunci ejaan yang sama.
   const sunting = await d.maknaHadits.toArray();
   for (const s of sunting) {
-    const isi = normal(s.isi);
-    if (kataDipakai.every((k) => new RegExp(`(^|[^a-z0-9\\u0621-\\u064A])${k}`).test(isi))) {
+    const kataIsi = kataDari(s.isi).map(kunciEjaan);
+    const semuaAda = kataDipakai.every((k) => {
+      const varian = PETA_PADANAN.get(kunciEjaan(k)) ?? [kunciEjaan(k)];
+      return kataIsi.some((w) => varian.some((v) => (v.length >= 3 ? w.startsWith(v) : w === v)));
+    });
+    if (semuaAda) {
       const h = await d.hadits.get(s.kunci);
       if (h?.urut !== undefined) cocok.add(h.urut);
+      kataDari(s.isi).forEach((w) => {
+        const kw = kunciEjaan(w);
+        if (kataDipakai.some((k) => (PETA_PADANAN.get(kunciEjaan(k)) ?? [kunciEjaan(k)]).some((v) => kw.startsWith(v))))
+          sorot.add(w);
+      });
     }
   }
 
   let urut = [...cocok].sort((a, b) => a - b);
   const rg = kitab ? info.indeks?.rentang[kitab] : null;
   if (rg) urut = urut.filter((u) => u >= rg[0] && u <= rg[1]);
-  return { urut, kataDipakai, kataDiabaikan };
+  return { urut, kataDipakai, kataDiabaikan, kataSorot: [...sorot] };
 }
 
 export async function haditsMenurutUrut(urut: number[], d: SakuDB = db): Promise<Hadits[]> {
@@ -666,4 +744,67 @@ export async function haditsHariIni(info: InfoDataHadits, tanggal = new Date(), 
   const hari = Math.floor(Date.UTC(tanggal.getFullYear(), tanggal.getMonth(), tanggal.getDate()) / 86400000);
   const urut = (hari * 7919) % info.jumlahHadits;
   return d.hadits.where('urut').equals(urut).first();
+}
+
+// ---------- Ejaan pilihan saat tampil (K-80 C) ----------
+
+export interface AturanEjaan {
+  dari: string;
+  ke: string;
+}
+
+export const USULAN_EJAAN: AturanEjaan[] = [
+  { dari: 'Ramadlan', ke: 'Ramadhan' },
+  { dari: 'Wudlu', ke: 'Wudhu' },
+  { dari: 'Dluha', ke: 'Dhuha' },
+  { dari: 'Ridla', ke: 'Ridha' },
+  { dari: 'Qadla', ke: 'Qadha' },
+  { dari: 'Shubuh', ke: 'Subuh' },
+  { dari: 'Dhuhur', ke: 'Zhuhur' },
+  { dari: 'Dzuhur', ke: 'Zhuhur' },
+  { dari: 'Sholat', ke: 'Shalat' },
+];
+
+export async function daftarEjaan(d: SakuDB = db): Promise<AturanEjaan[]> {
+  const semua = await d.ejaanHadits.toArray();
+  return semua.sort((a, b) => a.kunci.localeCompare(b.kunci)).map((x) => ({ dari: x.dari, ke: x.ke }));
+}
+
+export async function simpanEjaan(dari: string, ke: string, d: SakuDB = db) {
+  const a = dari.trim();
+  const b = ke.trim();
+  if (!a || !b || a.toLowerCase() === b.toLowerCase()) return;
+  await d.ejaanHadits.put({ kunci: a.toLowerCase(), dari: a, ke: b, diubah: new Date().toISOString() });
+}
+
+export async function hapusEjaan(dari: string, d: SakuDB = db) {
+  const kunci = dari.trim().toLowerCase();
+  await d.transaction('rw', d.ejaanHadits, d.hapus, async () => {
+    await d.ejaanHadits.delete(kunci);
+    await catatHapus(d, 'ejaanHadits', [kunci]);
+  });
+}
+
+// Mengganti kata utuh (tanpa membedakan huruf besar/kecil); huruf besar di awal kata dipertahankan.
+export function terapkanEjaan(teks: string, aturan: AturanEjaan[]): string {
+  if (!aturan.length || !teks) return teks;
+  const peta = new Map(aturan.map((a) => [a.dari.toLowerCase(), a.ke]));
+  const pola = new RegExp(
+    `(^|[^A-Za-z0-9'])(${[...peta.keys()]
+      .sort((a, b) => b.length - a.length)
+      .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('|')})(?![A-Za-z0-9])`,
+    'gi',
+  );
+  return teks.replace(pola, (_m, depan: string, kata: string) => {
+    const ganti = peta.get(kata.toLowerCase()) ?? kata;
+    const besar = kata[0] === kata[0].toUpperCase() && kata[0] !== kata[0].toLowerCase();
+    const semuaBesar = kata.length > 1 && kata === kata.toUpperCase();
+    const hasil = semuaBesar
+      ? ganti.toUpperCase()
+      : besar
+        ? ganti[0].toUpperCase() + ganti.slice(1)
+        : ganti[0].toLowerCase() + ganti.slice(1);
+    return depan + hasil;
+  });
 }

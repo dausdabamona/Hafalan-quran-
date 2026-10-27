@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Trash, UploadSimple } from '@phosphor-icons/react';
 import { hapusDataHadits, infoDataHadits, muatDataHadits, type InfoDataHadits, type Kemajuan } from '../hadits';
 import Kepala from '../komponen/Kepala';
+import { kabariEjaanBerubah } from '../komponen/useEjaan';
+import { USULAN_EJAAN, daftarEjaan, hapusEjaan, simpanEjaan, type AturanEjaan } from '../hadits';
 
 const tanggal = (iso: string) =>
   new Date(iso).toLocaleString('id-ID', {
@@ -121,6 +123,7 @@ export default function LayarDataHadits() {
             </button>
           )}
         </section>
+        <EjaanPilihan />
         {pesan && (
           <p className={pesan.jenis === 'galat' ? 'pesan-galat' : 'pesan-baik'} role="status">
             {pesan.teks}
@@ -128,5 +131,89 @@ export default function LayarDataHadits() {
         )}
       </div>
     </>
+  );
+}
+
+// K-80 C: ejaan pilihan saat menampilkan terjemah hadits (data asli tidak diubah).
+function EjaanPilihan() {
+  const [aturan, setAturan] = useState<AturanEjaan[]>([]);
+  const [dari, setDari] = useState('');
+  const [ke, setKe] = useState('');
+  const muat = async () => {
+    setAturan(await daftarEjaan());
+    kabariEjaanBerubah();
+  };
+  useEffect(() => {
+    daftarEjaan().then(setAturan);
+  }, []);
+  const ada = new Set(aturan.map((a) => a.dari.toLowerCase()));
+  const usulan = USULAN_EJAAN.filter((u) => !ada.has(u.dari.toLowerCase()));
+  const tambah = async (a: string, b: string) => {
+    await simpanEjaan(a, b);
+    setDari('');
+    setKe('');
+    await muat();
+  };
+  return (
+    <section className="kartu-kemajuan">
+      <h2>Ejaan pilihan</h2>
+      <p className="keterangan-kecil">
+        Kata di terjemah hadits ditampilkan dengan ejaan Anda, mis. Ramadlan → Ramadhan. Data asli dan suntingan Anda
+        tidak diubah. Ikut sinkron ke perangkat lain.
+      </p>
+      {aturan.length > 0 && (
+        <ul className="daftar-ejaan">
+          {aturan.map((a) => (
+            <li key={a.dari}>
+              <span>
+                {a.dari} → <strong>{a.ke}</strong>
+              </span>
+              <button
+                type="button"
+                className="tombol-ikon kecil"
+                aria-label={`Hapus ejaan ${a.dari}`}
+                onClick={async () => {
+                  await hapusEjaan(a.dari);
+                  await muat();
+                }}
+              >
+                <Trash size={18} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form
+        className="tambah-ejaan"
+        onSubmit={(e) => {
+          e.preventDefault();
+          tambah(dari, ke);
+        }}
+      >
+        <input
+          value={dari}
+          onChange={(e) => setDari(e.target.value)}
+          placeholder="Kata di data"
+          aria-label="Kata di data"
+        />
+        <span aria-hidden="true">→</span>
+        <input value={ke} onChange={(e) => setKe(e.target.value)} placeholder="Ejaan saya" aria-label="Ejaan saya" />
+        <button className="tombol" type="submit" disabled={!dari.trim() || !ke.trim()}>
+          Tambah
+        </button>
+      </form>
+      {usulan.length > 0 && (
+        <>
+          <p className="keterangan-kecil">Usulan (ketuk untuk menambah):</p>
+          <div className="chip-kait">
+            {usulan.map((u) => (
+              <button key={u.dari} type="button" className="chip" onClick={() => tambah(u.dari, u.ke)}>
+                {u.dari} → {u.ke}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </section>
   );
 }

@@ -39,9 +39,19 @@ export function statusRekaman(ayat: number, b: BahanStatus): StatusRekaman {
 export type Rentang =
   | { jenis: 'ayat'; surah: number; ayatAwal: number; ayatAkhir: number }
   | { jenis: 'juz'; nomor: number }
-  | { jenis: 'hafalan' };
+  | { jenis: 'hafalan' }
+  | { jenis: 'target' } // K-82: ayat target yang sudah direkam, diputar berulang
+  | { jenis: 'selain-target' }; // K-82: hafalan di luar rentang target
 
-export function daftarAyatRentang(r: Rentang, hafal?: Set<string>): LetakAyat[] {
+export function daftarAyatRentang(r: Rentang, hafal?: Set<string>, target?: Set<string>): LetakAyat[] {
+  if (r.jenis === 'target') {
+    const hasil: LetakAyat[] = [];
+    for (const k of target ?? []) {
+      const [surah, ayat] = k.split(':').map(Number);
+      hasil.push({ surah, ayat });
+    }
+    return hasil;
+  }
   if (r.jenis === 'ayat') {
     return Array.from({ length: r.ayatAkhir - r.ayatAwal + 1 }, (_, i) => ({ surah: r.surah, ayat: r.ayatAwal + i }));
   }
@@ -59,13 +69,20 @@ export function daftarAyatRentang(r: Rentang, hafal?: Set<string>): LetakAyat[] 
     return hasil;
   }
   for (const s of daftarSurah)
-    for (let a = 1; a <= s.jumlahAyat; a++) if (hafal?.has(`${s.nomor}:${a}`)) hasil.push({ surah: s.nomor, ayat: a });
+    for (let a = 1; a <= s.jumlahAyat; a++) {
+      const k = `${s.nomor}:${a}`;
+      if (!hafal?.has(k)) continue;
+      if (r.jenis === 'selain-target' && target?.has(k)) continue;
+      hasil.push({ surah: s.nomor, ayat: a });
+    }
   return hasil;
 }
 
 export function judulRentang(r: Rentang): string {
   if (r.jenis === 'juz') return `Juz ${r.nomor}`;
   if (r.jenis === 'hafalan') return 'Semua hafalan';
+  if (r.jenis === 'target') return 'Target';
+  if (r.jenis === 'selain-target') return 'Selain target';
   const nama = cariSurah(r.surah)?.nama ?? String(r.surah);
   const s = cariSurah(r.surah);
   if (s && r.ayatAwal === 1 && r.ayatAkhir === s.jumlahAyat) return nama;
@@ -75,6 +92,8 @@ export function judulRentang(r: Rentang): string {
 export function hashMurotal(r: Rentang): string {
   if (r.jenis === 'juz') return `#/murotal/juz/${r.nomor}`;
   if (r.jenis === 'hafalan') return '#/murotal/hafalan';
+  if (r.jenis === 'target') return '#/murotal/target';
+  if (r.jenis === 'selain-target') return '#/murotal/selain-target';
   return `#/murotal/${r.surah}/${r.ayatAwal}-${r.ayatAkhir}`;
 }
 
@@ -89,4 +108,20 @@ export function tujuanPerbaikan(
   if (r && jadwal.has(r.nomor)) return { potongan: { surah, ayatAwal: ayat, ayatAkhir: ayat }, rukuk: r.nomor };
   const p = potonganSurah(surah).find((x) => x.ayatAwal <= ayat && ayat <= x.ayatAkhir)!;
   return { potongan: p };
+}
+
+// ---------- K-82: putaran target ----------
+
+// Jadwal 14 hari (indeks JARAK_HARI ke-3) menandai ayat sudah sangat lancar.
+export const TINGKAT_SANGAT_LANCAR = 3;
+
+export function sangatLancar(
+  surah: number,
+  ayat: number,
+  jadwal: Map<number, EntriJadwal>,
+  tandaSalahAyat: TandaSalah[],
+): boolean {
+  const r = rukukAyat(surah, ayat);
+  const j = r ? jadwal.get(r.nomor) : undefined;
+  return !!j && j.lengkap && j.tingkat >= TINGKAT_SANGAT_LANCAR && tandaSalahAyat.length === 0;
 }

@@ -141,7 +141,7 @@ export default function App() {
         {layar.nama === 'lainnya' && <LayarLainnya />}
         {layar.nama === 'kemajuan' && <LayarKemajuan />}
         {layar.nama === 'target' && <LayarTarget />}
-        {layar.nama === 'pilih-murotal' && <LayarPilihMurotal />}
+        {layar.nama === 'pilih-murotal' && <LayarPilihMurotal tanpaAlih={layar.tanpaAlih} />}
         {layar.nama === 'pengingat' && <LayarPengingat />}
         {layar.nama === 'sinkron' && <LayarSinkron />}
         {layar.nama === 'cadangan' && <LayarCadangan />}

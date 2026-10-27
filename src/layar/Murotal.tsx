@@ -1,10 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, DeviceMobile, Microphone, Pause, Play, Stop, Warning } from '@phosphor-icons/react';
+import {
+  ArrowsClockwise,
+  Check,
+  DeviceMobile,
+  Flag,
+  Microphone,
+  Pause,
+  Play,
+  Stop,
+  Warning,
+} from '@phosphor-icons/react';
 import { gulirDalam, gulirKe } from '../komponen/gulir';
 import { cariAyat, cariSurah, daftarJuz, daftarSurah, segmenAyat } from '../data';
 import { ambilMaknaSurah, type Makna } from '../db';
-import type { EntriJadwal } from '../jadwal';
-import { susunMurotal } from '../murotalData';
+import { adaPutaranTarget, susunMurotal, type DaftarMurotal } from '../murotalData';
+import { ambilTarget, namaTarget } from '../target';
 import {
   hashMurotal,
   judulRentang,
@@ -24,7 +34,6 @@ import {
   mulai,
   pilihAyat,
   putarJeda,
-  type ItemMurotal,
   type KeadaanPemutar,
 } from '../pemutar';
 import Kepala from '../komponen/Kepala';
@@ -59,20 +68,53 @@ function namaAyat(l: LetakAyat): string {
 
 // ---------- Pilihan rentang ----------
 
-export function LayarPilihMurotal() {
+export function LayarPilihMurotal({ tanpaAlih }: { tanpaAlih?: boolean }) {
   const [surah, setSurah] = useState(1);
   const [pesanIkon, setPesanIkon] = useState('');
+  // K-82: selama ada target dengan putaran berisi, Murotal langsung masuk ke target.
+  const [target, setTarget] = useState<{ nama: string; putaran: boolean } | null>(null);
+  useEffect(() => {
+    (async () => {
+      const t = await ambilTarget();
+      if (!t) return;
+      const putaran = await adaPutaranTarget();
+      if (putaran && !tanpaAlih) {
+        ganti('#/murotal/target');
+        return;
+      }
+      setTarget({ nama: namaTarget(t), putaran });
+    })();
+  }, [tanpaAlih]);
   return (
     <>
       <Kepala judul="Murotal" sub="Dari rekaman murojaah Anda sendiri" />
       <section className="kartu">
-        <p className="kosong">
-          Hanya ayat yang rekamannya sudah dikoreksi dan bersih dari kesalahan yang diputar. Murotal tetap berputar saat
-          layar dimatikan.
-        </p>
-        <button className="tombol utama lebar" onClick={() => pergi(hashMurotal({ jenis: 'hafalan' }))}>
-          <Play weight="duotone" /> Semua hafalan
-        </button>
+        {target?.putaran ? (
+          <>
+            <button className="tombol utama lebar" onClick={() => pergi('#/murotal/target')}>
+              <Flag weight="duotone" /> Target: {target.nama} (berulang)
+            </button>
+            <button className="tombol sekunder lebar" onClick={() => pergi(hashMurotal({ jenis: 'selain-target' }))}>
+              <Play weight="duotone" /> Selain target
+            </button>
+          </>
+        ) : (
+          <>
+            {target && (
+              <p className="kosong">
+                Target {target.nama}: belum ada ayat yang direkam, atau semuanya sudah sangat lancar — murotal kembali
+                seperti biasa.
+              </p>
+            )}
+            <p className="kosong">
+              Hanya ayat yang rekamannya sudah dikoreksi dan bersih dari kesalahan yang diputar. Murotal tetap berputar
+              saat layar dimatikan.
+            </p>
+            <button className="tombol utama lebar" onClick={() => pergi(hashMurotal({ jenis: 'hafalan' }))}>
+              <Play weight="duotone" /> Semua hafalan
+            </button>
+          </>
+        )}
         {pintasanTersedia() && (
           <>
             <button className="tombol sekunder lebar" onClick={async () => setPesanIkon(await pasangIkonMurotal())}>
@@ -130,15 +172,11 @@ const LABEL: Record<Exclude<StatusRekaman, 'siap'>, string> = {
   'belum-rekam': '– Belum direkam',
 };
 
-interface Hasil {
-  siap: ItemMurotal[];
-  lain: { letak: LetakAyat; status: Exclude<StatusRekaman, 'siap'> }[];
-  jadwal: Map<number, EntriJadwal>;
-}
+type Hasil = DaftarMurotal;
 
 export default function LayarMurotal({ rentang, putar }: { rentang: Rentang; putar?: boolean }) {
   const hash = hashMurotal(rentang);
-  const judul = judulRentang(rentang);
+  const modeTarget = rentang.jenis === 'target';
   const pemutar = usePemutar();
   const [hasil, setHasil] = useState<Hasil | null>(null);
   // K-35: saat diputar, tampil ayat (teks Arab), arti (makna per waqaf), atau tertutup.
@@ -162,6 +200,15 @@ export default function LayarMurotal({ rentang, putar }: { rentang: Rentang; put
   const refPemutar = useRef<HTMLElement>(null);
   const refDaftar = useRef<HTMLOListElement>(null);
   const [lanjutDari, setLanjutDari] = useState<LetakAyat | null>(null);
+  const judulPutar = () => (modeTarget ? `Target · ${hasil?.namaTarget ?? 'belum ada target'}` : judulRentang(rentang));
+
+  // K-82: "semua hafalan" (termasuk ikon layar utama) otomatis masuk ke target bila putarannya berisi.
+  useEffect(() => {
+    if (rentang.jenis !== 'hafalan') return;
+    adaPutaranTarget().then((ada) => {
+      if (ada) ganti(putar ? '#/murotal/target/putar' : '#/murotal/target');
+    });
+  }, [hash]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let batal = false;
@@ -178,7 +225,7 @@ export default function LayarMurotal({ rentang, putar }: { rentang: Rentang; put
   // ke layar murotal biasa agar tidak terputar ulang. Bila sudah berputar, tidak diulang.
   useEffect(() => {
     if (!hasil || !putar) return;
-    if (hasil.siap.length > 0 && keadaanPemutar()?.asal !== hash) mulai(judul, hasil.siap, hash);
+    if (hasil.siap.length > 0 && keadaanPemutar()?.asal !== hash) mulai(judulPutar(), hasil.siap, hash, 0, modeTarget);
     ganti(hash);
   }, [hasil, putar]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -188,7 +235,8 @@ export default function LayarMurotal({ rentang, putar }: { rentang: Rentang; put
     const l = lanjutDari;
     setLanjutDari(null);
     const i = hasil.siap.findIndex((x) => x.surah > l.surah || (x.surah === l.surah && x.ayat > l.ayat));
-    if (i >= 0) mulai(judul, hasil.siap, hash, i);
+    if (i >= 0) mulai(judulPutar(), hasil.siap, hash, i, modeTarget);
+    else if (modeTarget && hasil.siap.length) mulai(judulPutar(), hasil.siap, hash, 0, true);
     else berhenti();
   }, [hasil]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -216,6 +264,7 @@ export default function LayarMurotal({ rentang, putar }: { rentang: Rentang; put
     return n;
   }, [hasil]);
 
+  const judul = modeTarget ? `Target · ${hasil?.namaTarget ?? 'belum ada target'}` : judulRentang(rentang);
   if (!hasil) return <Kepala judul="Murotal" sub={judul} />;
 
   const aktif = pemutar && pemutar.asal === hash ? pemutar : null;
@@ -234,28 +283,65 @@ export default function LayarMurotal({ rentang, putar }: { rentang: Rentang; put
     <>
       <Kepala judul="Murotal" sub={judul} />
 
-      <section className="kartu ringkas-murotal">
-        <p>
-          <strong>{hasil.siap.length} ayat siap diputar</strong>
-          {jumlah.perbaiki > 0 && ` · ${jumlah.perbaiki} perlu diperbaiki`}
-          {jumlah['belum-koreksi'] > 0 && ` · ${jumlah['belum-koreksi']} belum dikoreksi`}
-          {jumlah['belum-rekam'] > 0 && ` · ${jumlah['belum-rekam']} belum direkam`}
-        </p>
-        {hasil.siap.length === 0 ? (
-          <p className="kosong">
-            Belum ada rekaman yang siap. Rekam lalu koreksi ayatnya dulu; rekaman yang bersih otomatis masuk murotal.
+      {modeTarget && (
+        <section className="kartu ringkas-murotal">
+          <p>
+            <strong>{hasil.siap.length} ayat target diputar berulang</strong>
+            {hasil.lancar.length > 0 && ` · ${hasil.lancar.length} sudah sangat lancar`}
+            {jumlah['belum-rekam'] > 0 && ` · ${jumlah['belum-rekam']} belum direkam`}
           </p>
-        ) : (
-          !aktif && (
-            <button className="tombol utama lebar" onClick={() => mulai(judul, hasil.siap, hash)}>
-              <Play weight="duotone" /> Putar murotal
+          <p className="kosong">
+            <ArrowsClockwise weight="bold" /> Semua ayat target yang sudah direkam, benar maupun salah, diputar terus
+            sampai dihentikan. Ayat keluar dari putaran setelah rukuknya mencapai jadwal 14 hari tanpa tanda salah.
+          </p>
+          {hasil.siap.length === 0 ? (
+            <p className="kosong">Belum ada ayat target yang direkam, atau semuanya sudah sangat lancar.</p>
+          ) : (
+            !aktif && (
+              <button className="tombol utama lebar" onClick={() => mulai(judul, hasil.siap, hash, 0, true)}>
+                <Play weight="duotone" /> Putar target
+              </button>
+            )
+          )}
+          <div className="tautan-murotal">
+            <button className="tautan" onClick={() => pergi(hashMurotal({ jenis: 'selain-target' }))}>
+              Selain target
             </button>
-          )
-        )}
-      </section>
+            <button className="tautan" onClick={() => pergi('#/murotal/pilih')}>
+              Pilihan lain (surah, juz)
+            </button>
+          </div>
+        </section>
+      )}
+      {!modeTarget && (
+        <section className="kartu ringkas-murotal">
+          <p>
+            <strong>{hasil.siap.length} ayat siap diputar</strong>
+            {jumlah.perbaiki > 0 && ` · ${jumlah.perbaiki} perlu diperbaiki`}
+            {jumlah['belum-koreksi'] > 0 && ` · ${jumlah['belum-koreksi']} belum dikoreksi`}
+            {jumlah['belum-rekam'] > 0 && ` · ${jumlah['belum-rekam']} belum direkam`}
+          </p>
+          {hasil.siap.length === 0 ? (
+            <p className="kosong">
+              Belum ada rekaman yang siap. Rekam lalu koreksi ayatnya dulu; rekaman yang bersih otomatis masuk murotal.
+            </p>
+          ) : (
+            !aktif && (
+              <button className="tombol utama lebar" onClick={() => mulai(judul, hasil.siap, hash, 0, modeTarget)}>
+                <Play weight="duotone" /> Putar murotal
+              </button>
+            )
+          )}
+        </section>
+      )}
 
       {aktif && kini && ayatKini && (
         <section className="kartu pemutar" ref={refPemutar}>
+          {kini.salah && (
+            <p className="tanda-rekaman-salah">
+              <Warning weight="fill" /> Rekaman ini masih ada kesalahan — rekam ulang bila sempat
+            </p>
+          )}
           <p className="lokasi-putar">
             {namaAyat(kini)}{' '}
             <span className="redup">
@@ -285,7 +371,7 @@ export default function LayarMurotal({ rentang, putar }: { rentang: Rentang; put
             <button
               className="tombol-nav"
               onClick={() => lompat(1)}
-              disabled={aktif.indeks >= aktif.daftar.length - 1}
+              disabled={aktif.indeks >= aktif.daftar.length - 1 && !aktif.ulang}
               aria-label="Ayat berikutnya"
             >
               ‹ Berikutnya
@@ -336,8 +422,9 @@ export default function LayarMurotal({ rentang, putar }: { rentang: Rentang; put
               <li key={`${x.surah}:${x.ayat}`}>
                 <button
                   className={'baris-putar' + (aktif && aktif.indeks === i ? ' kini' : '')}
-                  onClick={() => (aktif ? pilihAyat(i) : mulai(judul, hasil.siap, hash, i))}
+                  onClick={() => (aktif ? pilihAyat(i) : mulai(judul, hasil.siap, hash, i, modeTarget))}
                 >
+                  {x.salah && <span className="titik-salah" role="img" aria-label="Rekaman masih ada kesalahan" />}
                   {namaAyat(x)}
                 </button>
               </li>

@@ -15,7 +15,7 @@ export type Layar =
   | { nama: 'lainnya' }
   | { nama: 'kemajuan' }
   | { nama: 'target' }
-  | { nama: 'pilih-murotal' }
+  | { nama: 'pilih-murotal'; tanpaAlih?: boolean }
   | { nama: 'pengingat' }
   | { nama: 'sinkron' }
   | { nama: 'cadangan' }
@@ -57,6 +57,11 @@ export function bacaHash(): Layar {
   }
   // Murotal (K-28): #/murotal, #/murotal/hafalan, #/murotal/juz/N, #/murotal/S/A-B
   if (h === '#/murotal') return { nama: 'pilih-murotal' };
+  // K-82: #/murotal/pilih menampilkan pilihan tanpa otomatis masuk ke target.
+  if (h === '#/murotal/pilih') return { nama: 'pilih-murotal', tanpaAlih: true };
+  if (h === '#/murotal/target') return { nama: 'murotal', rentang: { jenis: 'target' } };
+  if (h === '#/murotal/target/putar') return { nama: 'murotal', rentang: { jenis: 'target' }, putar: true };
+  if (h === '#/murotal/selain-target') return { nama: 'murotal', rentang: { jenis: 'selain-target' } };
   if (h === '#/pengingat') return { nama: 'pengingat' };
   if (h === '#/sinkron') return { nama: 'sinkron' };
   if (h === '#/cadangan') return { nama: 'cadangan' };

@@ -11,6 +11,7 @@ export interface ItemMurotal {
   surah: number;
   ayat: number;
   audio: Blob;
+  salah?: boolean; // K-82: rekaman ini masih ada kesalahan (putaran target)
 }
 
 export interface KeadaanPemutar {
@@ -21,6 +22,7 @@ export interface KeadaanPemutar {
   kecepatan: number;
   selesai: boolean;
   asal: string; // hash layar murotal, untuk kembali dari bilah pemutar
+  ulang?: boolean; // K-82: sesudah ayat terakhir kembali ke ayat pertama
 }
 
 let keadaan: KeadaanPemutar | null = null;
@@ -50,6 +52,7 @@ function elemen(): HTMLAudioElement {
     audio.addEventListener('ended', () => {
       if (!keadaan) return;
       if (keadaan.indeks < keadaan.daftar.length - 1) muat(keadaan.indeks + 1, true);
+      else if (keadaan.ulang) muat(0, true);
       else {
         keadaan.main = false;
         keadaan.selesai = true;
@@ -100,9 +103,9 @@ function muat(indeks: number, putar: boolean) {
   kabari();
 }
 
-export function mulai(judul: string, daftar: ItemMurotal[], asal: string, indeks = 0) {
+export function mulai(judul: string, daftar: ItemMurotal[], asal: string, indeks = 0, ulang = false) {
   if (daftar.length === 0) return;
-  keadaan = { judul, daftar, indeks, main: false, kecepatan: keadaan?.kecepatan ?? 1, selesai: false, asal };
+  keadaan = { judul, daftar, indeks, main: false, kecepatan: keadaan?.kecepatan ?? 1, selesai: false, asal, ulang };
   muat(indeks, true);
 }
 
@@ -120,7 +123,9 @@ export function putarJeda() {
 
 export function lompat(arah: number) {
   if (!keadaan) return;
-  const tujuan = keadaan.indeks + arah;
+  let tujuan = keadaan.indeks + arah;
+  // K-82: putaran berulang menyambung dari akhir ke awal.
+  if (keadaan.ulang && tujuan >= keadaan.daftar.length) tujuan = 0;
   if (tujuan < 0 || tujuan >= keadaan.daftar.length) return;
   muat(tujuan, keadaan.main || keadaan.selesai);
 }

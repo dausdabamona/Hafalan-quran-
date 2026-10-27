@@ -4962,3 +4962,31 @@ body {
   font-size: 13px;
   color: var(--color-muted);
 }
+
+/* ---------- K-82: murotal target ---------- */
+.tautan-murotal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+.tanda-rekaman-salah {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--color-salah-latar);
+  color: var(--color-salah);
+  font-size: 13px;
+  font-weight: 700;
+}
+.titik-salah {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-salah-garis);
+  margin-right: 6px;
+  vertical-align: 1px;
+}

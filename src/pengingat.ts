@@ -12,6 +12,19 @@ interface StatusPengingat {
   aktif: boolean;
   jedaMenit: number;
   paket: string;
+  batasMenit?: number;
+  ulangMenit?: number;
+  kartuBuka?: boolean;
+}
+
+// K-87: pengaturan yang dikirim ke layanan Android.
+export interface AturPengingat {
+  aktif: boolean;
+  jedaMenit: number;
+  paket: string;
+  batasMenit: number; // 0 = batas pemakaian mati
+  ulangMenit: number;
+  kartuBuka: boolean;
 }
 
 interface AyatKartu {
@@ -28,8 +41,8 @@ interface PluginPengingat {
   bukaSetelanOverlay(): Promise<void>;
   bukaSetelanPenggunaan(): Promise<void>;
   simpanAyat(o: { daftar: AyatKartu[] }): Promise<{ jumlah: number }>;
-  atur(o: { aktif: boolean; jedaMenit: number; paket: string }): Promise<void>;
-  coba(): Promise<void>;
+  atur(o: AturPengingat): Promise<void>;
+  coba(o?: { teguran: boolean }): Promise<void>;
   ambilTujuan(): Promise<{ tujuan: string }>;
 }
 
@@ -37,7 +50,11 @@ export const Pengingat = registerPlugin<PluginPengingat>('PengingatAyat');
 
 // Hanya versi GitHub yang membawa plugin ini; versi Google Play tidak (K-56).
 export function pengingatTersedia(): boolean {
-  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android' && Capacitor.isPluginAvailable('PengingatAyat');
+  return (
+    Capacitor.isNativePlatform() &&
+    Capacitor.getPlatform() === 'android' &&
+    Capacitor.isPluginAvailable('PengingatAyat')
+  );
 }
 
 // Aplikasi Claude (K-44).
@@ -56,11 +73,7 @@ export const PAKET_BAWAAN = APLIKASI_PEMICU.flatMap((a) => a.paket).join(',');
 
 // Daftar ayat yang sudah dihafal beserta maknanya. Ayat yang pernah salah berbobot 3.
 export async function susunAyatKartu(): Promise<AyatKartu[]> {
-  const [hafalan, makna, salah] = await Promise.all([
-    ambilHafalan(),
-    db.makna.toArray(),
-    db.tandaSalah.toArray(),
-  ]);
+  const [hafalan, makna, salah] = await Promise.all([ambilHafalan(), db.makna.toArray(), db.tandaSalah.toArray()]);
   const hafal = ayatHafal(hafalan);
   const maknaEdit = new Map(makna.map((m) => [m.kunci, m.isi]));
   const pernahSalah = new Set(salah.map((t) => `${t.surah}:${t.ayat}`));

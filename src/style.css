@@ -1116,6 +1116,27 @@ button.judul-juz.tandai {
   font-size: 0.85rem;
 }
 
+/* K-87: pilihan menit pengingat */
+.pilih-menit {
+  flex-wrap: wrap;
+}
+
+.isi-menit {
+  width: 92px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--garis);
+  border-radius: 20px;
+  background: var(--kartu);
+  color: inherit;
+  font-size: 0.85rem;
+}
+
+.isi-menit.aktif {
+  border-color: var(--teal);
+  border-width: 2px;
+}
+
 .chip.aktif {
   background: var(--color-isi-tua);
   border-color: var(--teal);

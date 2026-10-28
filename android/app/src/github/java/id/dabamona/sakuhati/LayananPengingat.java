@@ -35,7 +35,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import org.json.JSONArray;
@@ -46,10 +48,29 @@ import org.json.JSONObject;
  * (izin Akses penggunaan). Bila yang dibuka adalah aplikasi pemicu (Facebook, YouTube,
  * Instagram, Chrome, TikTok) dan jeda minimal sudah lewat, satu kartu ayat hafalan tampil
  * di atas aplikasi itu (izin Tampil di atas aplikasi lain). Pemantauan berhenti saat layar mati.
+ *
+ * K-87: lama pemakaian aplikasi pemicu dihitung. Sesudah batas pertama (batasMenit) tampil kartu
+ * teguran, lalu diulang tiap ulangMenit selama masih di aplikasi pemicu. Hitungan digabung untuk
+ * semua aplikasi pemicu dan berlanjut bila kembali dalam 2 menit.
  */
 public class LayananPengingat extends Service {
 
     static final String AKSI_COBA = "id.dabamona.sakuhati.COBA_KARTU";
+    static final String EKSTRA_TEGURAN = "teguran";
+    private static final long JEDA_LANJUT_MS = 120_000;
+    private static final Map<String, String> NAMA_APLIKASI = new HashMap<>();
+
+    static {
+        NAMA_APLIKASI.put("com.facebook.katana", "Facebook");
+        NAMA_APLIKASI.put("com.facebook.lite", "Facebook");
+        NAMA_APLIKASI.put("com.google.android.youtube", "YouTube");
+        NAMA_APLIKASI.put("com.instagram.android", "Instagram");
+        NAMA_APLIKASI.put("com.android.chrome", "Chrome");
+        NAMA_APLIKASI.put("com.zhiliaoapp.musically", "TikTok");
+        NAMA_APLIKASI.put("com.ss.android.ugc.trill", "TikTok");
+        NAMA_APLIKASI.put("com.zhiliaoapp.musically.go", "TikTok");
+        NAMA_APLIKASI.put("com.anthropic.claude", "Claude");
+    }
     private static final String KANAL = "pengingat-ayat";
     private static final int ID_NOTIFIKASI = 3201;
     private static final long SELANG_PANTAU_MS = 2000;
@@ -60,6 +81,13 @@ public class LayananPengingat extends Service {
     private String paketKini = "";
     private View kartu;
     private String kunciTerakhir = "";
+
+    // K-87: hitungan lama pemakaian aplikasi pemicu.
+    private long putaranTerakhir = 0;
+    private boolean diPemicuTadi = false;
+    private long keluarPemicu = 0;
+    private long dipakaiMs = 0;
+    private long teguranBerikutMs = 0;
 
     private final Runnable pantau = new Runnable() {
         @Override
@@ -85,7 +113,9 @@ public class LayananPengingat extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         mulaiLatarDepan();
-        if (intent != null && AKSI_COBA.equals(intent.getAction())) tampilkanKartu();
+        if (intent != null && AKSI_COBA.equals(intent.getAction())) {
+            tampilkanKartu(intent.getBooleanExtra(EKSTRA_TEGURAN, false) ? "Contoh: sudah 10 menit di YouTube" : null);
+        }
         if (!PengingatAyatPlugin.pref(this).getBoolean("aktif", false) && kartu == null && intent != null
             && !AKSI_COBA.equals(intent.getAction())) {
             stopSelf();
@@ -120,7 +150,7 @@ public class LayananPengingat extends Service {
         Notification n = new NotificationCompat.Builder(this, KANAL)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("Pengingat ayat aktif")
-            .setContentText("Saku Hati menampilkan ayat hafalan saat membuka media sosial")
+            .setContentText("Saku Hati mengingatkan dengan ayat hafalan saat memakai media sosial")
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .setOngoing(true)
             .setContentIntent(pi)
@@ -136,21 +166,64 @@ public class LayananPengingat extends Service {
 
     private void periksa() {
         SharedPreferences p = PengingatAyatPlugin.pref(this);
+        long sekarang = System.currentTimeMillis();
+        // Selang dibatasi agar waktu saat pemantauan terhenti (layar mati, layanan tertunda) tidak ikut terhitung.
+        long selang = Math.min(Math.max(0, sekarang - putaranTerakhir), 10_000);
+        putaranTerakhir = sekarang;
         if (!p.getBoolean("aktif", false)) return;
         PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
-        if (pm != null && !pm.isInteractive()) return;
+        if (pm != null && !pm.isInteractive()) {
+            tinggalkanPemicu(sekarang);
+            paketKini = "";
+            return;
+        }
         if (!PengingatAyatPlugin.bolehPenggunaan(this) || !PengingatAyatPlugin.bolehOverlay(this)) return;
 
-        String paket = aplikasiTerdepan();
-        if (paket == null || paket.equals(paketKini)) return;
-        paketKini = paket;
+        String baru = aplikasiTerdepan();
+        boolean pindah = baru != null && !baru.equals(paketKini);
+        if (pindah) paketKini = baru;
 
         Set<String> pemicu = new HashSet<>(Arrays.asList(p.getString("paket", "").split(",")));
-        if (!pemicu.contains(paket)) return;
-        long sekarang = System.currentTimeMillis();
-        long jeda = p.getInt("jedaMenit", 15) * 60_000L;
-        if (sekarang - p.getLong("terakhirTampil", 0) < jeda) return;
-        tampilkanKartu();
+        if (!pemicu.contains(paketKini)) {
+            tinggalkanPemicu(sekarang);
+            return;
+        }
+
+        int batas = p.getInt("batasMenit", 10);
+        if (!diPemicuTadi) {
+            // Kembali dalam 2 menit: hitungan berlanjut. Lebih lama: mulai dari nol.
+            if (sekarang - keluarPemicu > JEDA_LANJUT_MS) {
+                dipakaiMs = 0;
+                teguranBerikutMs = batas * 60_000L;
+            }
+            diPemicuTadi = true;
+        } else {
+            dipakaiMs += selang;
+        }
+
+        // K-32: kartu saat aplikasi pemicu baru dibuka.
+        if (pindah && p.getBoolean("kartuBuka", true)) {
+            long jeda = p.getInt("jedaMenit", 15) * 60_000L;
+            if (sekarang - p.getLong("terakhirTampil", 0) >= jeda) {
+                tampilkanKartu(null);
+                return;
+            }
+        }
+
+        // K-87: teguran sesudah batas, diulang tiap ulangMenit.
+        if (batas > 0 && dipakaiMs >= teguranBerikutMs && kartu == null) {
+            int ulang = Math.max(1, p.getInt("ulangMenit", 5));
+            teguranBerikutMs = dipakaiMs + ulang * 60_000L;
+            long menit = Math.max(1, Math.round(dipakaiMs / 60_000.0));
+            String nama = NAMA_APLIKASI.containsKey(paketKini) ? NAMA_APLIKASI.get(paketKini) : "aplikasi ini";
+            tampilkanKartu("Sudah " + menit + " menit di " + nama);
+        }
+    }
+
+    private void tinggalkanPemicu(long sekarang) {
+        if (!diPemicuTadi) return;
+        diPemicuTadi = false;
+        keluarPemicu = sekarang;
     }
 
     /** Paket aplikasi yang terakhir masuk ke depan dalam 30 detik terakhir. */
@@ -214,7 +287,8 @@ public class LayananPengingat extends Service {
         return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, n, getResources().getDisplayMetrics()));
     }
 
-    private void tampilkanKartu() {
+    /** teguran null = kartu biasa (K-32); berisi teks = kartu teguran batas pemakaian (K-87). */
+    private void tampilkanKartu(String teguran) {
         if (!PengingatAyatPlugin.bolehOverlay(this)) return;
         JSONObject ayat = pilihAyat();
         if (ayat == null) return;
@@ -234,6 +308,16 @@ public class LayananPengingat extends Service {
         latar.setStroke(dp(2), teal);
         isi.setBackground(latar);
         isi.setElevation(dp(8));
+
+        if (teguran != null) {
+            TextView tegur = new TextView(this);
+            tegur.setText(teguran);
+            tegur.setTextColor(Color.parseColor("#8A4B00"));
+            tegur.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
+            tegur.setTypeface(Typeface.DEFAULT_BOLD);
+            tegur.setPadding(0, 0, 0, dp(4));
+            isi.addView(tegur);
+        }
 
         TextView judul = new TextView(this);
         judul.setText("Saku Hati · " + ayat.optString("nama") + " · ayat " + nomor);
@@ -284,30 +368,46 @@ public class LayananPengingat extends Service {
         tombol.setPadding(0, dp(6), 0, 0);
 
         Button tutup = new Button(this);
-        tutup.setText("Tutup");
+        int ulang = Math.max(1, PengingatAyatPlugin.pref(this).getInt("ulangMenit", 5));
+        tutup.setText(teguran != null ? ulang + " menit lagi" : "Tutup");
         tutup.setAllCaps(false);
         tutup.setTextColor(teal);
         tutup.setBackgroundColor(Color.TRANSPARENT);
         tutup.setOnClickListener(v -> tutupKartu());
         tombol.addView(tutup);
 
-        Button buka = new Button(this);
-        buka.setText("Buka di Saku Hati");
-        buka.setAllCaps(false);
-        buka.setTextColor(Color.WHITE);
-        GradientDrawable latarBuka = new GradientDrawable();
-        latarBuka.setColor(teal);
-        latarBuka.setCornerRadius(dp(10));
-        buka.setBackground(latarBuka);
-        buka.setPadding(dp(14), 0, dp(14), 0);
-        buka.setOnClickListener(v -> {
-            PengingatAyatPlugin.pref(this).edit().putString("tujuan", "#/surah/" + surah + "/" + nomor).apply();
-            tutupKartu();
-            Intent i = new Intent(this, MainActivity.class);
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-            startActivity(i);
-        });
-        tombol.addView(buka);
+        Button utama = new Button(this);
+        utama.setText(teguran != null ? "Cukup, keluar" : "Buka di Saku Hati");
+        utama.setAllCaps(false);
+        utama.setTextColor(Color.WHITE);
+        GradientDrawable latarUtama = new GradientDrawable();
+        latarUtama.setColor(teal);
+        latarUtama.setCornerRadius(dp(10));
+        utama.setBackground(latarUtama);
+        utama.setPadding(dp(14), 0, dp(14), 0);
+        if (teguran != null) {
+            // Kembali ke layar utama HP. Hitungan tetap berlanjut bila aplikasi dibuka lagi dalam 2 menit.
+            utama.setOnClickListener(v -> {
+                tutupKartu();
+                Intent rumah = new Intent(Intent.ACTION_MAIN);
+                rumah.addCategory(Intent.CATEGORY_HOME);
+                rumah.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                try {
+                    startActivity(rumah);
+                } catch (Exception ignored) {
+                    // tidak ada peluncur
+                }
+            });
+        } else {
+            utama.setOnClickListener(v -> {
+                PengingatAyatPlugin.pref(this).edit().putString("tujuan", "#/surah/" + surah + "/" + nomor).apply();
+                tutupKartu();
+                Intent i = new Intent(this, MainActivity.class);
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                startActivity(i);
+            });
+        }
+        tombol.addView(utama);
         isi.addView(tombol);
 
         FrameLayout bingkai = new FrameLayout(this);

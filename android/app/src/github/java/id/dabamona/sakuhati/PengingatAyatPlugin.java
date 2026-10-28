@@ -57,6 +57,9 @@ public class PengingatAyatPlugin extends Plugin {
         hasil.put("aktif", p.getBoolean("aktif", false));
         hasil.put("jedaMenit", p.getInt("jedaMenit", 15));
         hasil.put("paket", p.getString("paket", ""));
+        hasil.put("batasMenit", p.getInt("batasMenit", 10));
+        hasil.put("ulangMenit", p.getInt("ulangMenit", 5));
+        hasil.put("kartuBuka", p.getBoolean("kartuBuka", true));
         call.resolve(hasil);
     }
 
@@ -101,7 +104,17 @@ public class PengingatAyatPlugin extends Plugin {
         boolean aktif = Boolean.TRUE.equals(call.getBoolean("aktif", false));
         int jeda = call.getInt("jedaMenit", 15);
         String paket = call.getString("paket", "");
-        pref(c).edit().putBoolean("aktif", aktif).putInt("jedaMenit", jeda).putString("paket", paket).apply();
+        int batas = Math.max(0, Math.min(180, call.getInt("batasMenit", 10)));
+        int ulang = Math.max(1, Math.min(180, call.getInt("ulangMenit", 5)));
+        boolean kartuBuka = !Boolean.FALSE.equals(call.getBoolean("kartuBuka", true));
+        pref(c).edit()
+            .putBoolean("aktif", aktif)
+            .putInt("jedaMenit", jeda)
+            .putString("paket", paket)
+            .putInt("batasMenit", batas)
+            .putInt("ulangMenit", ulang)
+            .putBoolean("kartuBuka", kartuBuka)
+            .apply();
         Intent i = new Intent(c, LayananPengingat.class);
         if (aktif) ContextCompat.startForegroundService(c, i);
         else c.stopService(i);
@@ -118,6 +131,7 @@ public class PengingatAyatPlugin extends Plugin {
         }
         Intent i = new Intent(c, LayananPengingat.class);
         i.setAction(LayananPengingat.AKSI_COBA);
+        i.putExtra(LayananPengingat.EKSTRA_TEGURAN, Boolean.TRUE.equals(call.getBoolean("teguran", false)));
         ContextCompat.startForegroundService(c, i);
         call.resolve();
     }

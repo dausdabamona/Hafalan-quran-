@@ -5,13 +5,15 @@ import {
   DeviceMobile,
   Flag,
   Microphone,
+  NotePencil,
   Pause,
   Play,
   Stop,
   Warning,
 } from '@phosphor-icons/react';
 import { gulirDalam, gulirKe } from '../komponen/gulir';
-import { cariAyat, cariSurah, daftarJuz, daftarSurah, segmenAyat } from '../data';
+import { cariAyat, cariSurah, daftarJuz, daftarSurah, segmenAyat, type Ayat, type Segmen } from '../data';
+import LembarMakna from '../komponen/LembarMakna';
 import {
   ambilJadwal,
   ambilMaknaSurah,
@@ -192,6 +194,7 @@ export default function LayarMurotal({ rentang, putar }: { rentang: Rentang; put
   // K-35: saat diputar, tampil ayat (teks Arab), arti (makna per waqaf), atau tertutup.
   const [tampilan, setTampilan] = useState<Tampilan>(bacaTampilan);
   const [maknaEdit, setMaknaEdit] = useState<Map<string, Makna>>(new Map());
+  const [suntingMakna, setSuntingMakna] = useState<{ ayat: Ayat; segmen: Segmen } | null>(null);
   const pilihTampilan = (t: Tampilan) => {
     setTampilan(t);
     try {
@@ -471,10 +474,31 @@ export default function LayarMurotal({ rentang, putar }: { rentang: Rentang; put
             <ol className="daftar-makna arti-putar">
               {segmenAyat(ayatKini).map((g) => (
                 <li key={g.indeks} className="makna">
-                  {maknaEdit.get(`${kini.surah}:${kini.ayat}:${g.indeks}`)?.isi ?? g.maknaBawaan}
+                  {/* K-85: ketuk arti → sunting makna potongan ini, murotal tetap berputar. */}
+                  <button
+                    type="button"
+                    className="arti-bisa-sunting"
+                    title="Sunting arti"
+                    onClick={() => setSuntingMakna({ ayat: ayatKini, segmen: g })}
+                  >
+                    {maknaEdit.get(`${kini.surah}:${kini.ayat}:${g.indeks}`)?.isi ?? g.maknaBawaan}
+                    {maknaEdit.has(`${kini.surah}:${kini.ayat}:${g.indeks}`) && (
+                      <NotePencil size={14} weight="duotone" className="tanda-sunting" aria-label="arti disunting" />
+                    )}
+                  </button>
                 </li>
               ))}
             </ol>
+          )}
+          {suntingMakna && (
+            <LembarMakna
+              surah={cariSurah(kini.surah)!}
+              ayat={suntingMakna.ayat}
+              segmen={suntingMakna.segmen}
+              awal={maknaEdit.get(`${kini.surah}:${suntingMakna.ayat.ayat}:${suntingMakna.segmen.indeks}`)?.isi ?? ''}
+              tutup={() => setSuntingMakna(null)}
+              sesudahSimpan={async () => setMaknaEdit(await ambilMaknaSurah(kini.surah))}
+            />
           )}
           {tampilan === 'tutup' && <div className="teks-tertutup">Teks tertutup — simak dan ikuti dari hafalan</div>}
           <div className="kendali-putar">

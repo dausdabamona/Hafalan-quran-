@@ -5119,3 +5119,26 @@ body {
   vertical-align: -2px;
   color: var(--color-accent);
 }
+
+/* ---------- K-85: arti di pemutar murotal bisa disunting ---------- */
+.arti-putar .arti-bisa-sunting {
+  display: block;
+  width: 100%;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.arti-putar .arti-bisa-sunting:hover,
+.arti-putar .arti-bisa-sunting:focus-visible {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+.arti-bisa-sunting .tanda-sunting {
+  margin-left: 6px;
+  vertical-align: -2px;
+  color: var(--color-accent);
+}

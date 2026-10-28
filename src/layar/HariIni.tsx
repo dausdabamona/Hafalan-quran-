@@ -70,7 +70,7 @@ import { hashPotongan, pergi } from '../navigasi';
 import { pengingatTersedia } from '../pengingat';
 import { peranSinkron } from '../sinkron/peran';
 import Plat from '../komponen/Plat';
-import { LembarMakna } from './Surah';
+import LembarMakna from '../komponen/LembarMakna';
 
 export function namaPotongan(p: Potongan): string {
   return `${cariSurah(p.surah)?.nama ?? p.surah} · ${labelPotongan(p)}`;

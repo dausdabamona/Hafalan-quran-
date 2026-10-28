@@ -52,15 +52,17 @@ export default function PerbaikanMurotal({
       return baru;
     });
 
-  const simpan = async (): Promise<boolean> => {
+  // K-86: koreksi rekaman baru memakai mode perbaikan — jadwal rukuk sudah turun saat kesalahan pertama dicatat.
+  const simpan = async (modePerbaikan = false): Promise<boolean> => {
     setMenyimpan(true);
     const t = tujuanPerbaikan(surah, ayat, await ambilJadwal());
     await simpanKoreksi({
       surah,
-      ayatAwal: t.potongan.ayatAwal,
-      ayatAkhir: t.potongan.ayatAkhir,
+      ayatAwal: modePerbaikan ? ayat : t.potongan.ayatAwal,
+      ayatAkhir: modePerbaikan ? ayat : t.potongan.ayatAkhir,
       ayat: [ayat],
       rukuk: t.rukuk,
+      ...(modePerbaikan ? { perbaikan: true } : {}),
       kataSalah: [...salah].map(([urutan, jenis]) => ({ ayat, urutan, jenis })),
       tertukar: tertukar && ayat > 1 ? [{ ayatAsal: ayat - 1, ayatKeliru: 0 }] : [],
     });
@@ -185,7 +187,7 @@ export default function PerbaikanMurotal({
               <button
                 className="tombol utama"
                 disabled={menyimpan}
-                onClick={async () => setTahap((await simpan()) ? 'bersih' : 'masih-salah')}
+                onClick={async () => setTahap((await simpan(true)) ? 'bersih' : 'masih-salah')}
               >
                 {salah.size === 0 && !tertukar ? (
                   <>

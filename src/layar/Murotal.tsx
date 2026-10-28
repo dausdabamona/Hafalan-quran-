@@ -347,7 +347,10 @@ export default function LayarMurotal({ rentang, putar }: { rentang: Rentang; put
 
   const perbaiki = (l: LetakAyat, status: StatusRekaman) => {
     const t = tujuanPerbaikan(l.surah, l.ayat, hasil.jadwal);
-    pergi(hashPotongan(status === 'belum-koreksi' ? 'koreksi' : 'rekam', t.potongan, t.rukuk));
+    // K-86: rekam ulang satu ayat dalam mode perbaikan (jadwal rukuk tidak berubah).
+    if (status === 'belum-koreksi') pergi(hashPotongan('koreksi', t.potongan, t.rukuk));
+    else
+      pergi(hashPotongan('rekam', { surah: l.surah, ayatAwal: l.ayat, ayatAkhir: l.ayat }, t.rukuk, undefined, true));
   };
 
   return (

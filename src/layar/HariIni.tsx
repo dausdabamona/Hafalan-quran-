@@ -70,6 +70,8 @@ import { hashPotongan, pergi } from '../navigasi';
 import { pengingatTersedia } from '../pengingat';
 import { peranSinkron } from '../sinkron/peran';
 import Plat from '../komponen/Plat';
+import { kelasJenis, LABEL_JENIS } from '../komponen/PilihJenisSalah';
+import { ayatPerluPerbaikan, type AyatPerluPerbaikan } from '../perluPerbaikan';
 import LembarMakna from '../komponen/LembarMakna';
 
 export function namaPotongan(p: Potongan): string {
@@ -140,6 +142,7 @@ export default function LayarHariIni() {
   const [target, setTarget] = useState<Target | null | undefined>(undefined);
   const [catatan, setCatatan] = useState<Record<string, 'hijau' | 'kuning'>>({});
   const [perbaikan, setPerbaikan] = useState<EntriPerbaikan[]>([]);
+  const [rekamanSalah, setRekamanSalah] = useState<AyatPerluPerbaikan[]>([]);
 
   useEffect(() => {
     ambilHafalan().then(setHafalan);
@@ -151,7 +154,8 @@ export default function LayarHariIni() {
     ambilTarget().then((t) => setTarget(t ?? null));
     ambilCatatanHari().then(setCatatan);
     ambilPerbaikan().then(setPerbaikan);
-  }, []);
+    ayatPerluPerbaikan(hari).then(setRekamanSalah);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const rentetan = useMemo(
     () =>
       rentetanHari(
@@ -381,7 +385,7 @@ export default function LayarHariIni() {
           )}
         </section>
 
-        <KartuPerbaikan daftar={daftarPerbaikanHariIni(perbaikan, hari)} hari={hari} />
+        <KartuPerbaikan daftar={daftarPerbaikanHariIni(perbaikan, hari)} rekamanSalah={rekamanSalah} hari={hari} />
 
         <PerluPerhatian hafal={hafal} tandaSalah={tanda.salah} tertukar={tanda.tertukar} />
 
@@ -542,13 +546,25 @@ function HafalanBaru({ baru, hari }: { baru: ReturnType<typeof pilihHafalanBaru>
 }
 
 // K-62: ayat yang salah kecil saat murojaah rukuk, diulang sendiri besok dan lusa.
-function KartuPerbaikan({ daftar, hari }: { daftar: EntriPerbaikan[]; hari: string }) {
-  if (daftar.length === 0) return null;
+function KartuPerbaikan({
+  daftar,
+  rekamanSalah,
+  hari,
+}: {
+  daftar: EntriPerbaikan[];
+  rekamanSalah: AyatPerluPerbaikan[];
+  hari: string;
+}) {
+  const [semua, setSemua] = useState(false);
+  if (daftar.length === 0 && rekamanSalah.length === 0) return null;
+  // K-86: jadwal perbaikan K-62 lebih dulu, lalu ayat yang rekamannya masih salah (5 pertama).
+  const batas = Math.max(0, 5 - daftar.length);
+  const tampil = semua ? rekamanSalah : rekamanSalah.slice(0, batas);
   return (
     <section className="bagian kartu-perbaikan">
       <p className="kicker">
         <Wrench size={18} weight="duotone" className="ikon" /> Perbaiki ayat
-        <span className="istilah">kesalahan kecil saat murojaah</span>
+        <span className="istilah">rekam ulang lalu koreksi</span>
       </p>
       <ul className="daftar-koran">
         {daftar.map((e) => {
@@ -575,7 +591,44 @@ function KartuPerbaikan({ daftar, hari }: { daftar: EntriPerbaikan[]; hari: stri
             </li>
           );
         })}
+        {tampil.map((x) => {
+          const p = { surah: x.surah, ayatAwal: x.ayat, ayatAkhir: x.ayat };
+          return (
+            <li key={`r${x.surah}:${x.ayat}`}>
+              <button className="baris-koran" onClick={() => pergi(hashPotongan('rekam', p, x.rukuk, undefined, true))}>
+                <span className="isi">
+                  <span className="judul">
+                    <span className="nama">
+                      {cariSurah(x.surah)?.nama} · ayat {x.ayat}
+                    </span>
+                    {x.target && <span className="lencana-target">target</span>}
+                  </span>
+                  <span className="detail jumlah-jenis">
+                    rekaman masih salah ·
+                    {(['hafalan', 'panjang', 'sebut'] as const).map(
+                      (j) =>
+                        x.jenis[j] > 0 && (
+                          <span key={j} className={'jumlah-jenis-butir ' + kelasJenis(j)} title={LABEL_JENIS[j]}>
+                            <span className="titik-jenis" /> {x.jenis[j]}
+                          </span>
+                        ),
+                    )}
+                    {x.tertukar && <span className="jumlah-jenis-butir">⇅ tertukar</span>}
+                  </span>
+                </span>
+                <span className="bulat-ikon">
+                  <Microphone weight="duotone" />
+                </span>
+              </button>
+            </li>
+          );
+        })}
       </ul>
+      {!semua && rekamanSalah.length > tampil.length && (
+        <button className="tautan" onClick={() => setSemua(true)}>
+          Lihat semua ({rekamanSalah.length})
+        </button>
+      )}
     </section>
   );
 }

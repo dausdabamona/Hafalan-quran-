@@ -11,6 +11,7 @@ import {
   ListChecks,
   Microphone,
   MoonStars,
+  NotePencil,
   SunHorizon,
   Translate,
   Wrench,
@@ -27,8 +28,10 @@ import {
   rukukSurah,
   segmenAyat,
   susunToken,
+  type Ayat,
   type Potongan,
   type Rukuk,
+  type Segmen,
 } from '../data';
 import {
   ambilHafalan,
@@ -67,6 +70,7 @@ import { hashPotongan, pergi } from '../navigasi';
 import { pengingatTersedia } from '../pengingat';
 import { peranSinkron } from '../sinkron/peran';
 import Plat from '../komponen/Plat';
+import { LembarMakna } from './Surah';
 
 export function namaPotongan(p: Potongan): string {
   return `${cariSurah(p.surah)?.nama ?? p.surah} · ${labelPotongan(p)}`;
@@ -407,6 +411,7 @@ function HafalanBaru({ baru, hari }: { baru: ReturnType<typeof pilihHafalanBaru>
   const kunciSimai = baru.status === 'tamat' ? '' : `simai:${hari}:${baru.potongan.surah}:${baru.potongan.ayatAwal}`;
   const [simai, setSimai] = useState(() => (kunciSimai ? baca(kunciSimai) === '1' : false));
   const [makna, setMakna] = useState<Map<string, Makna>>(new Map());
+  const [sunting, setSunting] = useState<{ ayat: Ayat; segmen: Segmen } | null>(null);
   const surahPotongan = baru.status === 'tamat' ? 0 : baru.potongan.surah;
 
   useEffect(() => {
@@ -461,15 +466,34 @@ function HafalanBaru({ baru, hari }: { baru: ReturnType<typeof pilihHafalanBaru>
                         .join(' ')}
                       {n === semua.length - 1 && <span> ﴿{angkaArab(ayat.ayat)}﴾</span>}
                     </p>
-                    <p className="makna-pita">
+                    {/* K-84: ketuk arti → sunting makna potongan ini. */}
+                    <button
+                      type="button"
+                      className="makna-pita bisa-sunting"
+                      onClick={() => setSunting({ ayat, segmen: g })}
+                      title="Sunting arti"
+                    >
                       {makna.get(`${p.surah}:${ayat.ayat}:${g.indeks}`)?.isi ?? g.maknaBawaan}
-                    </p>
+                      {makna.has(`${p.surah}:${ayat.ayat}:${g.indeks}`) && (
+                        <NotePencil size={14} weight="duotone" className="tanda-sunting" aria-label="arti disunting" />
+                      )}
+                    </button>
                   </div>
                 ))}
               </div>
             );
           })}
         </div>
+      )}
+      {sunting && (
+        <LembarMakna
+          surah={cariSurah(p.surah)!}
+          ayat={sunting.ayat}
+          segmen={sunting.segmen}
+          awal={makna.get(`${p.surah}:${sunting.ayat.ayat}:${sunting.segmen.indeks}`)?.isi ?? ''}
+          tutup={() => setSunting(null)}
+          sesudahSimpan={async () => setMakna(await ambilMaknaSurah(p.surah))}
+        />
       )}
       {baru.status === 'selesai' ? (
         <p className="selesai-hari-ini">

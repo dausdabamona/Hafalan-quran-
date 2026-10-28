@@ -753,7 +753,7 @@ function LembarKeteranganAyat({
 
 // ---------- Lembar edit makna potongan waqaf (K-25) ----------
 
-function LembarMakna({
+export function LembarMakna({
   surah,
   ayat,
   segmen,

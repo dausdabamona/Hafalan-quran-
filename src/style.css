@@ -5097,3 +5097,25 @@ body {
   color: var(--color-salah);
   text-decoration-color: var(--color-salah-garis);
 }
+
+/* ---------- K-84: arti kartu Hafalan baru bisa disunting ---------- */
+.pita-ayat .makna-pita.bisa-sunting {
+  display: block;
+  width: 100%;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.pita-ayat .makna-pita.bisa-sunting:hover,
+.pita-ayat .makna-pita.bisa-sunting:focus-visible {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+.makna-pita .tanda-sunting {
+  margin-left: 6px;
+  vertical-align: -2px;
+  color: var(--color-accent);
+}

@@ -5,6 +5,7 @@ import { ambilHafalan, db, type Sesi, type TandaSalah, type TandaTertukar } from
 import { ayatHafal, hariIni } from '../jadwal';
 import { akurasiKata, hariLokal, kataSeringSalah, petaJuz, rentetanHari, type Kekuatan } from '../kemajuan';
 import Kepala from '../komponen/Kepala';
+import { kelasJenis, LABEL_JENIS } from '../komponen/PilihJenisSalah';
 import { pergi } from '../navigasi';
 import { namaRukuk } from './HariIni';
 
@@ -125,13 +126,20 @@ export default function LayarKemajuan() {
 
         <section className="kartu-kemajuan">
           <h2>Kata yang paling sering salah</h2>
+          <p className="legenda-jenis">
+            {(Object.keys(LABEL_JENIS) as (keyof typeof LABEL_JENIS)[]).map((j) => (
+              <span key={j} className={kelasJenis(j)}>
+                <span className="titik-jenis" /> {LABEL_JENIS[j]}
+              </span>
+            ))}
+          </p>
           {kata.length === 0 ? (
             <p className="keterangan-kecil">Belum ada kata yang ditandai salah. Alhamdulillah.</p>
           ) : (
             <ul className="daftar-kata-salah">
               {kata.map((k) => (
                 <li key={`${k.surah}:${k.ayat}:${k.urutan}`}>
-                  <button onClick={() => pergi(`#/surah/${k.surah}/${k.ayat}`)}>
+                  <button className={kelasJenis(k.jenis)} onClick={() => pergi(`#/surah/${k.surah}/${k.ayat}`)}>
                     <span className="arab-salah" lang="ar" dir="rtl">
                       {k.teks}
                     </span>

@@ -55,6 +55,10 @@ export interface Rekaman {
 }
 
 // Tanda kata salah (K-13): permanen, hanya hilang bila dihapus manual.
+// K-83: jenis kesalahan kata. Tanpa jenis = salah hafalan (tanda lama).
+export type JenisSalah = 'hafalan' | 'panjang' | 'sebut';
+export const jenisTanda = (t: { jenis?: JenisSalah }): JenisSalah => t.jenis ?? 'hafalan';
+
 export interface TandaSalah {
   kunci: string; // "surah:ayat:urutan"
   surah: number;
@@ -64,6 +68,7 @@ export interface TandaSalah {
   terakhir: string;
   jumlah: number;
   benarBeruntun?: number; // koreksi berturut-turut yang benar sejak salah terakhir (K-57)
+  jenis?: JenisSalah; // K-83
 }
 
 // Tanda urutan tertukar (K-15): dipasang pada sambungan sesudah ayatAsal.
@@ -101,6 +106,7 @@ export interface Sesi {
   kataSalah: number;
   sambunganTertukar: number;
   lancar: boolean; // P-01
+  kataTajwid?: number; // K-83: tanda panjang-pendek & salah sebut (tidak memengaruhi jadwal)
   perbaikan?: boolean; // sesi "Perbaiki ayat" (K-62); tidak dihitung sebagai murojaah rukuk
 }
 
@@ -663,9 +669,10 @@ export interface HasilKoreksi {
   ayat?: number[]; // daftar ayat yang dikoreksi bila tidak berurutan (K-30)
   sebagian?: boolean; // murojaah rukuk dihentikan di tengah (K-53)
   sudahBenar?: { ayat: number; urutan: number }[]; // tanda lama yang dinyatakan sudah benar (K-57)
-  kataSalah: { ayat: number; urutan: number }[];
+  kataSalah: { ayat: number; urutan: number; jenis?: JenisSalah }[]; // K-83: hanya jenis hafalan yang memengaruhi jadwal
   tertukar: { ayatAsal: number; ayatKeliru: number }[];
   perbaikan?: boolean; // sesi "Perbaiki ayat" satu ayat (K-62)
+  tanpaJadwal?: boolean; // K-83: tanda tajwid dari murotal — dicatat tanpa mengubah jadwal
   hari?: string; // untuk uji; bawaan hari ini
 }
 
@@ -691,6 +698,7 @@ async function catatTanda(h: HasilKoreksi, sekarang: string) {
       terakhir: sekarang,
       jumlah: (lama?.jumlah ?? 0) + 1,
       benarBeruntun: 0,
+      jenis: k.jenis ?? 'hafalan',
     });
   }
   for (const t of h.tertukar) {
@@ -750,6 +758,9 @@ async function perbaruiTandaBenar(h: HasilKoreksi): Promise<number> {
 export async function simpanKoreksi(h: HasilKoreksi): Promise<HasilSimpan> {
   const sekarang = new Date().toISOString();
   const hari = h.hari ?? hariIni();
+  // K-83: hanya salah hafalan yang menentukan lancar/tidak dan jadwal; tajwid dicatat terpisah.
+  const salahHafalan = h.kataSalah.filter((k) => (k.jenis ?? 'hafalan') === 'hafalan');
+  const jumlahTajwid = h.kataSalah.length - salahHafalan.length;
   const sesi: Sesi = {
     surah: h.surah,
     ayatAwal: h.ayatAwal,
@@ -757,9 +768,10 @@ export async function simpanKoreksi(h: HasilKoreksi): Promise<HasilSimpan> {
     rukuk: h.rukuk,
     ...(h.ayat ? { ayat: h.ayat } : {}),
     tanggal: sekarang,
-    kataSalah: h.kataSalah.length,
+    kataSalah: salahHafalan.length,
+    ...(jumlahTajwid ? { kataTajwid: jumlahTajwid } : {}),
     sambunganTertukar: h.tertukar.length,
-    lancar: h.kataSalah.length === 0 && h.tertukar.length === 0,
+    lancar: salahHafalan.length === 0 && h.tertukar.length === 0,
     ...(h.perbaikan ? { perbaikan: true } : {}),
   };
   const ayatDibaca = h.ayat ?? Array.from({ length: h.ayatAkhir - h.ayatAwal + 1 }, (_, i) => h.ayatAwal + i);
@@ -773,6 +785,7 @@ export async function simpanKoreksi(h: HasilKoreksi): Promise<HasilSimpan> {
       tandaDihapus = await perbaruiTandaBenar(h);
       await catatTanda(h, sekarang);
       sesi.id = await db.sesi.add(sesi);
+      if (h.tanpaJadwal) return;
 
       // K-62: perbaikan satu ayat — hanya daftar perbaikan yang berubah, jadwal rukuk tetap.
       if (h.perbaikan) {
@@ -781,7 +794,7 @@ export async function simpanKoreksi(h: HasilKoreksi): Promise<HasilSimpan> {
           const kunci = kunciAyat(h.surah, a);
           const e = await db.perbaikan.get(kunci);
           if (!e) continue;
-          const lancarAyat = !h.kataSalah.some((k) => k.ayat === a) && !h.tertukar.some((t) => t.ayatAsal === a);
+          const lancarAyat = !salahHafalan.some((k) => k.ayat === a) && !h.tertukar.some((t) => t.ayatAsal === a);
           const b = setelahPerbaikan(e, lancarAyat, hari);
           if (b) await db.perbaikan.put(b);
           else {
@@ -797,7 +810,7 @@ export async function simpanKoreksi(h: HasilKoreksi): Promise<HasilSimpan> {
       if (h.rukuk) {
         const j = await db.jadwalRukuk.get(h.rukuk);
         if (!j) return;
-        const mutu = mutuMurojaah(h.kataSalah.length, h.tertukar.length, jumlahKata);
+        const mutu = mutuMurojaah(salahHafalan.length, h.tertukar.length, jumlahKata);
         const berjarak = j.lengkap || !!j.sebagian;
         tambahan.mutu = mutu;
         tambahan.jumlahKata = jumlahKata;
@@ -812,7 +825,7 @@ export async function simpanKoreksi(h: HasilKoreksi): Promise<HasilSimpan> {
         }
         // K-62: kesalahan kecil di rukuk yang sudah berjarak → ayat yang salah diperbaiki besok dan lusa.
         if (mutu === 'kecil' && berjarak) {
-          const ayat = ayatPerbaikan(h.kataSalah, h.tertukar);
+          const ayat = ayatPerbaikan(salahHafalan, h.tertukar);
           for (const a of ayat) {
             const lama = await db.perbaikan.get(kunciAyat(h.surah, a));
             await db.perbaikan.put(mulaiPerbaikan(h.surah, a, h.rukuk, hari, lama));

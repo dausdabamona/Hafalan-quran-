@@ -21,6 +21,7 @@ import {
   kunciKata,
   simpanRekaman,
   type Makna,
+  type JenisSalah,
   type TandaSalah,
 } from '../db';
 import { ganti, hashPotongan } from '../navigasi';
@@ -28,6 +29,7 @@ import { usePerekam } from '../perekam';
 import Kepala from '../komponen/Kepala';
 import TeksAyat from '../komponen/TeksAyat';
 import { buangTandaMurojaah, kunciSesiRekam, titipTandaMurojaah } from '../tandaMurojaah';
+import PilihJenisSalah, { kelasJenis } from '../komponen/PilihJenisSalah';
 
 // Rekam berurutan per ayat (K-12, K-14). Teks ayat yang sedang dibaca tertutup
 // sampai "Selesai ayat ini" ditekan (K-16); bisa dibuka untuk hafalan baru.
@@ -52,7 +54,10 @@ export default function LayarRekam({
   const [makna, setMakna] = useState<Map<string, Makna>>(new Map());
   const [tandaSalah, setTandaSalah] = useState<Map<string, TandaSalah>>(new Map());
   const salahDi = (ayat: number, urutan: number) => tandaSalah.get(kunciKata(surah.nomor, ayat, urutan));
-  const kelasKataSalah = (ayat: number) => (k: Kata) => (salahDi(ayat, k.urutan) ? 'tanda-lama' : '');
+  const kelasKataSalah = (ayat: number) => (k: Kata) => {
+    const t = salahDi(ayat, k.urutan);
+    return t ? 'tanda-lama ' + kelasJenis(t.jenis) : '';
+  };
   const [menyimpan, setMenyimpan] = useState(false);
   // K-61: kata bantu (awal ayat, awal tiap waqaf, akhir ayat). Nyala otomatis bila rukuk
   // ini dimurojaah kurang dari BATAS_KATA_BANTU kali; sesudahnya mati bawaan.
@@ -63,17 +68,20 @@ export default function LayarRekam({
   // K-71: kata yang dibuka disimpan per urutan kata, agar satu kotak bisa dibuka langsung.
   const [terbuka, setTerbuka] = useState<Set<number>>(() => new Set());
   // K-72: kata yang ditandai salah langsung saat murojaah ("ayat:urutan"), diteruskan ke Koreksi.
-  const [tandaSesi, setTandaSesi] = useState<Set<string>>(() => {
+  // K-83: tiap tanda punya jenis (hafalan / panjang-pendek / penyebutan).
+  const [tandaSesi, setTandaSesi] = useState<Map<string, JenisSalah>>(() => {
     buangTandaMurojaah();
-    return new Set();
+    return new Map();
   });
-  const ditandai = (ayat: number, urutan: number) => tandaSesi.has(`${ayat}:${urutan}`);
-  const tandaiKata = (ayat: number, urutan: number) =>
+  const [pilihKata, setPilihKata] = useState<{ ayat: number; urutan: number; teks: string } | null>(null);
+  const ditandai = (ayat: number, urutan: number) => tandaSesi.get(`${ayat}:${urutan}`);
+  const tandaiKata = (ayat: number, urutan: number, teks: string) => setPilihKata({ ayat, urutan, teks });
+  const aturJenis = (ayat: number, urutan: number, j: JenisSalah | null) =>
     setTandaSesi((lama) => {
-      const baru = new Set(lama);
+      const baru = new Map(lama);
       const k = `${ayat}:${urutan}`;
-      if (baru.has(k)) baru.delete(k);
-      else baru.add(k);
+      if (j) baru.set(k, j);
+      else baru.delete(k);
       return baru;
     });
   const keKoreksi = (sampai?: number) => {
@@ -170,6 +178,17 @@ export default function LayarRekam({
 
   return (
     <>
+      {pilihKata && (
+        <PilihJenisSalah
+          kata={pilihKata.teks}
+          jenisKini={ditandai(pilihKata.ayat, pilihKata.urutan)}
+          pilih={(j) => {
+            aturJenis(pilihKata.ayat, pilihKata.urutan, j);
+            setPilihKata(null);
+          }}
+          tutup={() => setPilihKata(null)}
+        />
+      )}
       <Kepala
         judul={`${perbaikan ? 'Perbaiki' : rukuk ? 'Murojaah' : 'Rekam'} · ${surah.nama}`}
         sub={
@@ -247,12 +266,11 @@ export default function LayarRekam({
           {tampilkanTeks || intip ? (
             <TeksAyat
               ayat={ayatKini}
-              kelasKata={(k) =>
-                [kelasKataSalah(ayatKini.ayat)(k), ditandai(ayatKini.ayat, k.urutan) ? 'salah-sesi' : '']
-                  .join(' ')
-                  .trim()
-              }
-              ketukKata={(k) => tandaiKata(ayatKini.ayat, k.urutan)}
+              kelasKata={(k) => {
+                const sesi = ditandai(ayatKini.ayat, k.urutan);
+                return sesi ? 'salah-sesi ' + kelasJenis(sesi) : kelasKataSalah(ayatKini.ayat)(k);
+              }}
+              ketukKata={(k) => tandaiKata(ayatKini.ayat, k.urutan, k.teks)}
             />
           ) : (
             // K-52/K-65/K-66: murojaah dan hafalan baru — arti ayat, kata bantu, ketuk → buka satu kata berikutnya.
@@ -281,14 +299,19 @@ export default function LayarRekam({
                     const tandai = {
                       onClick: (e: React.MouseEvent) => {
                         e.stopPropagation();
-                        tandaiKata(ayatKini.ayat, u);
+                        tandaiKata(ayatKini.ayat, u, t.teks);
                       },
-                      title: ditandai(ayatKini.ayat, u) ? 'Batalkan tanda salah' : 'Tandai salah',
+                      title: ditandai(ayatKini.ayat, u) ? 'Ubah atau hapus tanda' : 'Tandai salah',
                     };
-                    const kelasTanda = ditandai(ayatKini.ayat, u) ? ' ditandai' : '';
+                    const sesiJenis = ditandai(ayatKini.ayat, u);
+                    const kelasTanda = sesiJenis ? ' ditandai ' + kelasJenis(sesiJenis) : '';
                     if (tanda)
                       return (
-                        <span key={i} className={'kata-salah' + kelasTanda} {...tandai}>
+                        <span
+                          key={i}
+                          className={'kata-salah' + (kelasTanda || ' ' + kelasJenis(tanda.jenis))}
+                          {...tandai}
+                        >
                           {t.teks}
                           <small dir="ltr">{tanda.jumlah}×</small>
                         </span>

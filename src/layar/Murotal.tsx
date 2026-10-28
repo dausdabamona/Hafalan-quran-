@@ -12,7 +12,17 @@ import {
 } from '@phosphor-icons/react';
 import { gulirDalam, gulirKe } from '../komponen/gulir';
 import { cariAyat, cariSurah, daftarJuz, daftarSurah, segmenAyat } from '../data';
-import { ambilMaknaSurah, type Makna } from '../db';
+import {
+  ambilJadwal,
+  ambilMaknaSurah,
+  ambilTandaSurah,
+  kunciKata,
+  simpanKoreksi,
+  type JenisSalah,
+  type Makna,
+  type TandaSalah,
+} from '../db';
+import PilihJenisSalah, { kelasJenis } from '../komponen/PilihJenisSalah';
 import { adaPutaranTarget, susunMurotal, type DaftarMurotal } from '../murotalData';
 import { ambilTarget, namaTarget } from '../target';
 import {
@@ -191,8 +201,14 @@ export default function LayarMurotal({ rentang, putar }: { rentang: Rentang; put
     }
   };
   const surahDiputar = pemutar && pemutar.asal === hash ? pemutar.daftar[pemutar.indeks]?.surah : undefined;
+  const itemDiputar = pemutar && pemutar.asal === hash ? pemutar.daftar[pemutar.indeks] : undefined;
+  const kunciDiputar = itemDiputar ? `${itemDiputar.surah}:${itemDiputar.ayat}` : '';
   useEffect(() => {
     if (surahDiputar) ambilMaknaSurah(surahDiputar).then(setMaknaEdit);
+  }, [surahDiputar]);
+  const muatTanda = (s: number) => ambilTandaSurah(s).then((t) => setTandaSurah(t.salah));
+  useEffect(() => {
+    if (surahDiputar) muatTanda(surahDiputar);
   }, [surahDiputar]);
   const [lihatSemua, setLihatSemua] = useState(false);
   const [versi, setVersi] = useState(0);
@@ -200,6 +216,58 @@ export default function LayarMurotal({ rentang, putar }: { rentang: Rentang; put
   const refPemutar = useRef<HTMLElement>(null);
   const refDaftar = useRef<HTMLOListElement>(null);
   const [lanjutDari, setLanjutDari] = useState<LetakAyat | null>(null);
+  // K-83: tanda kata langsung saat murotal; disimpan otomatis saat pindah ayat / berhenti / keluar.
+  const [tandaSurah, setTandaSurah] = useState<Map<string, TandaSalah>>(new Map());
+  const [tunda, setTunda] = useState<{ surah: number; ayat: number; tanda: Map<number, JenisSalah> } | null>(null);
+  const [pilihKata, setPilihKata] = useState<{ urutan: number; teks: string } | null>(null);
+  const refTunda = useRef(tunda);
+  refTunda.current = tunda;
+
+  const simpanTunda = async (t: { surah: number; ayat: number; tanda: Map<number, JenisSalah> }) => {
+    if (!t.tanda.size) return;
+    const kataSalah = [...t.tanda].map(([urutan, jenis]) => ({ ayat: t.ayat, urutan, jenis }));
+    if (kataSalah.some((k) => k.jenis === 'hafalan')) {
+      // Salah hafalan: seperti lembar perbaikan K-31 (jadwal rukuk ikut turun).
+      const tuj = tujuanPerbaikan(t.surah, t.ayat, await ambilJadwal());
+      await simpanKoreksi({
+        surah: t.surah,
+        ayatAwal: tuj.potongan.ayatAwal,
+        ayatAkhir: tuj.potongan.ayatAkhir,
+        ayat: [t.ayat],
+        rukuk: tuj.rukuk,
+        kataSalah,
+        tertukar: [],
+      });
+    } else {
+      // Hanya panjang-pendek / salah sebut: dicatat tanpa mengubah jadwal (K-83 b1).
+      await simpanKoreksi({
+        surah: t.surah,
+        ayatAwal: t.ayat,
+        ayatAkhir: t.ayat,
+        ayat: [t.ayat],
+        kataSalah,
+        tertukar: [],
+        tanpaJadwal: true,
+      });
+    }
+  };
+
+  // Pindah ayat atau berhenti → tanda ayat sebelumnya disimpan.
+  useEffect(() => {
+    const t = refTunda.current;
+    if (t && `${t.surah}:${t.ayat}` !== kunciDiputar) {
+      setTunda(null);
+      simpanTunda(t).then(() => muatTanda(t.surah));
+    }
+  }, [kunciDiputar]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keluar dari layar murotal → tanda yang belum tersimpan disimpan.
+  useEffect(
+    () => () => {
+      if (refTunda.current) simpanTunda(refTunda.current);
+    },
+    [], // eslint-disable-line react-hooks/exhaustive-deps
+  );
   const judulPutar = () => (modeTarget ? `Target · ${hasil?.namaTarget ?? 'belum ada target'}` : judulRentang(rentang));
 
   // K-82: "semua hafalan" (termasuk ikon layar utama) otomatis masuk ke target bila putarannya berisi.
@@ -355,7 +423,50 @@ export default function LayarMurotal({ rentang, putar }: { rentang: Rentang; put
               </button>
             ))}
           </div>
-          {tampilan === 'ayat' && <TeksAyat ayat={ayatKini} />}
+          {tampilan === 'ayat' && (
+            <>
+              <TeksAyat
+                ayat={ayatKini}
+                ketukKata={(k) => setPilihKata({ urutan: k.urutan, teks: k.teks })}
+                kelasKata={(k) => {
+                  const baru =
+                    tunda && tunda.surah === kini.surah && tunda.ayat === kini.ayat
+                      ? tunda.tanda.get(k.urutan)
+                      : undefined;
+                  if (baru) return 'salah-sesi ' + kelasJenis(baru);
+                  const lama = tandaSurah.get(kunciKata(kini.surah, kini.ayat, k.urutan));
+                  return lama ? 'tanda-lama ' + kelasJenis(lama.jenis) : '';
+                }}
+              />
+              <p className="kosong petunjuk-tandai-murotal">
+                {tunda && tunda.surah === kini.surah && tunda.ayat === kini.ayat && tunda.tanda.size > 0
+                  ? `${tunda.tanda.size} tanda baru — tersimpan otomatis saat pindah ayat`
+                  : 'Ketuk kata yang salah untuk menandainya, tanpa menjeda murotal.'}
+              </p>
+            </>
+          )}
+          {pilihKata && (
+            <PilihJenisSalah
+              kata={pilihKata.teks}
+              jenisKini={
+                tunda && tunda.surah === kini.surah && tunda.ayat === kini.ayat
+                  ? tunda.tanda.get(pilihKata.urutan)
+                  : undefined
+              }
+              pilih={(j) => {
+                const dasar =
+                  tunda && tunda.surah === kini.surah && tunda.ayat === kini.ayat
+                    ? tunda
+                    : { surah: kini.surah, ayat: kini.ayat, tanda: new Map<number, JenisSalah>() };
+                const tanda = new Map(dasar.tanda);
+                if (j) tanda.set(pilihKata.urutan, j);
+                else tanda.delete(pilihKata.urutan);
+                setTunda({ ...dasar, tanda });
+                setPilihKata(null);
+              }}
+              tutup={() => setPilihKata(null)}
+            />
+          )}
           {tampilan === 'arti' && (
             <ol className="daftar-makna arti-putar">
               {segmenAyat(ayatKini).map((g) => (

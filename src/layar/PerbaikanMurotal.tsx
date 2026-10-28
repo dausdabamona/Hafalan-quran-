@@ -6,6 +6,8 @@ import { tujuanPerbaikan } from '../murotal';
 import { usePerekam } from '../perekam';
 import TeksAyat from '../komponen/TeksAyat';
 import TombolPutar from '../komponen/TombolPutar';
+import PilihJenisSalah, { kelasJenis } from '../komponen/PilihJenisSalah';
+import type { JenisSalah } from '../db';
 
 // K-31: koreksi dan rekam ulang satu ayat langsung dari murotal.
 // Kesalahan dihitung seperti murojaah: rukuknya kembali diulang besok (P-03).
@@ -25,7 +27,9 @@ export default function PerbaikanMurotal({
   const nama = cariSurah(surah)?.nama ?? String(surah);
   const [tahap, setTahap] = useState<Tahap>('tandai');
   const [rekaman, setRekaman] = useState<Rekaman | undefined>();
-  const [salah, setSalah] = useState<Set<number>>(new Set());
+  // K-83: urutan kata → jenis kesalahan.
+  const [salah, setSalah] = useState<Map<number, JenisSalah>>(new Map());
+  const [pilih, setPilih] = useState<{ urutan: number; teks: string } | null>(null);
   const [tertukar, setTertukar] = useState(false);
   const [menyimpan, setMenyimpan] = useState(false);
   const [tampilTeks, setTampilTeks] = useState(false);
@@ -39,11 +43,12 @@ export default function PerbaikanMurotal({
     return () => lepas();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const ketuk = (urutan: number) =>
+  const ketuk = (urutan: number, teks: string) => setPilih({ urutan, teks });
+  const aturJenis = (urutan: number, j: JenisSalah | null) =>
     setSalah((lama) => {
-      const baru = new Set(lama);
-      if (baru.has(urutan)) baru.delete(urutan);
-      else baru.add(urutan);
+      const baru = new Map(lama);
+      if (j) baru.set(urutan, j);
+      else baru.delete(urutan);
       return baru;
     });
 
@@ -56,12 +61,12 @@ export default function PerbaikanMurotal({
       ayatAkhir: t.potongan.ayatAkhir,
       ayat: [ayat],
       rukuk: t.rukuk,
-      kataSalah: [...salah].map((urutan) => ({ ayat, urutan })),
+      kataSalah: [...salah].map(([urutan, jenis]) => ({ ayat, urutan, jenis })),
       tertukar: tertukar && ayat > 1 ? [{ ayatAsal: ayat - 1, ayatKeliru: 0 }] : [],
     });
     setMenyimpan(false);
     const bersih = salah.size === 0 && !tertukar;
-    setSalah(new Set());
+    setSalah(new Map());
     setTertukar(false);
     return bersih;
   };
@@ -84,13 +89,24 @@ export default function PerbaikanMurotal({
   const teksDitandai = (
     <TeksAyat
       ayat={a}
-      ketukKata={(k) => ketuk(k.urutan)}
-      kelasKata={(k) => (salah.has(k.urutan) ? 'salah-sesi' : '')}
+      ketukKata={(k) => ketuk(k.urutan, k.teks)}
+      kelasKata={(k) => (salah.has(k.urutan) ? 'salah-sesi ' + kelasJenis(salah.get(k.urutan)) : '')}
     />
   );
 
   return (
     <div className="latar-lembar">
+      {pilih && (
+        <PilihJenisSalah
+          kata={pilih.teks}
+          jenisKini={salah.get(pilih.urutan)}
+          pilih={(j) => {
+            aturJenis(pilih.urutan, j);
+            setPilih(null);
+          }}
+          tutup={() => setPilih(null)}
+        />
+      )}
       <div className="lembar lembar-perbaikan" role="dialog" aria-modal="true">
         <div className="pegangan" />
         <p className="lokasi">

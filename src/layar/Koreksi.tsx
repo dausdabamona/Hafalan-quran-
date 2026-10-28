@@ -12,9 +12,11 @@ import {
   kunciKata,
   simpanKoreksi,
   type HasilSimpan,
+  type JenisSalah,
   type Rekaman,
   type TandaSurah,
 } from '../db';
+import PilihJenisSalah, { kelasJenis } from '../komponen/PilihJenisSalah';
 import { ganti, hashPotongan } from '../navigasi';
 import Kepala from '../komponen/Kepala';
 import TeksAyat from '../komponen/TeksAyat';
@@ -45,7 +47,10 @@ export default function LayarKoreksi({
   const [rekaman, setRekaman] = useState<Map<string, Rekaman>>(new Map());
   const [tanda, setTanda] = useState<TandaSurah>({ salah: new Map(), tertukar: new Map() });
   // K-72: tanda yang dibuat langsung saat murojaah ikut terisi di sini.
-  const [salahSesi, setSalahSesi] = useState<Set<string>>(() => ambilTandaMurojaah(kunciSesiRekam(potongan, rukuk))); // "ayat:urutan"
+  const [salahSesi, setSalahSesi] = useState<Map<string, JenisSalah>>(() =>
+    ambilTandaMurojaah(kunciSesiRekam(potongan, rukuk)),
+  ); // "ayat:urutan" → jenis (K-83)
+  const [pilihKata, setPilihKata] = useState<{ ayat: number; urutan: number; teks: string } | null>(null);
   const [sudahBenar, setSudahBenar] = useState<Set<string>>(new Set()); // tanda lama yang kini benar (K-57)
   const [tertukarSesi, setTertukarSesi] = useState<Map<number, number>>(new Map()); // ayatAsal → ayatKeliru
   const [hasil, setHasil] = useState<HasilSimpan | null>(null);
@@ -57,15 +62,16 @@ export default function LayarKoreksi({
     ambilTandaSurah(surah.nomor).then(setTanda);
   }, [surah.nomor]);
 
-  const ketukKata = (ayat: number, urutan: number) => {
-    const k = `${ayat}:${urutan}`;
+  // K-83: ketuk kata → pilih jenis kesalahan (atau hapus).
+  const ketukKata = (ayat: number, urutan: number, teks: string) => setPilihKata({ ayat, urutan, teks });
+  const aturJenis = (ayat: number, urutan: number, j: JenisSalah | null) =>
     setSalahSesi((lama) => {
-      const baru = new Set(lama);
-      if (baru.has(k)) baru.delete(k);
-      else baru.add(k);
+      const baru = new Map(lama);
+      const k = `${ayat}:${urutan}`;
+      if (j) baru.set(k, j);
+      else baru.delete(k);
       return baru;
     });
-  };
 
   const aturTertukar = (ayatAsal: number, ayatKeliru: number | null) => {
     setTertukarSesi((lama) => {
@@ -89,9 +95,9 @@ export default function LayarKoreksi({
       ayatAwal: potongan.ayatAwal,
       ayatAkhir: potongan.ayatAkhir,
       kataSalah: [...salahSesi]
-        .map((k) => {
+        .map(([k, jenis]) => {
           const [ayat, urutan] = k.split(':').map(Number);
-          return { ayat, urutan };
+          return { ayat, urutan, jenis };
         })
         // Hanya ayat yang dikoreksi (mis. murojaah dihentikan di tengah, K-53).
         .filter((k) => daftarAyat.some((a) => a.ayat === k.ayat)),
@@ -150,8 +156,11 @@ export default function LayarKoreksi({
             <>
               <p className="hasil-besar">Koreksi tersimpan</p>
               <p>
-                {hasil.kataSalah} kata dan {hasil.sambunganTertukar} sambungan ditandai. Tandanya akan tetap tersorot
-                sebagai pengingat di sesi berikutnya
+                {hasil.kataSalah} kata dan {hasil.sambunganTertukar} sambungan ditandai
+                {hasil.kataTajwid
+                  ? `, ditambah ${hasil.kataTajwid} tanda tajwid (panjang-pendek/penyebutan) yang tidak mengubah jadwal`
+                  : ''}
+                . Tandanya akan tetap tersorot sebagai pengingat di sesi berikutnya
                 {rukuk && !perbaikan && hasil.mutu !== 'kecil' ? ', dan rukuk ini diulang lagi besok.' : '.'}
               </p>
             </>
@@ -176,6 +185,17 @@ export default function LayarKoreksi({
 
   return (
     <>
+      {pilihKata && (
+        <PilihJenisSalah
+          kata={pilihKata.teks}
+          jenisKini={salahSesi.get(`${pilihKata.ayat}:${pilihKata.urutan}`)}
+          pilih={(j) => {
+            aturJenis(pilihKata.ayat, pilihKata.urutan, j);
+            setPilihKata(null);
+          }}
+          tutup={() => setPilihKata(null)}
+        />
+      )}
       <Kepala
         judul={`Koreksi · ${surah.nama}`}
         sub={
@@ -202,17 +222,21 @@ export default function LayarKoreksi({
                 </div>
                 <TeksAyat
                   ayat={a}
-                  ketukKata={(k) => ketukKata(a.ayat, k.urutan)}
+                  ketukKata={(k) => ketukKata(a.ayat, k.urutan, k.teks)}
                   kelasKata={(k) => {
                     const kelas: string[] = [];
-                    if (tanda.salah.has(kunciKata(surah.nomor, a.ayat, k.urutan))) kelas.push('tanda-lama');
-                    if (salahSesi.has(`${a.ayat}:${k.urutan}`)) kelas.push('salah-sesi');
+                    const lama = tanda.salah.get(kunciKata(surah.nomor, a.ayat, k.urutan));
+                    const sesi = salahSesi.get(`${a.ayat}:${k.urutan}`);
+                    if (lama) kelas.push('tanda-lama');
+                    if (sesi) kelas.push('salah-sesi');
+                    if (sesi || lama) kelas.push(kelasJenis(sesi ?? lama!.jenis));
                     return kelas.join(' ');
                   }}
                 />
                 <TandaLamaAyat
                   kata={a.kata.filter((k) => tanda.salah.has(kunciKata(surah.nomor, a.ayat, k.urutan)))}
                   jumlah={(k) => tanda.salah.get(kunciKata(surah.nomor, a.ayat, k.urutan))?.benarBeruntun ?? 0}
+                  jenis={(k) => tanda.salah.get(kunciKata(surah.nomor, a.ayat, k.urutan))?.jenis}
                   salahLagi={(k) => salahSesi.has(`${a.ayat}:${k.urutan}`)}
                   benar={(k) => sudahBenar.has(`${a.ayat}:${k.urutan}`)}
                   ubah={(k) =>
@@ -395,9 +419,11 @@ function TandaLamaAyat({
   salahLagi,
   benar,
   ubah,
+  jenis,
 }: {
   kata: Kata[];
   jumlah: (k: Kata) => number;
+  jenis: (k: Kata) => JenisSalah | undefined;
   salahLagi: (k: Kata) => boolean;
   benar: (k: Kata) => boolean;
   ubah: (k: Kata) => void;
@@ -418,7 +444,7 @@ function TandaLamaAyat({
           <button
             key={k.urutan}
             type="button"
-            className={'chip-tanda-lama' + (ok ? ' benar' : '')}
+            className={'chip-tanda-lama ' + kelasJenis(jenis(k)) + (ok ? ' benar' : '')}
             onClick={() => ubah(k)}
             disabled={lagi}
             aria-pressed={benar(k)}

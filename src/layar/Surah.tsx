@@ -55,6 +55,7 @@ import { hashMurotal } from '../murotal';
 import Kepala from '../komponen/Kepala';
 import TeksAyat from '../komponen/TeksAyat';
 import LembarHadits from '../komponen/LembarHadits';
+import { kelasJenis } from '../komponen/PilihJenisSalah';
 import { haditsSurah } from '../hadits';
 import { gulirKe } from '../komponen/gulir';
 import { susunMurotal } from '../murotalData';
@@ -233,7 +234,8 @@ export default function LayarSurah({
   const kelasKata = (a: Ayat) => (k: Kata) => {
     const kelas: string[] = [];
     if (keterangan.has(kunciKeterangan(surah.nomor, a.ayat, k.urutan))) kelas.push('ada-catatan');
-    if (tanda.salah.has(kunciKata(surah.nomor, a.ayat, k.urutan))) kelas.push('tanda-lama');
+    const t = tanda.salah.get(kunciKata(surah.nomor, a.ayat, k.urutan));
+    if (t) kelas.push('tanda-lama', kelasJenis(t.jenis));
     if (lembar?.jenis === 'kata' && semuaKata[lembar.indeks]?.kata === k) kelas.push('dibuka');
     return kelas.join(' ');
   };

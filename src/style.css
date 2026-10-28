@@ -4990,3 +4990,110 @@ body {
   margin-right: 6px;
   vertical-align: 1px;
 }
+
+/* ---------- K-83: jenis kesalahan berwarna ---------- */
+/* Semua gaya tanda memakai --color-salah*; kelas jenis menggantinya setempat. */
+.jenis-panjang {
+  --color-salah: #b45309;
+  --color-salah-garis: #f59e0b;
+  --color-salah-latar: #fff4e0;
+  --color-salah-tepi: #f7cf8f;
+}
+.jenis-sebut {
+  --color-salah: #6d28d9;
+  --color-salah-garis: #8b5cf6;
+  --color-salah-latar: #f3edff;
+  --color-salah-tepi: #cdb8fb;
+}
+:root[data-tema='gelap'] .jenis-panjang {
+  --color-salah: #fbbf6b;
+  --color-salah-garis: #f59e0b;
+  --color-salah-latar: #3a2a12;
+  --color-salah-tepi: #7a5418;
+}
+:root[data-tema='gelap'] .jenis-sebut {
+  --color-salah: #c4b5fd;
+  --color-salah-garis: #a78bfa;
+  --color-salah-latar: #2a2045;
+  --color-salah-tepi: #5b4499;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema='terang']) .jenis-panjang {
+    --color-salah: #fbbf6b;
+    --color-salah-garis: #f59e0b;
+    --color-salah-latar: #3a2a12;
+    --color-salah-tepi: #7a5418;
+  }
+  :root:not([data-tema='terang']) .jenis-sebut {
+    --color-salah: #c4b5fd;
+    --color-salah-garis: #a78bfa;
+    --color-salah-latar: #2a2045;
+    --color-salah-tepi: #5b4499;
+  }
+}
+.titik-jenis {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-salah-garis);
+  flex: none;
+}
+.latar-jenis {
+  z-index: 60;
+}
+.lembar-jenis .kata-dipilih {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-arab);
+  font-size: calc(var(--ukuran-arab, 34px) * 1.1);
+  line-height: 1.8;
+}
+.pilihan-jenis {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.tombol-jenis {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 48px;
+  padding: 0 var(--space-4);
+  border: 1.5px solid var(--color-salah-tepi);
+  border-radius: 14px;
+  background: var(--color-salah-latar);
+  color: var(--color-salah);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+}
+.tombol-jenis.aktif {
+  border-color: var(--color-salah-garis);
+  box-shadow: inset 0 0 0 1.5px var(--color-salah-garis);
+}
+.legenda-jenis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-2);
+  font-size: 12px;
+  color: var(--color-muted);
+}
+.legenda-jenis > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+/* Gaya tanda lama/sesi dari masa Broadsheet memakai warna aksen; jenis tajwid diberi warnanya sendiri. */
+.kata.salah-sesi.jenis-panjang,
+.kata.salah-sesi.jenis-sebut {
+  background: var(--color-salah-latar);
+  color: var(--color-salah);
+  box-shadow: inset 0 -3px 0 var(--color-salah-garis);
+}
+.kata.tanda-lama.jenis-panjang,
+.kata.tanda-lama.jenis-sebut {
+  color: var(--color-salah);
+  text-decoration-color: var(--color-salah-garis);
+}

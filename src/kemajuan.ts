@@ -1,7 +1,7 @@
 // Perhitungan untuk layar Hari ini dan Kemajuan (K-48, K-49).
 
 import { cariAyat, daftarRukuk, juzAyat, type Rukuk } from './data';
-import type { Sesi, TandaSalah, TandaTertukar } from './db';
+import type { JenisSalah, Sesi, TandaSalah, TandaTertukar } from './db';
 
 // Tanggal lokal "YYYY-MM-DD" dari stempel ISO.
 export function hariLokal(iso: string): string {
@@ -93,6 +93,7 @@ export interface KataSalah {
   urutan: number;
   teks: string;
   jumlah: number;
+  jenis?: JenisSalah; // K-83
 }
 
 // Kata yang paling sering ditandai salah.
@@ -106,5 +107,6 @@ export function kataSeringSalah(tanda: TandaSalah[], batas = 5): KataSalah[] {
       urutan: t.urutan,
       teks: cariAyat(t.surah, t.ayat)?.kata.find((k) => k.urutan === t.urutan)?.teks ?? '',
       jumlah: t.jumlah,
+      jenis: t.jenis,
     }));
 }

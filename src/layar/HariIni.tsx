@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowRight,
   ArrowsClockwise,
   BellRinging,
   BookOpen,
@@ -72,7 +71,7 @@ import {
   type EntriPerbaikan,
   type Pemantapan,
 } from '../jadwal';
-import { hashPotongan, pergi } from '../navigasi';
+import { hashHafal, hashPotongan, pergi } from '../navigasi';
 import { pengingatTersedia } from '../pengingat';
 import { peranSinkron } from '../sinkron/peran';
 import Plat from '../komponen/Plat';
@@ -620,19 +619,22 @@ function HafalanBaru({
         </p>
       ) : (
         <>
+          {/* K-88 (B): hafalan baru "makna dulu" — Pahami, Ikat, lalu Rekam. */}
           <ol className="langkah-koran">
             <li>
               <span className="no">1</span>
-              <button
-                className="tautan"
-                style={{ justifySelf: 'start', paddingLeft: 0, fontSize: 16 }}
-                onClick={() => pergi(`#/surah/${p.surah}/${p.ayatAwal}`)}
-              >
-                Baca makna per kata <ArrowRight weight="duotone" />
-              </button>
+              <span>
+                <strong>Pahami</strong> alur maknanya sampai bisa diceritakan tanpa melihat.
+              </span>
             </li>
             <li>
-              <span className={'no' + (simai ? ' aktif' : '')}>2</span>
+              <span className="no">2</span>
+              <span>
+                <strong>Ikat</strong> lafaz per waqaf: baca, tutup, baca dari hafalan dengan isyarat arti.
+              </span>
+            </li>
+            <li>
+              <span className={'no' + (simai ? ' aktif' : '')}>✓</span>
               <label>
                 <input
                   type="checkbox"
@@ -647,11 +649,16 @@ function HafalanBaru({
             </li>
             <li>
               <span className="no">3</span>
-              <span>Baca sambil melihat, lalu coba tanpa melihat.</span>
+              <span>
+                <strong>Rekam</strong> &amp; koreksi.
+              </span>
             </li>
           </ol>
-          <button className="tombol utama aksi-utama" onClick={() => pergi(hashPotongan('rekam', p))}>
-            <Microphone weight="duotone" /> Rekam &amp; koreksi
+          <button className="tombol utama aksi-utama" onClick={() => pergi(hashHafal(p))}>
+            <Translate weight="duotone" /> Mulai: pahami makna
+          </button>
+          <button className="tautan" onClick={() => pergi(hashPotongan('rekam', p))}>
+            <Microphone weight="duotone" /> Langsung rekam &amp; koreksi
           </button>
         </>
       )}

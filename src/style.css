@@ -5222,3 +5222,136 @@ body {
   opacity: 0.8;
   text-align: left;
 }
+
+/* K-88 (B): layar hafalan baru "makna dulu" */
+.isi-hafal {
+  padding: 8px 16px 120px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.langkah-hafal {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.langkah-hafal .chip {
+  padding: 0 14px;
+}
+.hafal-langkah {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.petunjuk-hafal {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+.alur-makna {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.alur-makna > li {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: start;
+}
+.no-alur {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--color-isi-tua);
+  color: #fff;
+}
+.isi-alur {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.label-ayat-alur {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-accent-700);
+}
+.hafal-arti {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 17px;
+  line-height: 1.5;
+  text-align: left;
+}
+.hafal-arti.bisa-sunting {
+  cursor: pointer;
+  text-decoration: underline dotted var(--garis);
+  text-underline-offset: 4px;
+}
+.hafal-arti.besar {
+  font-size: 20px;
+  font-weight: 600;
+}
+.hafal-arti .tanda-sunting {
+  margin-left: 4px;
+  vertical-align: middle;
+  color: var(--color-accent-700);
+}
+.hafal-lafaz {
+  margin: 0;
+  font-family: var(--font-arab);
+  font-size: calc(var(--ukuran-arab, 34px) * 0.85);
+  line-height: 1.9;
+  text-align: right;
+}
+.hafal-lafaz span {
+  color: var(--color-accent-700);
+}
+.hafal-tertutup {
+  margin: 0;
+  min-height: 44px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+}
+.hafal-tertutup .kotak-kata {
+  cursor: default;
+}
+.kartu-ikat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-kartu);
+  box-shadow: var(--shadow-kartu);
+}
+.ketuk-lafaz {
+  margin: 0;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: right;
+  cursor: pointer;
+  width: 100%;
+}

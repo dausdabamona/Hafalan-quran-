@@ -9,6 +9,7 @@ import { bacaHash, pergi, type Layar } from './navigasi';
 import LayarDaftar from './layar/Daftar';
 import LayarSurah from './layar/Surah';
 import LayarRekam from './layar/Rekam';
+import LayarHafal from './layar/Hafal';
 import LayarKoreksi from './layar/Koreksi';
 import LayarTentang from './layar/Tentang';
 import LayarHariIni from './layar/HariIni';
@@ -128,6 +129,7 @@ export default function App() {
             mantap={layar.mantap}
           />
         )}
+        {layar.nama === 'hafal' && <LayarHafal key={JSON.stringify(layar)} potongan={layar.potongan} />}
         {layar.nama === 'koreksi' && (
           <LayarKoreksi
             key={JSON.stringify(layar)}

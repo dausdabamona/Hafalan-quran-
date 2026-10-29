@@ -3,7 +3,7 @@ import { Flag, Plus } from '@phosphor-icons/react';
 import type { Potongan } from '../data';
 import type { Sesi } from '../db';
 import { tambahHari } from '../jadwal';
-import { hashPotongan, pergi } from '../navigasi';
+import { hashHafal, pergi } from '../navigasi';
 import {
   catatHari,
   hitungTarget,
@@ -115,7 +115,7 @@ export default function KartuTarget({
           {h.tertinggal === 0 && (
             <p className="keterangan-kecil">Hafalan baru hari ini sudah selesai. Bila sanggup, tambah dari target:</p>
           )}
-          <button className="tombol sekunder lebar" onClick={() => pergi(hashPotongan('rekam', tambahPotongan))}>
+          <button className="tombol sekunder lebar" onClick={() => pergi(hashHafal(tambahPotongan))}>
             <Plus weight="bold" /> Tambah satu potongan: {namaPotongan(tambahPotongan)}
           </button>
         </>

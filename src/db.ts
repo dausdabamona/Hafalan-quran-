@@ -13,7 +13,11 @@ import {
   setelahMurojaahRukuk,
   turunkanJadwal,
   batalkanAyatLama,
+  batalkanBaru,
   batalkanLama,
+  SYARAT_MANTAP,
+  SYARAT_MANTAP_MAKS,
+  SYARAT_MANTAP_MIN,
   tandaiAyatLama,
   tandaiLama,
   type EntriHafalan,
@@ -661,6 +665,44 @@ export async function batalkanHafalanLama(nomor: number[], hari = hariIni()): Pr
   });
 }
 
+// K-88 (A): mengembalikan potongan hafalan baru ke belum hafal. Rekaman dan tanda kata tetap;
+// jadwal Perbaiki ayat (K-62) ayat yang tidak lagi hafal dihapus.
+export async function batalkanHafalanBaru(kunci: string, hari = hariIni()): Promise<boolean> {
+  return db.transaction('rw', [db.hafalan, db.jadwalRukuk, db.perbaikan, db.hapus], async () => {
+    const e = await db.hafalan.get(kunci);
+    const b = batalkanBaru(kunci, await ambilHafalan(), await ambilJadwal(), hari);
+    if (!b || !e) return false;
+    await db.hafalan.bulkDelete(b.hapusHafalan);
+    await catatHapus(db, 'hafalan', b.hapusHafalan);
+    if (b.jadwal.length) await db.jadwalRukuk.bulkPut(b.jadwal);
+    if (b.hapusJadwal.length) {
+      await db.jadwalRukuk.bulkDelete(b.hapusJadwal);
+      await catatHapus(db, 'jadwalRukuk', b.hapusJadwal);
+    }
+    const perbaikan: string[] = [];
+    for (const a of b.ayatLepas) {
+      const k = kunciAyat(e.surah, a);
+      if (await db.perbaikan.get(k)) perbaikan.push(k);
+    }
+    if (perbaikan.length) {
+      await db.perbaikan.bulkDelete(perbaikan);
+      await catatHapus(db, 'perbaikan', perbaikan);
+    }
+    return true;
+  });
+}
+
+// K-88 (C): berapa hari berbeda potongan hafalan baru harus lancar. Disimpan di setelan (ikut sinkron).
+export async function ambilSyaratMantap(): Promise<number> {
+  const n = Number((await db.setelan.get('syaratMantap'))?.nilai);
+  return Number.isInteger(n) && n >= SYARAT_MANTAP_MIN && n <= SYARAT_MANTAP_MAKS ? n : SYARAT_MANTAP;
+}
+
+export async function simpanSyaratMantap(n: number): Promise<void> {
+  const nilai = Math.min(SYARAT_MANTAP_MAKS, Math.max(SYARAT_MANTAP_MIN, Math.round(n)));
+  await db.setelan.put({ kunci: 'syaratMantap', nilai });
+}
+
 export interface HasilKoreksi {
   surah: number;
   ayatAwal: number;
@@ -683,6 +725,7 @@ export type HasilSimpan = Sesi & {
   jumlahKata?: number;
   ayatDiperbaiki?: number[]; // ayat yang masuk "Perbaiki ayat"
   perbaikanSelesai?: number[]; // ayat perbaikan yang tuntas di sesi ini
+  mantap?: { ke: number; naik: boolean }; // K-88: hitungan pemantapan potongan sesudah sesi ini
 };
 
 async function catatTanda(h: HasilKoreksi, sekarang: string) {
@@ -837,8 +880,11 @@ export async function simpanKoreksi(h: HasilKoreksi): Promise<HasilSimpan> {
 
       const [hafalan, jadwal] = await Promise.all([ambilHafalan(), ambilJadwal()]);
       const p = { surah: h.surah, ayatAwal: h.ayatAwal, ayatAkhir: h.ayatAkhir };
+      const sebelum = hafalan.get(`${p.surah}:${p.ayatAwal}-${p.ayatAkhir}`)?.mantap ?? 0;
       const ubah = setelahKoreksiPotongan(hafalan, jadwal, p, sesi.lancar, hari);
       if (ubah.hafalan) await db.hafalan.put(ubah.hafalan);
+      if (ubah.hafalan && !ubah.hafalan.lama && ubah.hafalan.mantap !== undefined && ubah.hafalan.sabaqLancar)
+        tambahan.mantap = { ke: ubah.hafalan.mantap, naik: ubah.hafalan.mantap > sebelum };
       if (ubah.jadwal.length) await db.jadwalRukuk.bulkPut(ubah.jadwal);
     },
   );

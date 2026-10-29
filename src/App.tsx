@@ -125,6 +125,7 @@ export default function App() {
             potongan={layar.potongan}
             rukuk={layar.rukuk}
             perbaikan={layar.perbaikan}
+            mantap={layar.mantap}
           />
         )}
         {layar.nama === 'koreksi' && (

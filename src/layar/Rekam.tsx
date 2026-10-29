@@ -38,10 +38,12 @@ export default function LayarRekam({
   potongan,
   rukuk,
   perbaikan,
+  mantap,
 }: {
   potongan: Potongan;
   rukuk?: number;
   perbaikan?: boolean;
+  mantap?: boolean; // K-88: pemantapan hafalan baru — isyarat makna, kata bantu mati bawaan
 }) {
   const surah = cariSurah(potongan.surah)!;
   const daftarMuat = useAyatMurojaah(potongan, rukuk);
@@ -171,8 +173,10 @@ export default function LayarRekam({
   const tokenKini = susunToken(ayatKini).filter((t) => t.kata);
   const adaSalahKini = tokenKini.some((t) => salahDi(ayatKini.ayat, t.kata!.urutan));
   // K-66: hafalan baru (tanpa rukuk) selalu mendapat kata bantu bawaan.
+  // K-88: pemantapan memakai isyarat makna saja; kata bantu bisa dinyalakan lewat tombol.
   const bantuKini =
-    bantuPilih ?? (!rukuk || (jumlahMurojaah !== null && jumlahMurojaah < BATAS_KATA_BANTU) || adaSalahKini);
+    bantuPilih ??
+    (!mantap && (!rukuk || (jumlahMurojaah !== null && jumlahMurojaah < BATAS_KATA_BANTU) || adaSalahKini));
   const bantuAyat = bantuKini ? kataBantu(ayatKini) : new Set<number>();
   const siapBantu = !rukuk || jumlahMurojaah !== null;
 
@@ -190,7 +194,7 @@ export default function LayarRekam({
         />
       )}
       <Kepala
-        judul={`${perbaikan ? 'Perbaiki' : rukuk ? 'Murojaah' : 'Rekam'} · ${surah.nama}`}
+        judul={`${perbaikan ? 'Perbaiki' : mantap ? 'Pemantapan' : rukuk ? 'Murojaah' : 'Rekam'} · ${surah.nama}`}
         sub={
           perbaikan
             ? `Perbaiki ${labelPotongan(potongan)}`
@@ -244,7 +248,9 @@ export default function LayarRekam({
                     title={
                       rukuk
                         ? `Kata bantu: awal ayat, awal tiap waqaf, dan akhir ayat. Rukuk ini sudah dimurojaah ${jumlahMurojaah}×; nyala otomatis di bawah ${BATAS_KATA_BANTU}× atau bila ayat pernah salah.`
-                        : 'Kata bantu: awal ayat, awal tiap waqaf, dan akhir ayat.'
+                        : mantap
+                          ? 'Pemantapan memakai arti sebagai isyarat. Nyalakan kata bantu bila perlu: awal ayat, awal tiap waqaf, dan akhir ayat.'
+                          : 'Kata bantu: awal ayat, awal tiap waqaf, dan akhir ayat.'
                     }
                   >
                     <Lifebuoy size={18} weight={bantuKini ? 'fill' : 'duotone'} />

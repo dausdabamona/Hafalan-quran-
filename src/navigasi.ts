@@ -8,7 +8,8 @@ export type Layar =
   | { nama: 'sambung' }
   | { nama: 'tebak-arti' }
   | { nama: 'surah'; nomor: number; ayat?: number; tandai?: boolean }
-  | { nama: 'rekam'; potongan: Potongan; rukuk?: number; perbaikan?: boolean }
+  | { nama: 'rekam'; potongan: Potongan; rukuk?: number; perbaikan?: boolean; mantap?: boolean }
+  | { nama: 'hafal'; potongan: Potongan }
   | { nama: 'koreksi'; potongan: Potongan; rukuk?: number; sampai?: number; perbaikan?: boolean }
   | { nama: 'rukuk' }
   | { nama: 'tentang' }
@@ -45,15 +46,21 @@ export function bacaHash(): Layar {
     return { nama: 'surah', nomor: Number(m[1]), ayat: m[2] ? Number(m[2]) : undefined };
   // Akhiran /r<nomor> menandai murojaah per rukuk (K-23).
   // Akhiran /s<ayat> (K-53): murojaah dihentikan, koreksi hanya sampai ayat itu.
-  // Akhiran /p (K-62): sesi "Perbaiki ayat".
-  m = /^#\/(rekam|koreksi)\/(\d+)\/(\d+)-(\d+)(?:\/r(\d+))?(?:\/s(\d+))?(\/p)?$/.exec(h);
+  // Akhiran /p (K-62): sesi "Perbaiki ayat". Akhiran /m (K-88): rekam pemantapan hafalan baru.
+  m = /^#\/(rekam|koreksi)\/(\d+)\/(\d+)-(\d+)(?:\/r(\d+))?(?:\/s(\d+))?(\/p)?(\/m)?$/.exec(h);
   if (m) {
     const p = bacaPotongan(m[2], m[3], m[4]);
     const rukuk = m[5] ? Number(m[5]) : undefined;
     const perbaikan = m[7] ? true : undefined;
     if (p && m[1] === 'koreksi')
       return { nama: 'koreksi', potongan: p, rukuk, sampai: m[6] ? Number(m[6]) : undefined, perbaikan };
-    if (p) return { nama: 'rekam', potongan: p, rukuk, perbaikan };
+    if (p) return { nama: 'rekam', potongan: p, rukuk, perbaikan, ...(m[8] ? { mantap: true } : {}) };
+  }
+  // K-88 (B): hafalan baru "makna dulu" — Pahami, Ikat, lalu Rekam.
+  m = /^#\/hafal\/(\d+)\/(\d+)-(\d+)$/.exec(h);
+  if (m) {
+    const p = bacaPotongan(m[1], m[2], m[3]);
+    if (p) return { nama: 'hafal', potongan: p };
   }
   // Murotal (K-28): #/murotal, #/murotal/hafalan, #/murotal/juz/N, #/murotal/S/A-B
   if (h === '#/murotal') return { nama: 'pilih-murotal' };
@@ -108,8 +115,14 @@ export function hashPotongan(
   rukuk?: number,
   sampai?: number,
   perbaikan?: boolean,
+  mantap?: boolean,
 ): string {
-  return `#/${jenis}/${p.surah}/${p.ayatAwal}-${p.ayatAkhir}${rukuk ? `/r${rukuk}` : ''}${sampai ? `/s${sampai}` : ''}${perbaikan ? '/p' : ''}`;
+  return `#/${jenis}/${p.surah}/${p.ayatAwal}-${p.ayatAkhir}${rukuk ? `/r${rukuk}` : ''}${sampai ? `/s${sampai}` : ''}${perbaikan ? '/p' : ''}${mantap ? '/m' : ''}`;
+}
+
+// K-88 (B): layar hafalan baru tiga langkah.
+export function hashHafal(p: Potongan): string {
+  return `#/hafal/${p.surah}/${p.ayatAwal}-${p.ayatAkhir}`;
 }
 
 export function pergi(hash: string) {

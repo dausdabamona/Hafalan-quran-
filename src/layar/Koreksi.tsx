@@ -5,6 +5,7 @@ import { cariSurah, labelPotongan, type Kata, type Potongan } from '../data';
 import { labelDaftarAyat, useAyatMurojaah } from '../komponen/useAyatMurojaah';
 import {
   ambilRekamanSurah,
+  ambilSyaratMantap,
   ambilTandaSurah,
   BATAS_BENAR_OTOMATIS,
   KALI_PERBAIKAN_TAMPIL,
@@ -56,6 +57,11 @@ export default function LayarKoreksi({
   const [hasil, setHasil] = useState<HasilSimpan | null>(null);
   const [menyimpan, setMenyimpan] = useState(false);
   const [diputar, setDiputar] = useState<number | null>(null); // nomor ayat yang sedang diputar
+  const [syaratMantap, setSyaratMantap] = useState(3); // K-88
+
+  useEffect(() => {
+    ambilSyaratMantap().then(setSyaratMantap);
+  }, []);
 
   useEffect(() => {
     ambilRekamanSurah(surah.nomor).then(setRekaman);
@@ -139,6 +145,7 @@ export default function LayarKoreksi({
               {hasil.tandaDihapus} tanda kata yang sudah benar dihapus. Alhamdulillah.
             </p>
           )}
+          <PesanMantap hasil={hasil} syarat={syaratMantap} />
           <PesanAturan hasil={hasil} />
           {hasil.lancar ? (
             <>
@@ -168,7 +175,19 @@ export default function LayarKoreksi({
           <div className="aksi-lembar">
             <button
               className="tombol sekunder"
-              onClick={() => ganti(hashPotongan('rekam', potongan, rukuk, undefined, perbaikan))}
+              onClick={() =>
+                ganti(
+                  hashPotongan(
+                    'rekam',
+                    potongan,
+                    rukuk,
+                    undefined,
+                    perbaikan,
+                    // K-88: pemantapan yang belum lancar diulang tetap dalam mode pemantapan.
+                    !!hasil.mantap && (hasil.mantap.ke > 1 || !hasil.mantap.naik),
+                  ),
+                )
+              }
             >
               Rekam ulang
             </button>
@@ -465,6 +484,31 @@ function TandaLamaAyat({
         );
       })}
     </div>
+  );
+}
+
+// K-88: hitungan pemantapan potongan hafalan baru sesudah koreksi.
+function PesanMantap({ hasil, syarat }: { hasil: HasilSimpan; syarat: number }) {
+  if (!hasil.mantap) return null;
+  const { ke, naik } = hasil.mantap;
+  if (ke >= syarat)
+    return naik ? (
+      <p className="pesan-aturan selesai">Lancar pada {ke} hari berbeda: potongan ini sudah mantap, alhamdulillah.</p>
+    ) : null;
+  if (naik)
+    return (
+      <p className="pesan-aturan selesai">
+        {ke === 1
+          ? `Hari pertama lancar. Pemantapan dengan isyarat makna mulai besok, ${syarat - 1} hari lagi.`
+          : `Pemantapan ke-${ke} dari ${syarat} lancar. ${syarat - ke} hari lagi sampai mantap.`}
+      </p>
+    );
+  return (
+    <p className="pesan-aturan">
+      {hasil.lancar
+        ? `Hari ini sudah terhitung (${ke} dari ${syarat}). Pemantapan berikutnya besok.`
+        : `Masih ada salah hafalan: hitungan tetap ${ke} dari ${syarat}. Ulangi sampai lancar; potongan baru menunggu pemantapan ini lancar.`}
+    </p>
   );
 }
 

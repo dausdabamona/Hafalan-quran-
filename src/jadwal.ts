@@ -15,6 +15,8 @@ import { daftarSurah, potonganSurah, rukukAyat, cariRukuk, type Potongan, type R
 //        jadwal awalnya dicicil paling banyak BATAS_ULANG_MALAM rukuk per malam
 //  K-30  hafalan lama boleh ditandai per ayat; rukuk yang hafal sebagian dimurojaah
 //        berjarak pada ayat yang hafal saja, sampai Hafalan baru mulai mengisinya
+//  K-88  potongan hafalan baru mantap setelah lancar pada SYARAT_MANTAP hari berbeda;
+//        potongan baru terbuka bila semua pemantapan hari itu sudah lancar
 
 export const JARAK_HARI = [1, 3, 7, 14, 30];
 export const BATAS_ULANG_MALAM = 10;
@@ -29,6 +31,10 @@ export interface EntriHafalan {
   terakhir: string;
   sabaqLancar: boolean;
   lama?: boolean; // K-27: ditandai sebagai hafalan lama, bukan hasil hafalan baru
+  // K-88: jumlah hari berbeda potongan ini lancar. Tidak ada = tercatat sebelum K-88, dianggap mantap.
+  mantap?: number;
+  hariLancar?: string; // hari lancar terakhir yang sudah dihitung
+  goyah?: boolean; // pemantapan terakhir masih ada salah hafalan
 }
 
 // Jadwal murojaah satu rukuk.
@@ -113,6 +119,7 @@ export type HafalanBaru =
   | { status: 'baru'; potongan: Potongan }
   | { status: 'ulang'; potongan: Potongan } // kemarin belum lancar (P-06)
   | { status: 'selesai'; potongan: Potongan } // sudah dikerjakan hari ini (P-04)
+  | { status: 'mantapkan'; potongan: Potongan } // K-88: menunggu pemantapan hari ini lancar
   | { status: 'tamat' };
 
 // Potongan berikutnya yang belum tercatat; potongan dalam target (K-50) didahulukan.
@@ -132,6 +139,7 @@ export function pilihHafalanBaru(
   hafalan: Map<string, EntriHafalan>,
   hari: string,
   utamakan?: (p: Potongan) => boolean,
+  syarat = SYARAT_MANTAP,
 ): HafalanBaru {
   let terakhir: EntriHafalan | undefined;
   for (const e of hafalan.values()) {
@@ -142,7 +150,76 @@ export function pilihHafalanBaru(
   if (terakhir && !terakhir.sabaqLancar) return { status: 'ulang', potongan: terakhir };
   if (terakhir && terakhir.mulai === hari) return { status: 'selesai', potongan: terakhir };
   const berikut = potonganBerikut(hafalan, utamakan);
+  // K-88 (D1): potongan baru terbuka bila semua potongan yang sedang dimantapkan sudah lancar hari ini.
+  const tertunda = pemantapanTertunda(hafalan, hari, syarat);
+  if (tertunda.length) return { status: 'mantapkan', potongan: berikut ?? tertunda[0].entri };
   return berikut ? { status: 'baru', potongan: berikut } : { status: 'tamat' };
+}
+
+// ---------- Pemantapan hafalan baru (K-88) ----------
+
+export const SYARAT_MANTAP = 3;
+export const SYARAT_MANTAP_MIN = 1;
+export const SYARAT_MANTAP_MAKS = 5;
+
+export function sedangDimantapkan(e: EntriHafalan, syarat = SYARAT_MANTAP): boolean {
+  return !e.lama && e.sabaqLancar && e.mantap !== undefined && e.mantap < syarat;
+}
+
+export interface Pemantapan {
+  entri: EntriHafalan;
+  ke: number; // pemantapan ke berapa (hari menghafal = ke-1)
+  sudahHariIni: boolean; // sudah lancar hari ini
+  goyah: boolean; // pemantapan terakhir masih ada salah hafalan
+  tuntas: boolean; // mantap tepat hari ini
+}
+
+// Potongan yang sedang dimantapkan, ditambah yang baru mantap hari ini (untuk umpan balik).
+// Potongan yang mulai dihafal hari ini tidak dimasukkan: pemantapannya mulai besok.
+export function daftarPemantapan(
+  hafalan: Map<string, EntriHafalan>,
+  hari: string,
+  syarat = SYARAT_MANTAP,
+): Pemantapan[] {
+  const hasil: Pemantapan[] = [];
+  for (const e of hafalan.values()) {
+    if (e.lama || !e.sabaqLancar || e.mantap === undefined || e.mulai === hari) continue;
+    const sudahHariIni = e.hariLancar === hari;
+    const berjalan = e.mantap < syarat;
+    const tuntas = !berjalan && sudahHariIni;
+    if (!berjalan && !tuntas) continue;
+    hasil.push({
+      entri: e,
+      ke: sudahHariIni ? e.mantap : e.mantap + 1,
+      sudahHariIni,
+      goyah: !!e.goyah,
+      tuntas,
+    });
+  }
+  return hasil.sort(
+    (a, b) =>
+      (a.entri.mulai < b.entri.mulai ? -1 : a.entri.mulai > b.entri.mulai ? 1 : 0) ||
+      a.entri.surah - b.entri.surah ||
+      a.entri.ayatAwal - b.entri.ayatAwal,
+  );
+}
+
+// Pemantapan yang belum lancar hari ini (menahan potongan baru).
+export function pemantapanTertunda(
+  hafalan: Map<string, EntriHafalan>,
+  hari: string,
+  syarat = SYARAT_MANTAP,
+): Pemantapan[] {
+  return daftarPemantapan(hafalan, hari, syarat).filter((x) => !x.sudahHariIni);
+}
+
+// Perubahan hitungan mantap sesudah potongan yang sudah hafal direkam ulang.
+// Salah → hitungan tetap (tidak kembali ke nol); satu hari dihitung paling banyak sekali.
+function catatMantap(e: EntriHafalan, lancar: boolean, hari: string): Partial<EntriHafalan> {
+  if (e.lama || e.mantap === undefined) return {};
+  if (!lancar) return { goyah: true };
+  if (e.hariLancar === hari) return { goyah: false };
+  return { mantap: e.mantap + 1, hariLancar: hari, goyah: false };
 }
 
 // ---------- Perubahan setelah sesi ----------
@@ -172,7 +249,8 @@ export function setelahKoreksiPotongan(
 
   if (lama?.sabaqLancar) {
     // Potongan yang sudah hafal diulang: kesalahan menurunkan jadwal rukuknya.
-    hasil.hafalan = { ...lama, terakhir: hari };
+    // K-88: sekaligus menjadi pemantapan bila potongan ini belum mantap.
+    hasil.hafalan = { ...lama, terakhir: hari, ...catatMantap(lama, lancar, hari) };
     if (!lancar && j) hasil.jadwal.push(turunkanJadwal(j, hari));
     return hasil;
   }
@@ -180,6 +258,9 @@ export function setelahKoreksiPotongan(
   hasil.hafalan = lama
     ? { ...lama, terakhir: hari, sabaqLancar: lancar }
     : { kunci, ...p, mulai: hari, terakhir: hari, sabaqLancar: lancar };
+  // K-88: hari pertama lancar = pemantapan ke-1.
+  if (!hasil.hafalan.lama)
+    Object.assign(hasil.hafalan, lancar ? { mantap: 1, hariLancar: hari, goyah: false } : { mantap: 0 });
   if (!lancar) return hasil;
 
   const peta = new Map(hafalan);
@@ -230,11 +311,7 @@ export function turunSatuTingkat(j: EntriJadwal, hari: string): EntriJadwal {
 
 // Sesudah murojaah satu rukuk. Null bila jadwal tidak berubah.
 // `hasil` boleh boolean (lancar / tidak) atau mutu K-62; false = kesalahan besar.
-export function setelahMurojaahRukuk(
-  j: EntriJadwal,
-  hasil: boolean | MutuMurojaah,
-  hari: string,
-): EntriJadwal | null {
+export function setelahMurojaahRukuk(j: EntriJadwal, hasil: boolean | MutuMurojaah, hari: string): EntriJadwal | null {
   const mutu: MutuMurojaah = typeof hasil === 'boolean' ? (hasil ? 'lancar' : 'besar') : hasil;
   if (!j.lengkap && !j.sebagian) return { ...j, terakhir: hari, jatuhTempo: tambahHari(hari, 1) };
   if (mutu === 'besar') return turunkanJadwal(j, hari);
@@ -466,6 +543,61 @@ export function batalkanAyatLama(
   return { hapusHafalan, tambahHafalan, jadwal: hasilJadwal, hapusJadwal };
 }
 
+// K-88 (A): mengembalikan satu potongan hafalan baru ke belum hafal. Null bila bukan hafalan baru.
+// Jadwal rukuk disesuaikan: tanpa ayat hafal → dihapus; tidak lengkap lagi → diulang harian bila
+// masih ada hafalan baru di rukuk itu, atau berjarak "sebagian" bila sisanya hafalan lama saja.
+export function batalkanBaru(
+  kunci: string,
+  hafalan: Map<string, EntriHafalan>,
+  jadwal: Map<number, EntriJadwal>,
+  hari: string,
+): { hapusHafalan: string[]; jadwal: EntriJadwal[]; hapusJadwal: number[]; ayatLepas: number[] } | null {
+  const e = hafalan.get(kunci);
+  if (!e || e.lama || !e.sabaqLancar) return null;
+  const sisa = new Map(hafalan);
+  sisa.delete(kunci);
+  const hafal = ayatHafal(sisa);
+  const ayatLepas: number[] = [];
+  const rukuk = new Set<number>();
+  for (let a = e.ayatAwal; a <= e.ayatAkhir; a++) {
+    if (!hafal.has(`${e.surah}:${a}`)) ayatLepas.push(a);
+    const r = rukukAyat(e.surah, a);
+    if (r) rukuk.add(r.nomor);
+  }
+  const hasilJadwal: EntriJadwal[] = [];
+  const hapusJadwal: number[] = [];
+  for (const n of rukuk) {
+    const r = cariRukuk(n)!;
+    const j = jadwal.get(n);
+    if (!j) continue;
+    if (ayatHafalRukuk(r, hafal).length === 0) {
+      hapusJadwal.push(n);
+      continue;
+    }
+    if (rukukLengkap(r, hafal)) continue;
+    const adaBaru = [...sisa.values()].some(
+      (x) => !x.lama && x.sabaqLancar && x.surah === r.surah && x.ayatAwal <= r.ayatAkhir && x.ayatAkhir >= r.ayatAwal,
+    );
+    if (adaBaru) {
+      if (j.lengkap || j.sebagian)
+        hasilJadwal.push({ ...j, lengkap: false, sebagian: false, tingkat: 0, jatuhTempo: tambahHari(hari, 1) });
+    } else if (j.lengkap || !j.sebagian) {
+      hasilJadwal.push({ ...j, lengkap: false, sebagian: true });
+    }
+  }
+  return { hapusHafalan: [kunci], jadwal: hasilJadwal, hapusJadwal, ayatLepas };
+}
+
+// Potongan hafalan baru terakhir yang sudah lancar (untuk tombol kembalikan di Hari ini).
+export function hafalanBaruTerakhir(hafalan: Map<string, EntriHafalan>): EntriHafalan | undefined {
+  let hasil: EntriHafalan | undefined;
+  for (const e of hafalan.values()) {
+    if (e.lama || !e.sabaqLancar) continue;
+    if (!hasil || e.mulai > hasil.mulai || (e.mulai === hasil.mulai && e.terakhir > hasil.terakhir)) hasil = e;
+  }
+  return hasil;
+}
+
 export function adaTandaLama(nomor: number, hafalan: Map<string, EntriHafalan>): boolean {
   const r = cariRukuk(nomor);
   if (!r) return false;
@@ -558,10 +690,7 @@ export interface EntriPerbaikan {
 }
 
 // Ayat yang masuk perbaikan: ayat tempat kata salah dan ayat asal sambungan tertukar.
-export function ayatPerbaikan(
-  kataSalah: { ayat: number }[],
-  tertukar: { ayatAsal: number }[],
-): number[] {
+export function ayatPerbaikan(kataSalah: { ayat: number }[], tertukar: { ayatAsal: number }[]): number[] {
   return [...new Set([...kataSalah.map((k) => k.ayat), ...tertukar.map((t) => t.ayatAsal)])].sort((a, b) => a - b);
 }
 
@@ -596,5 +725,7 @@ export function setelahPerbaikan(e: EntriPerbaikan, lancar: boolean, hari: strin
 export function daftarPerbaikanHariIni(semua: EntriPerbaikan[], hari: string): EntriPerbaikan[] {
   return semua
     .filter((e) => e.jatuhTempo <= hari)
-    .sort((a, b) => (a.jatuhTempo !== b.jatuhTempo ? (a.jatuhTempo < b.jatuhTempo ? -1 : 1) : a.surah - b.surah || a.ayat - b.ayat));
+    .sort((a, b) =>
+      a.jatuhTempo !== b.jatuhTempo ? (a.jatuhTempo < b.jatuhTempo ? -1 : 1) : a.surah - b.surah || a.ayat - b.ayat,
+    );
 }

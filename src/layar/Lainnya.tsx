@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowsClockwise,
   BookOpenText,
@@ -15,6 +15,7 @@ import {
   Translate,
 } from '@phosphor-icons/react';
 import Kepala from '../komponen/Kepala';
+import { ambilSyaratMantap, simpanSyaratMantap } from '../db';
 import { pergi } from '../navigasi';
 import { pengingatTersedia } from '../pengingat';
 import { peranSinkron } from '../sinkron/peran';
@@ -41,6 +42,7 @@ export default function LayarLainnya() {
     <>
       <Kepala judul="Lainnya" sub="Semua fitur Saku Hati" kembali={false} />
       <PilihTema />
+      <PilihSyaratMantap />
       <ul className="daftar-lainnya">
         {item.map((x) => {
           const Ikon = x.ikon;
@@ -60,6 +62,39 @@ export default function LayarLainnya() {
         })}
       </ul>
     </>
+  );
+}
+
+// K-88 (C): berapa hari berbeda potongan hafalan baru harus lancar sebelum dianggap mantap.
+function PilihSyaratMantap() {
+  const [n, setN] = useState<number | null>(null);
+  useEffect(() => {
+    ambilSyaratMantap().then(setN);
+  }, []);
+  if (n === null) return null;
+  return (
+    <section className="pilih-tema pilih-mantap" aria-label="Pemantapan hafalan baru">
+      <p className="kicker">Pemantapan hafalan baru</p>
+      <div className="kecepatan">
+        {[1, 2, 3, 4, 5].map((m) => (
+          <button
+            key={m}
+            className={'chip' + (n === m ? ' aktif' : '')}
+            onClick={async () => {
+              setN(m);
+              await simpanSyaratMantap(m);
+            }}
+          >
+            {m}×
+          </button>
+        ))}
+      </div>
+      <p className="keterangan-kecil">
+        {n === 1
+          ? 'Tanpa pemantapan: potongan baru setiap hari seperti sebelumnya.'
+          : `Potongan baru dianggap mantap setelah lancar pada ${n} hari berbeda. Potongan berikutnya terbuka setelah pemantapan hari itu lancar.`}
+      </p>
+    </section>
   );
 }
 

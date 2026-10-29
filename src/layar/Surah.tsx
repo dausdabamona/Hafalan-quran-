@@ -39,6 +39,7 @@ import {
   kunciKeterangan,
   simpanKeterangan,
   batalkanAyatHafalanLama,
+  batalkanHafalanBaru,
   batalkanHafalanLama,
   tandaiAyatHafalanLama,
   tandaiHafalanLama,
@@ -205,8 +206,20 @@ export default function LayarSurah({
       await batalkanAyatHafalanLama(surah.nomor, [ayat]);
       setPesanTandai(`Tanda ayat ${ayat} dibatalkan.`);
     } else if (hafalSet.has(`${surah.nomor}:${ayat}`)) {
-      setPesanTandai(`Ayat ${ayat} dihafal lewat Hafalan baru, jadi tandanya tetap.`);
-      return;
+      // K-88 (A): ayat dari Hafalan baru dikembalikan ke belum hafal per potongan.
+      const e = [...hafalan.values()].find(
+        (x) => !x.lama && x.sabaqLancar && x.surah === surah.nomor && x.ayatAwal <= ayat && x.ayatAkhir >= ayat,
+      );
+      if (!e) return;
+      const label = e.ayatAwal === e.ayatAkhir ? `ayat ${e.ayatAwal}` : `ayat ${e.ayatAwal}–${e.ayatAkhir}`;
+      if (
+        !window.confirm(
+          `Ayat ${ayat} dihafal lewat Hafalan baru (potongan ${label}). Kembalikan potongan ini ke belum hafal?\n\nRekaman dan tanda kata tetap tersimpan. Potongan ini akan menjadi hafalan baru lagi.`,
+        )
+      )
+        return;
+      await batalkanHafalanBaru(e.kunci);
+      setPesanTandai(`Potongan ${label} dikembalikan ke belum hafal.`);
     } else {
       await tandaiAyatHafalanLama(surah.nomor, [ayat]);
       setPesanTandai(`Ayat ${ayat} ditandai sudah hafal.`);
@@ -323,7 +336,8 @@ export default function LayarSurah({
           <>
             <p>
               Ketuk <strong>kotak di atas ayat</strong> yang sudah Anda hafal, atau tandai sekaligus satu rentang. Ayat
-              yang ditandai masuk Ulang hafalan per rukuk; yang direkam hanya ayat yang hafal.
+              yang ditandai masuk Ulang hafalan per rukuk; yang direkam hanya ayat yang hafal. Ayat{' '}
+              <em>dari Hafalan baru</em> yang ternyata belum melekat bisa diketuk untuk dikembalikan ke belum hafal.
             </p>
             <div className="isi-rentang">
               <span>Ayat</span>

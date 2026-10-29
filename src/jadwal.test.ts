@@ -35,13 +35,19 @@ function baru(): Keadaan {
 }
 
 // Simulasi satu hari: ulang semua rukuk yang jatuh tempo, lalu satu hafalan baru.
-function jalaniHari(k: Keadaan, hari: string, lancar: (jenis: string, hari: string) => boolean = () => true) {
+// Bawaan syarat mantap 1 = perilaku sebelum K-88 (tanpa pemantapan).
+function jalaniHari(
+  k: Keadaan,
+  hari: string,
+  lancar: (jenis: string, hari: string) => boolean = () => true,
+  syarat = 1,
+) {
   const ulang = daftarUlangHafalan(k.jadwal, hari);
   for (const j of ulang) {
     const b = setelahMurojaahRukuk(j, lancar(`r${j.nomor}`, hari), hari);
     k.jadwal.set(j.nomor, b ?? { ...j, terakhir: hari });
   }
-  const hb = pilihHafalanBaru(k.hafalan, hari);
+  const hb = pilihHafalanBaru(k.hafalan, hari, undefined, syarat);
   if (hb.status === 'baru' || hb.status === 'ulang') {
     const u = setelahKoreksiPotongan(k.hafalan, k.jadwal, hb.potongan, lancar(kunciPotongan(hb.potongan), hari), hari);
     if (u.hafalan) k.hafalan.set(u.hafalan.kunci, u.hafalan);
@@ -127,9 +133,39 @@ describe('jadwal per rukuk (K-23)', () => {
 describe('migrasi jadwal per potongan', () => {
   it('potongan Juz 30 lama menjadi hafalan + jadwal rukuk', () => {
     const lama = [
-      { kunci: '114:1-3', surah: 114, ayatAwal: 1, ayatAkhir: 3, tingkat: 2, jatuhTempo: '2026-10-20', mulai: '2026-10-14', terakhir: '2026-10-14', sabaqLancar: true },
-      { kunci: '114:4-6', surah: 114, ayatAwal: 4, ayatAkhir: 6, tingkat: 1, jatuhTempo: '2026-10-18', mulai: '2026-10-15', terakhir: '2026-10-15', sabaqLancar: true },
-      { kunci: '113:1-3', surah: 113, ayatAwal: 1, ayatAkhir: 3, tingkat: 0, jatuhTempo: '2026-10-17', mulai: '2026-10-16', terakhir: '2026-10-16', sabaqLancar: true },
+      {
+        kunci: '114:1-3',
+        surah: 114,
+        ayatAwal: 1,
+        ayatAkhir: 3,
+        tingkat: 2,
+        jatuhTempo: '2026-10-20',
+        mulai: '2026-10-14',
+        terakhir: '2026-10-14',
+        sabaqLancar: true,
+      },
+      {
+        kunci: '114:4-6',
+        surah: 114,
+        ayatAwal: 4,
+        ayatAkhir: 6,
+        tingkat: 1,
+        jatuhTempo: '2026-10-18',
+        mulai: '2026-10-15',
+        terakhir: '2026-10-15',
+        sabaqLancar: true,
+      },
+      {
+        kunci: '113:1-3',
+        surah: 113,
+        ayatAwal: 1,
+        ayatAkhir: 3,
+        tingkat: 0,
+        jatuhTempo: '2026-10-17',
+        mulai: '2026-10-16',
+        terakhir: '2026-10-16',
+        sabaqLancar: true,
+      },
     ];
     const { hafalan, jadwal } = migrasiJadwalLama(lama);
     expect(hafalan).toHaveLength(3);
@@ -203,7 +239,8 @@ describe('hafalan lama (K-27)', () => {
 
 describe('hafalan lama per ayat (K-30)', () => {
   const yasin = rukukSurah(36);
-  const ayat = (awal: number, akhir: number) => Array.from({ length: akhir - awal + 1 }, (_, i) => ({ surah: 36, ayat: awal + i }));
+  const ayat = (awal: number, akhir: number) =>
+    Array.from({ length: akhir - awal + 1 }, (_, i) => ({ surah: 36, ayat: awal + i }));
   function tandai(k: Keadaan, daftar: { surah: number; ayat: number }[]) {
     const t = tandaiAyatLama(daftar, k.hafalan, k.jadwal, AWAL);
     for (const h of t.hafalan) k.hafalan.set(h.kunci, h);

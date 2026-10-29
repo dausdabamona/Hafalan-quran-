@@ -38,6 +38,8 @@ import {
   ambilJadwal,
   ambilPerbaikan,
   ambilMaknaSurah,
+  ambilSyaratMantap,
+  batalkanHafalanBaru,
   db,
   type Makna,
   type Sesi,
@@ -51,8 +53,10 @@ import { hariLokal, rentetanHari } from '../kemajuan';
 import {
   ayatHafal,
   BATAS_ULANG_MALAM,
+  daftarPemantapan,
   daftarPerbaikanHariIni,
   daftarUlangHafalan,
+  hafalanBaruTerakhir,
   hariIni,
   KALI_PERBAIKAN,
   kelompok,
@@ -62,9 +66,11 @@ import {
   rentangMurojaah,
   selesaiHariIni,
   selisihHari,
+  SYARAT_MANTAP,
   type EntriHafalan,
   type EntriJadwal,
   type EntriPerbaikan,
+  type Pemantapan,
 } from '../jadwal';
 import { hashPotongan, pergi } from '../navigasi';
 import { pengingatTersedia } from '../pengingat';
@@ -143,8 +149,11 @@ export default function LayarHariIni() {
   const [catatan, setCatatan] = useState<Record<string, 'hijau' | 'kuning'>>({});
   const [perbaikan, setPerbaikan] = useState<EntriPerbaikan[]>([]);
   const [rekamanSalah, setRekamanSalah] = useState<AyatPerluPerbaikan[]>([]);
+  const [syarat, setSyarat] = useState(SYARAT_MANTAP); // K-88
+  const [versi, setVersi] = useState(0); // naik → data dimuat ulang (mis. sesudah kembalikan ke belum hafal)
 
   useEffect(() => {
+    ambilSyaratMantap().then(setSyarat);
     ambilHafalan().then(setHafalan);
     ambilJadwal().then(setJadwal);
     db.sesi.toArray().then(setSesi);
@@ -155,7 +164,7 @@ export default function LayarHariIni() {
     ambilCatatanHari().then(setCatatan);
     ambilPerbaikan().then(setPerbaikan);
     ayatPerluPerbaikan(hari).then(setRekamanSalah);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [versi]); // eslint-disable-line react-hooks/exhaustive-deps
   const rentetan = useMemo(
     () =>
       rentetanHari(
@@ -169,7 +178,10 @@ export default function LayarHariIni() {
 
   if (!hafalan) return null;
 
-  const baru = pilihHafalanBaru(hafalan, hari, target ? potonganDalamTarget(target) : undefined);
+  const baru = pilihHafalanBaru(hafalan, hari, target ? potonganDalamTarget(target) : undefined, syarat);
+  // K-88: potongan yang sedang dimantapkan; tambah potongan dari target hanya bila semuanya lancar hari ini.
+  const pemantapan = daftarPemantapan(hafalan, hari, syarat);
+  const mantapBeres = pemantapan.every((x) => x.sudahHariIni);
   const ulang = daftarUlangHafalan(jadwal, hari);
   const selesai = selesaiHariIni(jadwal, hari);
   const tampil = lihatSemua ? ulang : ulang.slice(0, BATAS_ULANG_MALAM);
@@ -351,11 +363,21 @@ export default function LayarHariIni() {
             catatan={catatan}
             warnaKini={warnaHariIni(baru.status === 'selesai' || baru.status === 'tamat', ulang.length, selesai.length)}
             tambahPotongan={
-              baru.status === 'selesai' && target ? potonganBerikut(hafalan, potonganDalamTarget(target)) : undefined
+              baru.status === 'selesai' && target && mantapBeres
+                ? potonganBerikut(hafalan, potonganDalamTarget(target))
+                : undefined
             }
           />
         )}
-        <HafalanBaru baru={baru} hari={hari} />
+        <HafalanBaru
+          key={baru.status === 'tamat' ? 'tamat' : `${baru.status}:${baru.potongan.surah}:${baru.potongan.ayatAwal}`}
+          baru={baru}
+          hari={hari}
+          pemantapan={pemantapan}
+          syarat={syarat}
+          terakhir={hafalanBaruTerakhir(hafalan)}
+          ubah={() => setVersi((v) => v + 1)}
+        />
 
         <section className="bagian kartu-ulang">
           <p className="kicker">
@@ -411,7 +433,21 @@ export default function LayarHariIni() {
   );
 }
 
-function HafalanBaru({ baru, hari }: { baru: ReturnType<typeof pilihHafalanBaru>; hari: string }) {
+function HafalanBaru({
+  baru,
+  hari,
+  pemantapan,
+  syarat,
+  terakhir,
+  ubah,
+}: {
+  baru: ReturnType<typeof pilihHafalanBaru>;
+  hari: string;
+  pemantapan: Pemantapan[];
+  syarat: number;
+  terakhir?: EntriHafalan;
+  ubah: () => void;
+}) {
   const kunciSimai = baru.status === 'tamat' ? '' : `simai:${hari}:${baru.potongan.surah}:${baru.potongan.ayatAwal}`;
   const [simai, setSimai] = useState(() => (kunciSimai ? baca(kunciSimai) === '1' : false));
   const [makna, setMakna] = useState<Map<string, Makna>>(new Map());
@@ -429,11 +465,86 @@ function HafalanBaru({ baru, hari }: { baru: ReturnType<typeof pilihHafalanBaru>
     </p>
   );
 
+  // K-88 (C): potongan yang sedang dimantapkan, direkam dengan isyarat makna.
+  const blokMantap = pemantapan.length > 0 && (
+    <div className="blok-mantap">
+      <p className="sub-kicker">
+        Pemantapan dulu <span className="istilah">isyarat makna · lancar {syarat} hari berbeda</span>
+      </p>
+      <ul className="daftar-koran">
+        {pemantapan.map((x) => (
+          <li key={x.entri.kunci}>
+            <button
+              className={'baris-koran' + (x.sudahHariIni ? ' sudah' : '')}
+              disabled={x.sudahHariIni}
+              onClick={() => pergi(hashPotongan('rekam', x.entri, undefined, undefined, undefined, true))}
+            >
+              <span className="isi">
+                <span className="judul">
+                  <span className="nama">{namaPotongan(x.entri)}</span>
+                </span>
+                <span className="detail">
+                  {x.tuntas
+                    ? 'mantap hari ini, alhamdulillah'
+                    : x.sudahHariIni
+                      ? `lancar hari ini · ${x.ke} dari ${syarat}`
+                      : `pemantapan ke-${x.ke} dari ${syarat}`}
+                  {!x.sudahHariIni && x.goyah && <span className="telat"> · terakhir masih ada salah hafalan</span>}
+                </span>
+              </span>
+              <span className="bulat-ikon">
+                {x.sudahHariIni ? <CheckCircle weight="duotone" /> : <Microphone weight="duotone" />}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
+  // K-88 (A): potongan hafalan baru terakhir bisa dikembalikan ke belum hafal.
+  const kembalikan = terakhir && (
+    <button
+      className="tautan kecil tautan-kembalikan"
+      onClick={async () => {
+        const nama = namaPotongan(terakhir);
+        if (
+          !window.confirm(
+            `Kembalikan ${nama} ke belum hafal?\n\nRekaman dan tanda kata tetap tersimpan. Potongan ini akan menjadi hafalan baru lagi.`,
+          )
+        )
+          return;
+        await batalkanHafalanBaru(terakhir.kunci, hari);
+        ubah();
+      }}
+    >
+      Kembalikan {namaPotongan(terakhir)} ke belum hafal
+    </button>
+  );
+
   if (baru.status === 'tamat') {
     return (
       <section className="bagian kartu-baru">
         {kepala}
+        {blokMantap}
         <p className="selesai-hari-ini">Masya Allah, seluruh Al-Qur'an sudah masuk hafalan.</p>
+        {kembalikan}
+      </section>
+    );
+  }
+
+  // K-88 (D1): potongan baru menunggu pemantapan hari ini lancar.
+  if (baru.status === 'mantapkan') {
+    const q = baru.potongan;
+    return (
+      <section className="bagian kartu-baru">
+        {kepala}
+        {blokMantap}
+        <p className="menunggu-mantap">
+          Potongan baru berikutnya, <strong>{namaPotongan(q)}</strong>, terbuka setelah pemantapan di atas lancar hari
+          ini. Hafalan yang sudah melekat lebih dulu, baru ditambah.
+        </p>
+        {kembalikan}
       </section>
     );
   }
@@ -447,6 +558,7 @@ function HafalanBaru({ baru, hari }: { baru: ReturnType<typeof pilihHafalanBaru>
   return (
     <section className="bagian kartu-baru">
       {kepala}
+      {blokMantap}
       <h2 className="judul-sabaq">
         {cariSurah(p.surah)?.nama}, {labelPotongan(p)}
       </h2>
@@ -501,8 +613,10 @@ function HafalanBaru({ baru, hari }: { baru: ReturnType<typeof pilihHafalanBaru>
       )}
       {baru.status === 'selesai' ? (
         <p className="selesai-hari-ini">
-          <CheckCircle size={24} weight="duotone" className="ikon" /> Sudah dihafal hari ini. Potongan berikutnya besok
-          pagi, insya Allah.
+          <CheckCircle size={24} weight="duotone" className="ikon" /> Sudah dihafal hari ini.
+          {syarat > 1
+            ? ' Besok dimantapkan dulu, lalu potongan berikutnya, insya Allah.'
+            : ' Potongan berikutnya besok pagi, insya Allah.'}
         </p>
       ) : (
         <>
@@ -541,6 +655,7 @@ function HafalanBaru({ baru, hari }: { baru: ReturnType<typeof pilihHafalanBaru>
           </button>
         </>
       )}
+      {kembalikan}
     </section>
   );
 }

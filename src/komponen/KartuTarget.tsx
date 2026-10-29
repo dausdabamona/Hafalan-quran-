@@ -2,12 +2,13 @@ import { useEffect } from 'react';
 import { Flag, Plus } from '@phosphor-icons/react';
 import type { Potongan } from '../data';
 import type { Sesi } from '../db';
-import { tambahHari } from '../jadwal';
+import { tambahHari, type EntriHafalan } from '../jadwal';
 import { hashHafal, pergi } from '../navigasi';
 import {
   catatHari,
   hitungTarget,
   namaTarget,
+  perkiraanSelesai,
   susunBatang,
   warnaDariSesi,
   type Target,
@@ -33,6 +34,8 @@ export default function KartuTarget({
   catatan,
   warnaKini,
   tambahPotongan,
+  hafalan,
+  sesuaikan,
 }: {
   target: Target | null;
   hafal: Set<string>;
@@ -41,6 +44,8 @@ export default function KartuTarget({
   catatan: Record<string, 'hijau' | 'kuning'>;
   warnaKini: WarnaHari;
   tambahPotongan?: Potongan;
+  hafalan?: Map<string, EntriHafalan>;
+  sesuaikan?: (t: Target) => void;
 }) {
   // Warna hari ini dicatat agar tetap benar besok (jadwal ulang tidak menyimpan riwayat).
   useEffect(() => {
@@ -52,6 +57,11 @@ export default function KartuTarget({
   const awal = target ? target.mulai : tambahHari(hari, -(BATANG_TANPA_TARGET - 1));
   const jumlah = target ? target.hari : BATANG_TANPA_TARGET;
   const batang = susunBatang(awal, jumlah, hari, catatan, dariSesi, warnaKini);
+  // K-88 (E): perkiraan selesai dari kecepatan nyata.
+  const pk = target && hafalan ? perkiraanSelesai(target, hafalan, hari) : null;
+  const akhirTarget = target ? tambahHari(target.mulai, target.hari - 1) : '';
+  const tgl = (h: string) =>
+    new Date(h + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
     <section className="bagian kartu-target">
@@ -108,6 +118,36 @@ export default function KartuTarget({
             ? `Tertinggal ${h.tertinggal} ayat dari jadwal. Perlu sekitar ${h.perHari} ayat per hari.`
             : `Sesuai jadwal. Sekitar ${h.perHari} ayat per hari sampai selesai.`}
         </p>
+      )}
+      {target && pk && (
+        <div className="perkiraan-target">
+          <p className="keterangan-kecil">
+            Dengan kecepatan sekarang (sekitar {pk.laju.toLocaleString('id-ID', { maximumFractionDigits: 1 })} ayat per
+            hari), perkiraan selesai <strong>{tgl(pk.tanggal)}</strong>
+            {pk.tanggal > akhirTarget
+              ? `, lebih lambat dari target ${tgl(akhirTarget)}.`
+              : pk.tanggal < akhirTarget
+                ? `, lebih cepat dari target ${tgl(akhirTarget)}.`
+                : ', tepat sesuai target.'}
+            {pk.lamaHari > 730 && ' Lebih dari dua tahun: pertimbangkan rentang target yang lebih kecil.'}
+          </p>
+          {/* Hanya menawarkan memperpanjang, sesuai tujuan K-88: lebih intens, tidak terlalu cepat. */}
+          {sesuaikan && pk.tanggal > akhirTarget && pk.lamaHari <= 730 && (
+            <button
+              className="tombol sekunder lebar"
+              onClick={() => {
+                if (
+                  window.confirm(
+                    `Ubah lama target ${namaTarget(target)} dari ${target.hari} menjadi ${pk.lamaHari} hari (selesai ${tgl(pk.tanggal)})?`,
+                  )
+                )
+                  sesuaikan({ ...target, hari: pk.lamaHari });
+              }}
+            >
+              Sesuaikan target ke {tgl(pk.tanggal)}
+            </button>
+          )}
+        </div>
       )}
       {/* K-58: tombol tambah selalu ada selama target berjalan, setelah hafalan baru hari ini selesai. */}
       {h && !h.selesai && tambahPotongan && (

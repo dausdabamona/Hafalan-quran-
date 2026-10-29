@@ -47,7 +47,7 @@ import {
 } from '../db';
 import KartuTarget from '../komponen/KartuTarget';
 import PerluPerhatian from '../komponen/PerluPerhatian';
-import { ambilCatatanHari, ambilTarget, potonganDalamTarget, warnaHariIni, type Target } from '../target';
+import { ambilCatatanHari, ambilTarget, potonganDalamTarget, simpanTarget, warnaHariIni, type Target } from '../target';
 import { hariLokal, rentetanHari } from '../kemajuan';
 import {
   ayatHafal,
@@ -366,6 +366,11 @@ export default function LayarHariIni() {
                 ? potonganBerikut(hafalan, potonganDalamTarget(target))
                 : undefined
             }
+            hafalan={hafalan}
+            sesuaikan={async (t) => {
+              await simpanTarget(t);
+              setTarget(t);
+            }}
           />
         )}
         <HafalanBaru

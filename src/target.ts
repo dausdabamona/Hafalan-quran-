@@ -3,7 +3,7 @@
 import { cariSurah, daftarSurah, juzAyat, type Potongan } from './data';
 import { db, type Sesi } from './db';
 import { hariLokal } from './kemajuan';
-import { selisihHari, tambahHari } from './jadwal';
+import { ayatHafal, selisihHari, tambahHari, type EntriHafalan } from './jadwal';
 
 export interface Target {
   jenis: 'juz' | 'surah';
@@ -64,6 +64,36 @@ export function hitungTarget(t: Target, hafal: Set<string>, hari: string): Hitun
     selesai,
     lewat: !selesai && sisaHari === 0,
   };
+}
+
+// ---------- Perkiraan selesai (K-88 E) ----------
+
+export interface Perkiraan {
+  laju: number; // ayat target per hari dari hafalan baru sejak target dimulai
+  tanggal: string; // perkiraan hari selesai
+  lamaHari: number; // lama target bila disesuaikan ke tanggal itu
+}
+
+export const HARI_MIN_PERKIRAAN = 3;
+
+// Kecepatan nyata = ayat target yang dihafal lewat hafalan baru sejak target dimulai, dibagi
+// hari berjalan (termasuk hari ini). Hafalan lama tidak dihitung karena tidak mencerminkan kecepatan.
+export function perkiraanSelesai(t: Target, hafalan: Map<string, EntriHafalan>, hari: string): Perkiraan | null {
+  const h = hitungTarget(t, ayatHafal(hafalan), hari);
+  if (h.selesai || h.hariKe < HARI_MIN_PERKIRAAN) return null;
+  const dalam = new Set(ayatTarget(t));
+  const dariBaru = new Set<string>();
+  for (const e of hafalan.values()) {
+    if (e.lama || !e.sabaqLancar || e.mulai < t.mulai) continue;
+    for (let a = e.ayatAwal; a <= e.ayatAkhir; a++) {
+      const k = `${e.surah}:${a}`;
+      if (dalam.has(k)) dariBaru.add(k);
+    }
+  }
+  if (!dariBaru.size) return null;
+  const laju = dariBaru.size / h.hariKe;
+  const tanggal = tambahHari(hari, Math.ceil((h.total - h.hafal) / laju));
+  return { laju, tanggal, lamaHari: selisihHari(t.mulai, tanggal) + 1 };
 }
 
 // ---------- Batang hari ----------

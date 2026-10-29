@@ -16,6 +16,7 @@ import {
   type EntriJadwal,
 } from './jadwal';
 import type { Potongan } from './data';
+import { perkiraanSelesai } from './target';
 
 // K-88: pemantapan hafalan baru, gerbang adaptif, dan kembalikan ke belum hafal.
 const H1 = '2026-11-01';
@@ -251,5 +252,51 @@ describe('kembalikan ke belum hafal (K-88 A)', () => {
     rekam(k, P3, false, H3);
     expect(hafalanBaruTerakhir(k.hafalan)?.kunci).toBe(kunciPotongan(P2));
     expect(ayatHafal(k.hafalan).size).toBeGreaterThan(0);
+  });
+});
+
+describe('perkiraan selesai target (K-88 E)', () => {
+  // Al-Ikhlas (4 ayat) sebagai target 10 hari.
+  const t = { jenis: 'surah' as const, nomor: 112, mulai: H1, hari: 10 };
+  const entri = (awal: number, akhir: number, mulai: string, lama = false): EntriHafalan => ({
+    kunci: `112:${awal}-${akhir}`,
+    surah: 112,
+    ayatAwal: awal,
+    ayatAkhir: akhir,
+    mulai,
+    terakhir: mulai,
+    sabaqLancar: true,
+    ...(lama ? { lama: true } : { mantap: 1, hariLancar: mulai }),
+  });
+
+  it('belum tampil sebelum hari ke-3 atau bila belum ada hafalan baru di target', () => {
+    const h = new Map([['112:1-1', entri(1, 1, H1)]]);
+    expect(perkiraanSelesai(t, h, H2)).toBeNull();
+    expect(perkiraanSelesai(t, new Map(), H3)).toBeNull();
+  });
+
+  it('kecepatan nyata = ayat target dari hafalan baru ÷ hari berjalan', () => {
+    // 1 ayat dalam 4 hari → 0,25 ayat/hari; sisa 3 ayat → 12 hari lagi.
+    const h = new Map([['112:1-1', entri(1, 1, H1)]]);
+    const p = perkiraanSelesai(t, h, H4)!;
+    expect(p.laju).toBeCloseTo(0.25);
+    expect(p.tanggal).toBe(tambahHari(H4, 12));
+    expect(p.lamaHari).toBe(16);
+  });
+
+  it('hafalan lama dan hafalan sebelum target dimulai tidak dihitung sebagai kecepatan', () => {
+    const h = new Map([
+      ['112:1-1', entri(1, 1, tambahHari(H1, -5))],
+      ['112:2-2', entri(2, 2, H1, true)],
+      ['112:3-3', entri(3, 3, H2)],
+    ]);
+    const p = perkiraanSelesai(t, h, H4)!;
+    expect(p.laju).toBeCloseTo(0.25); // hanya ayat 3
+    expect(p.tanggal).toBe(tambahHari(H4, 4)); // sisa 1 ayat ÷ 0,25
+  });
+
+  it('target sudah selesai → tidak ada perkiraan', () => {
+    const h = new Map([['112:1-4', entri(1, 4, H1)]]);
+    expect(perkiraanSelesai(t, h, H4)).toBeNull();
   });
 });

@@ -17,6 +17,7 @@ import {
 } from './jadwal';
 import type { Potongan } from './data';
 import { perkiraanSelesai } from './target';
+import { gabung } from './sinkron/mesin';
 
 // K-88: pemantapan hafalan baru, gerbang adaptif, dan kembalikan ke belum hafal.
 const H1 = '2026-11-01';
@@ -298,5 +299,48 @@ describe('perkiraan selesai target (K-88 E)', () => {
   it('target sudah selesai → tidak ada perkiraan', () => {
     const h = new Map([['112:1-4', entri(1, 4, H1)]]);
     expect(perkiraanSelesai(t, h, H4)).toBeNull();
+  });
+});
+
+describe('temuan peninjau K-88', () => {
+  it('murojaah potongan yang ayatnya sudah hafal (hafalan lama) dari layar Surah tidak ikut pemantapan', () => {
+    const k = kosong();
+    const t = tandaiAyatLama(
+      [1, 2, 3, 4].map((ayat) => ({ surah: 112, ayat })),
+      k.hafalan,
+      k.jadwal,
+      H1,
+    );
+    for (const e of t.hafalan) k.hafalan.set(e.kunci, e);
+    for (const j of t.jadwal) k.jadwal.set(j.nomor, j);
+    const e = rekam(k, { surah: 112, ayatAwal: 1, ayatAkhir: 3 }, true, H1);
+    expect(e.mantap).toBeUndefined();
+    expect(daftarPemantapan(k.hafalan, H2)).toHaveLength(0);
+  });
+
+  it('potongan tambahan yang gagal di hari yang sama tetap muncul sebagai "ulang"', () => {
+    const k = kosong();
+    rekam(k, P2, true, H1);
+    rekam(k, P1, false, H1); // kunci P1 lebih kecil, mulai & terakhir sama
+    expect(pilihHafalanBaru(k.hafalan, H2)).toEqual({ status: 'ulang', potongan: k.hafalan.get(kunciPotongan(P1)) });
+  });
+
+  it('sinkron: hari lancar dari dua perangkat tidak hilang', () => {
+    const dasar = { kunci: '1:1-3', surah: 1, ayatAwal: 1, ayatAkhir: 3, mulai: H1, sabaqLancar: true, asal: '' };
+    // A: HP lancar H2 (mantap 2); laptop lancar H3 dari salinan lama (mantap 2), lebih baru.
+    const hp = { ...dasar, terakhir: H2, mantap: 2, hariLancar: H2, goyah: false, ubahMs: 1 };
+    const laptop = { ...dasar, terakhir: H3, mantap: 2, hariLancar: H3, goyah: false, ubahMs: 2 };
+    expect(gabung('hafalan', hp, laptop)).toMatchObject({ mantap: 2, hariLancar: H3, terakhir: H3 });
+    // B: HP lancar H2; laptop (salinan kemarin) salah H2, lebih baru → hari lancar HP tetap, tidak goyah.
+    const hp2 = { ...dasar, terakhir: H2, mantap: 2, hariLancar: H2, goyah: false, ubahMs: 1 };
+    const laptop2 = { ...dasar, terakhir: H2, mantap: 1, hariLancar: H1, goyah: true, ubahMs: 2 };
+    expect(gabung('hafalan', hp2, laptop2)).toMatchObject({ mantap: 2, hariLancar: H2, goyah: false });
+    // Versi terbaru yang tahu hari lancar terakhir lalu salah → tetap goyah.
+    const laptop3 = { ...dasar, terakhir: H2, mantap: 2, hariLancar: H2, goyah: true, ubahMs: 3 };
+    expect(gabung('hafalan', hp2, laptop3)).toMatchObject({ mantap: 2, goyah: true });
+    // Data lama tanpa hitungan tetap tanpa hitungan.
+    const lamaA = { ...dasar, terakhir: H1, ubahMs: 1 };
+    const lamaB = { ...dasar, terakhir: H2, ubahMs: 2 };
+    expect(gabung('hafalan', lamaA, lamaB).mantap).toBeUndefined();
   });
 });

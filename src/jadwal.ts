@@ -144,8 +144,13 @@ export function pilihHafalanBaru(
   let terakhir: EntriHafalan | undefined;
   for (const e of hafalan.values()) {
     if (e.lama) continue;
-    if (!terakhir || e.mulai > terakhir.mulai || (e.mulai === terakhir.mulai && e.terakhir > terakhir.terakhir))
-      terakhir = e;
+    // Hari mulai yang sama: potongan yang belum lancar didahulukan agar tidak terlewat (K-88).
+    const lebih =
+      !terakhir ||
+      e.mulai > terakhir.mulai ||
+      (e.mulai === terakhir.mulai &&
+        (e.sabaqLancar === terakhir.sabaqLancar ? e.terakhir > terakhir.terakhir : !e.sabaqLancar));
+    if (lebih) terakhir = e;
   }
   if (terakhir && !terakhir.sabaqLancar) return { status: 'ulang', potongan: terakhir };
   if (terakhir && terakhir.mulai === hari) return { status: 'selesai', potongan: terakhir };
@@ -258,8 +263,12 @@ export function setelahKoreksiPotongan(
   hasil.hafalan = lama
     ? { ...lama, terakhir: hari, sabaqLancar: lancar }
     : { kunci, ...p, mulai: hari, terakhir: hari, sabaqLancar: lancar };
-  // K-88: hari pertama lancar = pemantapan ke-1.
-  if (!hasil.hafalan.lama)
+  // K-88: hari pertama lancar = pemantapan ke-1. Potongan yang seluruh ayatnya sudah hafal lewat
+  // entri lain (mis. murojaah hafalan lama dari layar Surah) tidak ikut pemantapan.
+  const hafalSebelum = ayatHafal(hafalan);
+  let sudahHafalSemua = true;
+  for (let a = p.ayatAwal; a <= p.ayatAkhir; a++) if (!hafalSebelum.has(`${p.surah}:${a}`)) sudahHafalSemua = false;
+  if (!hasil.hafalan.lama && !sudahHafalSemua)
     Object.assign(hasil.hafalan, lancar ? { mantap: 1, hariLancar: hari, goyah: false } : { mantap: 0 });
   if (!lancar) return hasil;
 

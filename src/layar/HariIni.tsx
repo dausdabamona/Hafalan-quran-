@@ -65,7 +65,6 @@ import {
   rentangMurojaah,
   selesaiHariIni,
   selisihHari,
-  SYARAT_MANTAP,
   type EntriHafalan,
   type EntriJadwal,
   type EntriPerbaikan,
@@ -148,7 +147,7 @@ export default function LayarHariIni() {
   const [catatan, setCatatan] = useState<Record<string, 'hijau' | 'kuning'>>({});
   const [perbaikan, setPerbaikan] = useState<EntriPerbaikan[]>([]);
   const [rekamanSalah, setRekamanSalah] = useState<AyatPerluPerbaikan[]>([]);
-  const [syarat, setSyarat] = useState(SYARAT_MANTAP); // K-88
+  const [syarat, setSyarat] = useState<number | null>(null); // K-88, dimuat dari setelan
   const [versi, setVersi] = useState(0); // naik → data dimuat ulang (mis. sesudah kembalikan ke belum hafal)
 
   useEffect(() => {
@@ -175,12 +174,12 @@ export default function LayarHariIni() {
 
   const hafal = useMemo(() => ayatHafal(hafalan ?? new Map()), [hafalan]);
 
-  if (!hafalan) return null;
+  if (!hafalan || syarat === null) return null;
 
   const baru = pilihHafalanBaru(hafalan, hari, target ? potonganDalamTarget(target) : undefined, syarat);
   // K-88: potongan yang sedang dimantapkan; tambah potongan dari target hanya bila semuanya lancar hari ini.
   const pemantapan = daftarPemantapan(hafalan, hari, syarat);
-  const mantapBeres = pemantapan.every((x) => x.sudahHariIni);
+  const mantapBeres = pemantapan.every((x) => x.sudahHariIni && !x.goyah);
   const ulang = daftarUlangHafalan(jadwal, hari);
   const selesai = selesaiHariIni(jadwal, hari);
   const tampil = lihatSemua ? ulang : ulang.slice(0, BATAS_ULANG_MALAM);
@@ -545,8 +544,14 @@ function HafalanBaru({
         {kepala}
         {blokMantap}
         <p className="menunggu-mantap">
-          Potongan baru berikutnya, <strong>{namaPotongan(q)}</strong>, terbuka setelah pemantapan di atas lancar hari
-          ini. Hafalan yang sudah melekat lebih dulu, baru ditambah.
+          {pemantapan.some((x) => x.entri.kunci === `${q.surah}:${q.ayatAwal}-${q.ayatAkhir}`) ? (
+            'Selesaikan pemantapan di atas hari ini.'
+          ) : (
+            <>
+              Potongan baru berikutnya, <strong>{namaPotongan(q)}</strong>, terbuka setelah pemantapan di atas lancar
+              hari ini. Hafalan yang sudah melekat lebih dulu, baru ditambah.
+            </>
+          )}
         </p>
         {kembalikan}
       </section>

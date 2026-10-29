@@ -165,6 +165,32 @@ export function gabung(tabel: TabelSinkron, lokal: Rekaman, jauh: Rekaman): Reka
     );
     return { ...baru, nilai: urut, ubahMs: Math.max(angka(lokal.ubahMs), angka(jauh.ubahMs)) };
   }
+  if (tabel === 'hafalan') {
+    // K-88: hitungan pemantapan digabung agar hari lancar dari kedua perangkat tidak hilang.
+    if (sama(tabel, lokal, jauh)) return lokal;
+    const lokalBaru =
+      angka(lokal.ubahMs) !== angka(jauh.ubahMs)
+        ? angka(lokal.ubahMs) > angka(jauh.ubahMs)
+        : String(lokal.asal ?? '') >= String(jauh.asal ?? '');
+    const baru = lokalBaru ? lokal : jauh;
+    const hasil: Rekaman = {
+      ...baru,
+      sabaqLancar: !!lokal.sabaqLancar || !!jauh.sabaqLancar,
+      mulai: [String(lokal.mulai), String(jauh.mulai)].sort()[0],
+      terakhir: [String(lokal.terakhir), String(jauh.terakhir)].sort()[1],
+      ubahMs: Math.max(angka(lokal.ubahMs), angka(jauh.ubahMs)),
+    };
+    const hitung = [lokal.mantap, jauh.mantap].filter((x) => typeof x === 'number') as number[];
+    if (hitung.length) {
+      const hariLancar = [String(lokal.hariLancar ?? ''), String(jauh.hariLancar ?? '')].sort()[1];
+      hasil.mantap = Math.max(...hitung);
+      if (hariLancar) hasil.hariLancar = hariLancar;
+      // Goyah hanya bila versi terbaru sudah mengetahui hari lancar terakhir lalu salah sesudahnya.
+      if ('goyah' in lokal || 'goyah' in jauh)
+        hasil.goyah = !!baru.goyah && String(baru.hariLancar ?? '') === hariLancar;
+    }
+    return hasil;
+  }
   if (tabel === 'jadwalRukuk') {
     // Murojaah yang terakhir dipakai; bila di hari yang sama, kesalahan (jatuh tempo lebih dekat) dipakai.
     const ta = String(lokal.terakhir);

@@ -92,7 +92,7 @@ function PilihSyaratMantap() {
       <p className="keterangan-kecil">
         {n === 1
           ? 'Tanpa pemantapan: potongan baru setiap hari seperti sebelumnya.'
-          : `Potongan baru dianggap mantap setelah lancar pada ${n} hari berbeda. Potongan berikutnya terbuka setelah pemantapan hari itu lancar.`}
+          : `Potongan baru dianggap mantap setelah lancar pada ${n} hari berbeda. Potongan berikutnya terbuka setelah pemantapan hari itu lancar. Menaikkan angka ini juga berlaku untuk potongan yang sudah mantap.`}
       </p>
     </section>
   );

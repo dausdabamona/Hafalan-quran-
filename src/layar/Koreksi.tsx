@@ -184,7 +184,10 @@ export default function LayarKoreksi({
                     undefined,
                     perbaikan,
                     // K-88: pemantapan yang belum lancar diulang tetap dalam mode pemantapan.
-                    !!hasil.mantap && (hasil.mantap.ke > 1 || !hasil.mantap.naik),
+                    !!hasil.mantap &&
+                      hasil.mantap.ke <= syaratMantap &&
+                      (hasil.mantap.ke > 1 || !hasil.mantap.naik) &&
+                      !(hasil.mantap.ke === syaratMantap && hasil.mantap.naik),
                   ),
                 )
               }
@@ -491,7 +494,8 @@ function TandaLamaAyat({
 function PesanMantap({ hasil, syarat }: { hasil: HasilSimpan; syarat: number }) {
   if (!hasil.mantap) return null;
   const { ke, naik } = hasil.mantap;
-  if (ke >= syarat)
+  if (ke > syarat) return null; // sudah mantap sebelumnya: pengulangan biasa
+  if (ke === syarat)
     return naik ? (
       <p className="pesan-aturan selesai">Lancar pada {ke} hari berbeda: potongan ini sudah mantap, alhamdulillah.</p>
     ) : null;

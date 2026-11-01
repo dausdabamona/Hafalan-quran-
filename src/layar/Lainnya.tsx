@@ -17,13 +17,20 @@ import {
 } from '@phosphor-icons/react';
 import Kepala from '../komponen/Kepala';
 import { ambilSyaratMantap, simpanSyaratMantap } from '../db';
+import { bacaSkala, PILIHAN_SKALA, simpanSkala } from '../skala';
 import { pergi } from '../navigasi';
 import { pengingatTersedia } from '../pengingat';
 import { peranSinkron } from '../sinkron/peran';
 import { bacaTema, simpanTema, type PilihanTema } from '../tema';
 
 // Semua fitur lain dalam satu layar (K-48), dibuka dari tab "Lainnya".
-export default function LayarLainnya() {
+export default function LayarLainnya({
+  ukuranArab,
+  aturUkuran,
+}: {
+  ukuranArab: number;
+  aturUkuran: (selisih: number) => void;
+}) {
   const item = [
     { judul: 'Sambung ayat', isi: 'Lanjutkan ayat sesudahnya', ikon: Link, hash: '#/sambung' },
     { judul: 'Tebak dari arti', isi: 'Tebak ayat dari maknanya', ikon: Translate, hash: '#/tebak-arti' },
@@ -35,7 +42,12 @@ export default function LayarLainnya() {
       ? [
           { judul: 'Sinkron HP ↔ Laptop', isi: 'Lewat Wi-Fi yang sama', ikon: ArrowsClockwise, hash: '#/sinkron' },
           // K-92: usulan suntingan dari Claude datang lewat sinkron.
-          { judul: 'Usulan Claude', isi: 'Tinjau saran suntingan makna & kajian', ikon: Sparkle, hash: '#/usulan-claude' },
+          {
+            judul: 'Usulan Claude',
+            isi: 'Tinjau saran suntingan makna & kajian',
+            ikon: Sparkle,
+            hash: '#/usulan-claude',
+          },
         ]
       : []),
     { judul: 'Hadits', isi: '9 kitab: jelajah per bagian dan bab', ikon: BookOpenText, hash: '#/hadits' },
@@ -47,6 +59,7 @@ export default function LayarLainnya() {
     <>
       <Kepala judul="Lainnya" sub="Semua fitur Saku Hati" kembali={false} />
       <PilihTema />
+      <PilihUkuran ukuranArab={ukuranArab} aturUkuran={aturUkuran} />
       <PilihSyaratMantap />
       <ul className="daftar-lainnya">
         {item.map((x) => {
@@ -67,6 +80,56 @@ export default function LayarLainnya() {
         })}
       </ul>
     </>
+  );
+}
+
+// K-94: dua setelan terpisah — huruf Latin & tampilan (skala) dan huruf Arab.
+function PilihUkuran({ ukuranArab, aturUkuran }: { ukuranArab: number; aturUkuran: (selisih: number) => void }) {
+  const [skala, setSkala] = useState(bacaSkala);
+  return (
+    <section className="pilih-tema pilih-ukuran" aria-label="Ukuran huruf">
+      <p className="kicker">Huruf Latin &amp; tampilan</p>
+      <div className="kecepatan">
+        {PILIHAN_SKALA.map((p) => (
+          <button
+            key={p.nilai}
+            className={'chip' + (skala === p.nilai ? ' aktif' : '')}
+            onClick={() => {
+              setSkala(p.nilai);
+              simpanSkala(p.nilai);
+            }}
+          >
+            {p.judul}
+          </button>
+        ))}
+      </div>
+      <p className="keterangan-kecil">
+        {skala}% · teks, tombol, dan jarak. Tidak lagi mengikuti ukuran font HP. Disimpan di perangkat ini.
+      </p>
+      <p className="kicker">Huruf Arab</p>
+      <div className="baris-ukuran-arab">
+        <button
+          className="chip"
+          onClick={() => aturUkuran(-2)}
+          disabled={ukuranArab <= 22}
+          aria-label="Perkecil huruf Arab"
+        >
+          A−
+        </button>
+        <span className="angka-ukuran">{ukuranArab}</span>
+        <button
+          className="chip"
+          onClick={() => aturUkuran(2)}
+          disabled={ukuranArab >= 48}
+          aria-label="Perbesar huruf Arab"
+        >
+          A+
+        </button>
+      </div>
+      <p className="contoh-arab arab" dir="rtl" lang="ar">
+        بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
+      </p>
+    </section>
   );
 }
 

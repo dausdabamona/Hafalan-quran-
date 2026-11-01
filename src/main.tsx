@@ -12,8 +12,10 @@ import { pasangSatuSuara } from './pemutar';
 import { pasangPintasan } from './pintasan';
 import { pasangPapanKetik } from './papanKetik';
 import { pasangTema } from './tema';
+import { terapkanSkala } from './skala';
 
 pasangTema();
+terapkanSkala(); // K-94
 mintaPenyimpananTetap();
 pasangSatuSuara();
 pasangPintasan();

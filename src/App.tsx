@@ -112,7 +112,8 @@ export default function App() {
       <BilahSamping layar={layar.nama} />
       <div
         className={'aplikasi bertab' + (LAYAR_BERTAB.includes(layar.nama) ? ' layar-tab' : '')}
-        style={{ ['--ukuran-arab' as string]: `${ukuran}px` }}
+        // K-94: ukuran Arab dibagi skala tampilan agar terpisah dari ukuran huruf Latin.
+        style={{ ['--ukuran-arab' as string]: `calc(${ukuran}px / var(--skala, 1))` }}
       >
         {layar.nama === 'hari-ini' && <LayarHariIni />}
         {layar.nama === 'daftar' && <LayarDaftar />}
@@ -148,7 +149,7 @@ export default function App() {
         )}
         {layar.nama === 'rukuk' && <LayarRukuk />}
         {layar.nama === 'tentang' && <LayarTentang />}
-        {layar.nama === 'lainnya' && <LayarLainnya />}
+        {layar.nama === 'lainnya' && <LayarLainnya ukuranArab={ukuran} aturUkuran={aturUkuran} />}
         {layar.nama === 'kemajuan' && <LayarKemajuan />}
         {layar.nama === 'target' && <LayarTarget />}
         {layar.nama === 'pilih-murotal' && <LayarPilihMurotal tanpaAlih={layar.tanpaAlih} />}

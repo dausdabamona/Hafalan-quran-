@@ -5444,3 +5444,30 @@ body {
 .usulan-lencana .nama svg {
   vertical-align: -3px;
 }
+
+/* K-94: setelan huruf Latin & Arab */
+.pilih-ukuran {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.pilih-ukuran .keterangan-kecil {
+  margin: 0;
+}
+.baris-ukuran-arab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.angka-ukuran {
+  min-width: 2.5em;
+  text-align: center;
+  font-weight: 700;
+}
+.contoh-arab {
+  margin: 0;
+  font-family: var(--font-arab);
+  font-size: var(--ukuran-arab, 34px);
+  line-height: 1.9;
+  text-align: right;
+}

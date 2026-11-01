@@ -15,5 +15,9 @@ public class MainActivity extends BridgeActivity {
         String t = PintasanPlugin.tindakanDari(getIntent());
         if (t != null) PintasanPlugin.simpan(t);
         super.onCreate(savedInstanceState);
+        // K-94: ukuran huruf diatur di dalam aplikasi, tidak mengikuti ukuran font sistem HP.
+        if (getBridge() != null && getBridge().getWebView() != null) {
+            getBridge().getWebView().getSettings().setTextZoom(100);
+        }
     }
 }

@@ -19,6 +19,7 @@ export type Layar =
   | { nama: 'pilih-murotal'; tanpaAlih?: boolean }
   | { nama: 'pengingat' }
   | { nama: 'sinkron' }
+  | { nama: 'usulan-claude' }
   | { nama: 'cadangan' }
   | { nama: 'data-hadits' }
   | { nama: 'kitab-hadits'; cari?: string; kitab?: string }
@@ -71,6 +72,7 @@ export function bacaHash(): Layar {
   if (h === '#/murotal/selain-target') return { nama: 'murotal', rentang: { jenis: 'selain-target' } };
   if (h === '#/pengingat') return { nama: 'pengingat' };
   if (h === '#/sinkron') return { nama: 'sinkron' };
+  if (h === '#/usulan-claude') return { nama: 'usulan-claude' };
   if (h === '#/cadangan') return { nama: 'cadangan' };
   if (h === '#/data-hadits') return { nama: 'data-hadits' };
   // K-76: hadits lengkap — #/hadits, #/hadits/bukhari, #/hadits/bukhari/g2, #/hadits/bukhari/740

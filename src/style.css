@@ -5365,3 +5365,82 @@ body {
 .perkiraan-target .keterangan-kecil {
   margin: 0;
 }
+
+/* ---------- K-92/K-93: Usulan Claude ---------- */
+.usulan-judul {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.usulan-catatan {
+  margin: 6px 0 10px;
+  color: var(--teks-lembut);
+  font-style: italic;
+}
+.usulan-dua {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0 12px;
+}
+@media (min-width: 640px) {
+  .usulan-dua {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.usulan-blok {
+  padding: 10px 12px;
+  border: 1px solid var(--garis);
+  border-radius: 10px;
+  background: var(--catatan);
+}
+.usulan-blok.usulan-baru {
+  border-color: var(--teal);
+  background: var(--teal-muda);
+}
+.usulan-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--teks-lembut);
+}
+.usulan-isi {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.usulan-tombol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.usulan-tombol .tombol {
+  flex: 1 1 140px;
+}
+.usulan-riwayat {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.usulan-riwayat li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--garis);
+}
+.usulan-riwayat-isi {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.usulan-riwayat-isi .kosong {
+  margin: 0;
+}
+.usulan-lencana .nama svg {
+  vertical-align: -3px;
+}

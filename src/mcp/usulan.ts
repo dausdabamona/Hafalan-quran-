@@ -1,5 +1,5 @@
 import { cariAyat, cariSurah, segmenAyat } from '../data';
-import { idAcak, type SakuDB, type StatusUsulan, type TabelUsulan, type UsulanClaude } from '../db';
+import { catatHapus, idAcak, type SakuDB, type StatusUsulan, type TabelUsulan, type UsulanClaude } from '../db';
 
 // K-92/K-93: pembuatan usulan Claude dan penentuan status efektifnya.
 // Dipakai alat MCP (tahap b) dan layar Usulan Claude di HP (tahap c).
@@ -169,4 +169,93 @@ export async function daftarUsulan(d: SakuDB, hanyaMenunggu: boolean, batas = 50
     hasil.push({ ...u, statusEfektif: statusEfektif(u, await barisTujuan(d, u.tabel, u.kunciTujuan)) });
   }
   return { jumlah: semua.length, hasil };
+}
+
+// ---------- Keputusan Firdaus (tahap c, K-92/K-93) ----------
+
+// Baris tujuan ditulis seperti suntingan biasa (penanda sinkron diisi otomatis oleh hook).
+// `dariUsulan` menandai baris yang isinya berasal dari usulan Claude; hilang sendiri bila disunting lagi.
+async function tulisTujuan(d: SakuDB, u: UsulanClaude, isi: string | null, dariUsulan?: string) {
+  const tabel = d.table(u.tabel);
+  if (isi === null) {
+    if (await tabel.get(u.kunciTujuan)) {
+      await tabel.delete(u.kunciTujuan);
+      await catatHapus(d, u.tabel, [u.kunciTujuan]);
+    }
+    return;
+  }
+  const diubah = new Date().toISOString();
+  const tanda = dariUsulan ? { dariUsulan } : {};
+  if (u.tabel === 'makna') {
+    await tabel.put({ kunci: u.kunciTujuan, surah: u.surah, ayat: u.ayat, segmen: u.segmen, isi, diubah, ...tanda });
+  } else if (u.tabel === 'keterangan') {
+    await tabel.put({ kunci: u.kunciTujuan, surah: u.surah, ayat: u.ayat, urutan: u.urutan, isi, diubah, ...tanda });
+  } else {
+    await tabel.put({ kunci: u.kunciTujuan, kitab: u.kitab, nomor: u.nomor, isi, diubah, ...tanda });
+  }
+}
+
+async function ambilMenunggu(d: SakuDB, kunci: string): Promise<UsulanClaude> {
+  const u = await d.usulanClaude.get(kunci);
+  if (!u) throw new GalatUsulan('Usulan tidak ditemukan.');
+  if (u.status !== 'menunggu') throw new GalatUsulan('Usulan ini sudah diputuskan.');
+  return u;
+}
+
+// Terima usulan. `isi` diisi bila Firdaus menyunting gabungan atau memilih usulan saat bentrok.
+// Tanpa `paksa`, usulan yang bentrok ditolak agar versi HP tidak tertimpa diam-diam (K-93).
+export async function terimaUsulan(d: SakuDB, kunci: string, opsi: { isi?: string; paksa?: boolean } = {}) {
+  await d.transaction('rw', [d.usulanClaude, d.table('makna'), d.table('keterangan'), d.maknaHadits, d.catatanHadits, d.hapus], async () => {
+    const u = await ambilMenunggu(d, kunci);
+    const baris = await barisTujuan(d, u.tabel, u.kunciTujuan);
+    if (statusEfektif(u, baris) === 'bentrok' && !opsi.paksa) {
+      throw new GalatUsulan('Catatan ini sudah diubah sesudah usulan dibuat. Pilih versi yang dipakai.');
+    }
+    const isi = (opsi.isi ?? u.isiBaru).trim();
+    if (!isi) throw new GalatUsulan('Isi tidak boleh kosong.');
+    const kini = new Date().toISOString();
+    await tulisTujuan(d, u, isi, kini);
+    // Isi lama yang sebenarnya ditimpa disimpan agar "Kembalikan" memulihkan versi yang tepat.
+    await d.usulanClaude.update(u.kunci, {
+      status: 'diterima',
+      diputuskan: kini,
+      isiDiterima: isi,
+      isiLama: baris?.isi ?? null,
+    });
+  });
+}
+
+export async function tolakUsulan(d: SakuDB, kunci: string) {
+  const u = await ambilMenunggu(d, kunci);
+  await d.usulanClaude.update(u.kunci, { status: 'ditolak', diputuskan: new Date().toISOString() });
+}
+
+// "Terima semua" melewati usulan yang bentrok (K-92). Mengembalikan jumlah diterima dan dilewati.
+export async function terimaSemua(d: SakuDB) {
+  const menunggu = await d.usulanClaude.where('status').equals('menunggu').toArray();
+  let diterima = 0;
+  let dilewati = 0;
+  for (const u of menunggu) {
+    if (statusEfektif(u, await barisTujuan(d, u.tabel, u.kunciTujuan)) === 'bentrok') {
+      dilewati++;
+      continue;
+    }
+    await terimaUsulan(d, u.kunci);
+    diterima++;
+  }
+  return { diterima, dilewati };
+}
+
+// Mengembalikan suntingan yang diterima ke isi lama — hanya bila catatan itu belum diubah lagi.
+export async function kembalikanUsulan(d: SakuDB, kunci: string) {
+  await d.transaction('rw', [d.usulanClaude, d.table('makna'), d.table('keterangan'), d.maknaHadits, d.catatanHadits, d.hapus], async () => {
+    const u = await d.usulanClaude.get(kunci);
+    if (!u || u.status !== 'diterima' || u.dikembalikan) throw new GalatUsulan('Usulan ini tidak bisa dikembalikan.');
+    const baris = await barisTujuan(d, u.tabel, u.kunciTujuan);
+    if ((baris?.isi ?? null) !== (u.isiDiterima ?? u.isiBaru)) {
+      throw new GalatUsulan('Catatan ini sudah diubah lagi sesudah usulan diterima, jadi tidak dikembalikan otomatis.');
+    }
+    await tulisTujuan(d, u, u.isiLama);
+    await d.usulanClaude.update(u.kunci, { dikembalikan: new Date().toISOString() });
+  });
 }

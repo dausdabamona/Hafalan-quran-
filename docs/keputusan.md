@@ -228,7 +228,15 @@ Rincian pengolahan data ada di [data/SUMBER.md](../data/SUMBER.md).
 - Penyesuaian kecil dari K-91/K-92: (1) **potongan waqaf bernomor mulai 1** di semua alat (di database tetap `segmen` mulai 0); (2) usulan baru untuk baris yang sama **menggantikan** usulan yang masih menunggu (status `diganti`); (3) usulan dengan isi kosong atau sama dengan isi yang berlaku ditolak; (4) usulan hadits hanya untuk hadits yang datanya ada di komputer atau sudah punya suntingan/catatan; (5) status **bentrok** dihitung saat ditinjau, tidak disimpan (`ubahMs` baris tujuan ≠ `dasarUbahMs`).
 - Celah sinkron ditutup: tabel yang belum dikenal HP (APK lama) **tidak didorong dan dicatat tertunda** (`dorongTertunda`), lalu didorong ulang dari awal begitu HP mengenalnya — sebelumnya perubahan tabel baru bisa hilang karena penanda dorong sudah maju.
 - Uji: 7 uji usulan + 1 uji sinkron baru.
-- Belum: layar **Usulan Claude** + aturan bentrok di APK (tahap c). Sampai tahap c, usulan tersimpan dan ikut sinkron ke HP tetapi belum tampil.
+
+## Status MCP tahap (c) — layar Usulan Claude (1 Nov 2026)
+
+- Layar **Usulan Claude** (`#/usulan-claude`, dari Lainnya; lencana "n usulan Claude menunggu" di Hari ini bila ada): tiap usulan menampilkan isi sekarang vs usulan, catatan alasan Claude, dan tombol buka ayat/hadits. Biasa: **Terima / Tolak / Sunting dulu**. Bentrok: **Pakai versi HP / Pakai usulan Claude / Sunting gabungan** (K-93). **Terima semua** melewati yang bentrok dan meminta konfirmasi.
+- **Riwayat** 20 keputusan terakhir dengan **Kembalikan** untuk usulan yang diterima: memulihkan isi lama (atau menghapus baris bila sebelumnya belum ada, penghapusan ikut sinkron); ditolak bila catatan itu sudah diubah lagi sesudah diterima.
+- Usulan yang diterima ditulis sebagai suntingan biasa (ikut sinkron) dengan penanda `dariUsulan` (tanggal), yang hilang sendiri bila baris itu disunting lagi. `isiLama` diperbarui ke isi yang benar-benar ditimpa saat diterima; `isiDiterima` menyimpan hasil sunting gabungan.
+- Layar ini tampil di HP dan di Windows (aplikasinya sama); keputusan dari perangkat mana pun ikut sinkron.
+- Uji: 7 uji keputusan (terima, tolak, kembalikan, bentrok, terima semua, tabel tujuan) + uji klik di peramban.
+- Belum: tanda "dari usulan Claude" di lembar makna/keterangan (penanda sudah tersimpan, tampilannya menyusul bila diperlukan).
 
 ## Usulan arsitektur (belum dikunci)
 

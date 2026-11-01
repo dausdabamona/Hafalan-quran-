@@ -2,7 +2,15 @@ import 'fake-indexeddb/auto';
 import { describe, expect, it } from 'vitest';
 import { buatDb } from '../db';
 import { GalatAlat, jalankanAlat } from './alat';
-import { barisTujuan, statusEfektif } from './usulan';
+import {
+  barisTujuan,
+  GalatUsulan,
+  kembalikanUsulan,
+  statusEfektif,
+  terimaSemua,
+  terimaUsulan,
+  tolakUsulan,
+} from './usulan';
 
 let n = 0;
 const db = () => buatDb(`uji-usulan-${n++}`);
@@ -95,5 +103,91 @@ describe('usulan Claude (K-91–K-93)', () => {
     expect(statusEfektif(u, await barisTujuan(d, 'makna', '112:1:0'))).toBe('bentrok');
     const l = (await jalankanAlat(d, 'daftar_usulan', {})) as { usulan: { status: string }[] };
     expect(l.usulan[0].status).toBe('bentrok');
+  });
+});
+
+describe('keputusan atas usulan Claude (tahap c)', () => {
+  const usul = (d: ReturnType<typeof db>, isi: string, ayat = 1) =>
+    jalankanAlat(d, 'usul_makna', { surah: 112, ayat, potongan: 1, isi }) as Promise<{ idUsulan: string }>;
+
+  it('terima menulis makna, menandai dariUsulan, dan bisa dikembalikan ke isi lama', async () => {
+    const d = db();
+    await d.makna.put({ kunci: '112:1:0', surah: 112, ayat: 1, segmen: 0, isi: 'lama', diubah: '' });
+    const { idUsulan } = await usul(d, 'baru');
+    await terimaUsulan(d, idUsulan);
+    const m = await d.makna.get('112:1:0');
+    expect(m?.isi).toBe('baru');
+    expect((m as { dariUsulan?: string }).dariUsulan).toBeTruthy();
+    expect(await d.usulanClaude.get(idUsulan)).toMatchObject({ status: 'diterima', isiDiterima: 'baru', isiLama: 'lama' });
+    await kembalikanUsulan(d, idUsulan);
+    expect((await d.makna.get('112:1:0'))?.isi).toBe('lama');
+    await expect(kembalikanUsulan(d, idUsulan)).rejects.toBeInstanceOf(GalatUsulan);
+  });
+
+  it('kembalikan atas baris yang belum ada sebelumnya menghapus baris itu (kembali ke makna bawaan)', async () => {
+    const d = db();
+    const { idUsulan } = await usul(d, 'baru');
+    await terimaUsulan(d, idUsulan);
+    await kembalikanUsulan(d, idUsulan);
+    expect(await d.makna.get('112:1:0')).toBeUndefined();
+    expect(await d.hapus.get('makna|112:1:0')).toBeTruthy(); // penghapusan ikut tersinkron
+  });
+
+  it('kembalikan ditolak bila catatan sudah diubah lagi sesudah diterima', async () => {
+    const d = db();
+    const { idUsulan } = await usul(d, 'baru');
+    await terimaUsulan(d, idUsulan);
+    await d.makna.update('112:1:0', { isi: 'disunting sendiri' });
+    await expect(kembalikanUsulan(d, idUsulan)).rejects.toThrow(/sudah diubah lagi/);
+  });
+
+  it('tolak tidak mengubah makna; usulan yang sudah diputuskan tidak bisa diputuskan lagi', async () => {
+    const d = db();
+    const { idUsulan } = await usul(d, 'baru');
+    await tolakUsulan(d, idUsulan);
+    expect(await d.makna.count()).toBe(0);
+    expect((await d.usulanClaude.get(idUsulan))?.status).toBe('ditolak');
+    await expect(terimaUsulan(d, idUsulan)).rejects.toBeInstanceOf(GalatUsulan);
+  });
+
+  it('K-93: bentrok tidak bisa diterima tanpa pilihan; sunting gabungan dipakai bila dipilih', async () => {
+    const d = db();
+    await d.makna.put({ kunci: '112:1:0', surah: 112, ayat: 1, segmen: 0, isi: 'awal', diubah: '' });
+    const { idUsulan } = await usul(d, 'usulan');
+    await tidur();
+    await d.makna.update('112:1:0', { isi: 'versi HP' });
+    await expect(terimaUsulan(d, idUsulan)).rejects.toThrow(/Pilih versi/);
+    await terimaUsulan(d, idUsulan, { isi: 'gabungan HP dan usulan', paksa: true });
+    expect((await d.makna.get('112:1:0'))?.isi).toBe('gabungan HP dan usulan');
+    // Isi lama yang tercatat = versi HP yang benar-benar ditimpa, bukan isi saat usulan dibuat.
+    expect((await d.usulanClaude.get(idUsulan))?.isiLama).toBe('versi HP');
+  });
+
+  it('terima semua melewati usulan yang bentrok', async () => {
+    const d = db();
+    await d.makna.put({ kunci: '112:2:0', surah: 112, ayat: 2, segmen: 0, isi: 'awal', diubah: '' });
+    await usul(d, 'satu', 1);
+    await usul(d, 'dua', 2);
+    await tidur();
+    await d.makna.update('112:2:0', { isi: 'versi HP' });
+    expect(await terimaSemua(d)).toEqual({ diterima: 1, dilewati: 1 });
+    expect((await d.makna.get('112:1:0'))?.isi).toBe('satu');
+    expect((await d.makna.get('112:2:0'))?.isi).toBe('versi HP');
+  });
+
+  it('usulan keterangan kata dan catatan hadits ditulis ke tabel yang benar', async () => {
+    const d = db();
+    const a = (await jalankanAlat(d, 'usul_keterangan', { surah: 112, ayat: 1, urutan_kata: 2, isi: 'ket kata' })) as {
+      idUsulan: string;
+    };
+    await d.hadits.put({ kunci: 'muslim:8', kitab: 'muslim', nomor: 8, bab: 'Iman', arab: 'عربي', terjemah: 'asli' });
+    const b = (await jalankanAlat(d, 'usul_catatan_hadits', { kitab: 'muslim', nomor: 8, isi: 'catatan' })) as {
+      idUsulan: string;
+    };
+    await terimaSemua(d);
+    expect(await d.keterangan.get('112:1:2')).toMatchObject({ surah: 112, ayat: 1, urutan: 2, isi: 'ket kata' });
+    expect(await d.catatanHadits.get('muslim:8')).toMatchObject({ kitab: 'muslim', nomor: 8, isi: 'catatan' });
+    expect((await d.usulanClaude.get(a.idUsulan))?.status).toBe('diterima');
+    expect((await d.usulanClaude.get(b.idUsulan))?.status).toBe('diterima');
   });
 });

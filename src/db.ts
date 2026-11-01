@@ -203,6 +203,8 @@ export interface UsulanClaude {
   dibuat: string; // ISO
   status: StatusUsulan;
   diputuskan?: string; // ISO
+  isiDiterima?: string; // isi yang benar-benar dipakai (bisa hasil sunting gabungan) — K-93
+  dikembalikan?: string; // ISO, bila suntingan yang diterima dikembalikan ke isi lama
   // Data untuk menulis baris tujuan saat diterima (tahap c).
   surah?: number;
   ayat?: number;

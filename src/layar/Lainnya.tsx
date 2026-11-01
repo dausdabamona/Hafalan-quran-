@@ -12,6 +12,7 @@ import {
   Desktop,
   Moon,
   Sun,
+  Sparkle,
   Translate,
 } from '@phosphor-icons/react';
 import Kepala from '../komponen/Kepala';
@@ -31,7 +32,11 @@ export default function LayarLainnya() {
       ? [{ judul: 'Pengingat ayat', isi: 'Kartu ayat di atas aplikasi lain', ikon: BellRinging, hash: '#/pengingat' }]
       : []),
     ...(peranSinkron()
-      ? [{ judul: 'Sinkron HP ↔ Laptop', isi: 'Lewat Wi-Fi yang sama', ikon: ArrowsClockwise, hash: '#/sinkron' }]
+      ? [
+          { judul: 'Sinkron HP ↔ Laptop', isi: 'Lewat Wi-Fi yang sama', ikon: ArrowsClockwise, hash: '#/sinkron' },
+          // K-92: usulan suntingan dari Claude datang lewat sinkron.
+          { judul: 'Usulan Claude', isi: 'Tinjau saran suntingan makna & kajian', ikon: Sparkle, hash: '#/usulan-claude' },
+        ]
       : []),
     { judul: 'Hadits', isi: '9 kitab: jelajah per bagian dan bab', ikon: BookOpenText, hash: '#/hadits' },
     { judul: 'Data hadits', isi: 'Muat atau hapus data hadits (berkas pribadi)', ikon: Scroll, hash: '#/data-hadits' },

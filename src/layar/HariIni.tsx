@@ -77,6 +77,7 @@ import Plat from '../komponen/Plat';
 import { kelasJenis, LABEL_JENIS } from '../komponen/PilihJenisSalah';
 import { ayatPerluPerbaikan, type AyatPerluPerbaikan } from '../perluPerbaikan';
 import LembarMakna from '../komponen/LembarMakna';
+import KartuUsulanClaude from '../komponen/KartuUsulanClaude';
 
 export function namaPotongan(p: Potongan): string {
   return `${cariSurah(p.surah)?.nama ?? p.surah} · ${labelPotongan(p)}`;
@@ -372,6 +373,7 @@ export default function LayarHariIni() {
             }}
           />
         )}
+        <KartuUsulanClaude />
         <HafalanBaru
           key={baru.status === 'tamat' ? 'tamat' : `${baru.status}:${baru.potongan.surah}:${baru.potongan.ayatAwal}`}
           baru={baru}

@@ -20,6 +20,7 @@ import LayarMurotal, { BilahPemutar, LayarPilihMurotal } from './layar/Murotal';
 import { hashMurotal } from './murotal';
 import LayarPengingat from './layar/Pengingat';
 import LayarSinkron from './layar/Sinkron';
+import LayarUsulanClaude from './layar/UsulanClaude';
 import LayarCadangan from './layar/Cadangan';
 import LayarDataHadits from './layar/DataHadits';
 import {
@@ -153,6 +154,7 @@ export default function App() {
         {layar.nama === 'pilih-murotal' && <LayarPilihMurotal tanpaAlih={layar.tanpaAlih} />}
         {layar.nama === 'pengingat' && <LayarPengingat />}
         {layar.nama === 'sinkron' && <LayarSinkron />}
+        {layar.nama === 'usulan-claude' && <LayarUsulanClaude />}
         {layar.nama === 'cadangan' && <LayarCadangan />}
         {layar.nama === 'data-hadits' && <LayarDataHadits />}
         {layar.nama === 'kitab-hadits' && <LayarKitabHadits cariAwal={layar.cari} kitabAwal={layar.kitab} />}

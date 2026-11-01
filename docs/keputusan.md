@@ -214,6 +214,14 @@ Rincian pengolahan data ada di [data/SUMBER.md](../data/SUMBER.md).
 - `data/tema-juz30.json` dibiarkan untuk dikoreksi nanti; tidak dipakai aplikasi.
 - Uji: 21 uji otomatis; uji peramban 3 hari (sabaq → murojaah berjalan → sabaq berikutnya), edit makna, navigasi kata, Al-Baqarah (40 rukuk) terbuka di ayat 255.
 
+## Status MCP tahap (a) — baca saja (1 Nov 2026)
+
+- `desktop/mcp.js`: server MCP stdio tanpa dependensi, dijalankan Claude desktop lewat `Saku Hati.exe` + `ELECTRON_RUN_AS_NODE=1`; lima alat baca (`baca_makna`, `baca_keterangan`, `baca_kajian_hadits`, `cari_kajian`, `status_sinkron`); bila EXE tertutup menjawab jelas "Saku Hati di komputer sedang tertutup".
+- `desktop/main.js`: pintu lokal 127.0.0.1 (port dipilih sistem) bertoken acak; alamat + token ditulis ke `%APPDATA%\Saku Hati\mcp-sambungan.json` dan dihapus saat EXE ditutup; permintaan diteruskan ke jendela (IndexedDB).
+- `src/mcp/alat.ts` + `alat.test.ts` (6 uji): isi kelima alat; penanda asal dari `asal` mesin sinkron (HP / komputer ini / perangkat lain); setiap jawaban memuat `sinkronHpTerakhir`.
+- Layar Sinkron versi Windows: kartu **Hubungkan ke Claude** berisi konfigurasi siap salin untuk `%APPDATA%\Claude\claude_desktop_config.json`.
+- Belum: alat usulan (tahap b), layar Usulan Claude + bentrok di APK (tahap c).
+
 ## Usulan arsitektur (belum dikunci)
 
 | Lapisan | Usulan | Alasan |

@@ -2,6 +2,9 @@
 // Halaman dimuat lewat skema app:// agar asal (origin) tetap sama di setiap
 // pembukaan — penting karena seluruh data tersimpan di IndexedDB asal tersebut.
 const { app, BrowserWindow, ipcMain, Menu, net, protocol, session, shell } = require('electron');
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const http = require('node:http');
 const os = require('node:os');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
@@ -74,12 +77,14 @@ app.whenReady().then(() => {
   session.defaultSession.setPermissionCheckHandler((_wc, jenis) => izin.has(jenis));
 
   buatJendela();
+  nyalakanPintuMcp();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) buatJendela();
   });
 });
 
 app.on('window-all-closed', () => app.quit());
+app.on('will-quit', () => matikanPintuMcp());
 
 // ---------- Sinkron dengan HP (K-37) ----------
 
@@ -140,4 +145,95 @@ ipcMain.handle('saku:cari-pusat', async (_e, { port, idPusat }) => {
     }
   }
   return null;
+});
+
+// ---------- Pintu MCP untuk Claude (K-90) ----------
+// Claude desktop menjalankan mcp.js (Saku Hati.exe dalam mode Node). mcp.js meneruskan setiap
+// panggilan alat ke sini lewat 127.0.0.1 bertoken; di sini diteruskan ke jendela, tempat data
+// (IndexedDB) berada. Alamat dan token ditulis ke berkas sambungan di folder data pengguna.
+
+const BERKAS_SAMBUNGAN = path.join(app.getPath('userData'), 'mcp-sambungan.json');
+let pintuMcp = null;
+
+function bacaIsi(req, batas = 1_000_000) {
+  return new Promise((selesai, gagal) => {
+    let isi = '';
+    req.setEncoding('utf8');
+    req.on('data', (b) => {
+      isi += b;
+      if (isi.length > batas) {
+        gagal(new Error('Permintaan terlalu besar.'));
+        req.destroy();
+      }
+    });
+    req.on('end', () => selesai(isi));
+    req.on('error', gagal);
+  });
+}
+
+function balas(res, status, data) {
+  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.end(JSON.stringify(data));
+}
+
+async function jalankanDiJendela(nama, argumen) {
+  if (!jendela || jendela.isDestroyed()) return { ok: false, pesan: 'Jendela Saku Hati sedang tertutup.' };
+  const kode = `window.__sakuMcp ? window.__sakuMcp(${JSON.stringify(nama)}, ${JSON.stringify(argumen ?? {})}) : null`;
+  const batas = new Promise((_, gagal) => setTimeout(() => gagal(new Error('Saku Hati tidak menjawab dalam 30 detik.')), 30_000));
+  const teks = await Promise.race([jendela.webContents.executeJavaScript(kode, true), batas]);
+  if (teks == null) return { ok: false, pesan: 'Saku Hati masih memuat. Coba lagi sebentar lagi.' };
+  return JSON.parse(teks);
+}
+
+function nyalakanPintuMcp() {
+  const token = crypto.randomBytes(24).toString('hex');
+  pintuMcp = http.createServer(async (req, res) => {
+    try {
+      if (req.method !== 'POST' || req.url !== '/alat') return balas(res, 404, { ok: false, pesan: 'Tidak ditemukan.' });
+      const kunci = String(req.headers.authorization || '');
+      const harap = `Bearer ${token}`;
+      if (kunci.length !== harap.length || !crypto.timingSafeEqual(Buffer.from(kunci), Buffer.from(harap))) {
+        return balas(res, 401, { ok: false, pesan: 'Token tidak cocok.' });
+      }
+      const { nama, argumen } = JSON.parse(await bacaIsi(req));
+      if (typeof nama !== 'string') return balas(res, 400, { ok: false, pesan: 'Nama alat kosong.' });
+      balas(res, 200, await jalankanDiJendela(nama, argumen));
+    } catch (e) {
+      balas(res, 500, { ok: false, pesan: String(e && e.message ? e.message : e) });
+    }
+  });
+  pintuMcp.on('error', (e) => console.error('Pintu MCP gagal:', e));
+  // Port 0 = dipilih sistem; hanya alamat lokal komputer ini.
+  pintuMcp.listen(0, '127.0.0.1', () => {
+    const { port } = pintuMcp.address();
+    try {
+      fs.writeFileSync(BERKAS_SAMBUNGAN, JSON.stringify({ port, token, pid: process.pid }), { mode: 0o600 });
+    } catch (e) {
+      console.error('Berkas sambungan MCP tidak bisa ditulis:', e);
+    }
+  });
+}
+
+function matikanPintuMcp() {
+  try {
+    const isi = JSON.parse(fs.readFileSync(BERKAS_SAMBUNGAN, 'utf8'));
+    if (isi.pid === process.pid) fs.unlinkSync(BERKAS_SAMBUNGAN);
+  } catch {
+    // berkas sudah tidak ada
+  }
+  if (pintuMcp) pintuMcp.close();
+}
+
+// Isi konfigurasi Claude desktop yang ditampilkan di layar Sinkron (K-90 butir 7).
+ipcMain.handle('saku:mcp-konfig', () => {
+  const skrip = path.join(__dirname, 'mcp.js').replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
+  return {
+    mcpServers: {
+      'saku-hati': {
+        command: process.execPath,
+        args: [skrip],
+        env: { ELECTRON_RUN_AS_NODE: '1', SAKU_HATI_SAMBUNGAN: BERKAS_SAMBUNGAN },
+      },
+    },
+  };
 });

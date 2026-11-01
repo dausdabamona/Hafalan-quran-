@@ -29,6 +29,7 @@ import {
   LayarKitabHadits,
   LayarTersimpanHadits,
 } from './layar/Hadits';
+import { pasangLayananMcp } from './mcp/layanan';
 import { mulaiPusatOtomatis, mulaiSinkronOtomatis } from './sinkron/peran';
 import { Pengingat, pengingatTersedia, sinkronAyatKartu } from './pengingat';
 
@@ -65,6 +66,11 @@ export default function App() {
   useEffect(() => {
     mulaiPusatOtomatis();
     return mulaiSinkronOtomatis();
+  }, []);
+
+  // K-90: layanan alat MCP untuk Claude (hanya versi Windows).
+  useEffect(() => {
+    pasangLayananMcp();
   }, []);
 
   // K-32: buka ayat dari kartu pengingat; perbarui daftar ayat kartu saat aplikasi ditinggalkan.

@@ -24,6 +24,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "mcp.js",
       "app/**/*"
     ],
     "win": {
@@ -38,6 +39,9 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Saku Hati",
       "artifactName": "saku-hati-setup.exe"
-    }
+    },
+    "asarUnpack": [
+      "mcp.js"
+    ]
   }
 }

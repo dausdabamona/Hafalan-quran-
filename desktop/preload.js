@@ -6,4 +6,6 @@ contextBridge.exposeInMainWorld('sakuHatiDesktop', {
   minta: (alamat, jalur, isi) => ipcRenderer.invoke('saku:minta', { alamat, jalur, isi }),
   cariPusat: (port, idPusat) => ipcRenderer.invoke('saku:cari-pusat', { port, idPusat }),
   namaKomputer: () => ipcRenderer.invoke('saku:nama-komputer'),
+  // K-90: isi konfigurasi MCP untuk Claude desktop.
+  konfigMcp: () => ipcRenderer.invoke('saku:mcp-konfig'),
 });

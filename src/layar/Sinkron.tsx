@@ -41,6 +41,7 @@ export default function LayarSinkron() {
       <Kepala judul="Sinkron" sub="HP ↔ Laptop di Wi-Fi yang sama" />
       {peran === 'pusat' && <SisiPusat />}
       {peran === 'anggota' && <SisiAnggota />}
+      {peran === 'anggota' && <KartuClaude />}
       {!peran && <p className="petunjuk">Sinkron tersedia di aplikasi Saku Hati untuk HP Android dan Windows.</p>}
     </>
   );
@@ -313,6 +314,49 @@ function SisiAnggota() {
         </button>
       </section>
     </>
+  );
+}
+
+// ---------- Windows: hubungkan ke Claude lewat MCP (K-89–K-91) ----------
+
+function KartuClaude() {
+  const [konfig, setKonfig] = useState('');
+  const [pesan, setPesan] = useState('');
+
+  useEffect(() => {
+    const jembatan = (window as unknown as { sakuHatiDesktop?: { konfigMcp?: () => Promise<unknown> } }).sakuHatiDesktop;
+    jembatan
+      ?.konfigMcp?.()
+      .then((k) => setKonfig(JSON.stringify(k, null, 2)))
+      .catch(() => setKonfig(''));
+  }, []);
+
+  if (!konfig) return null;
+
+  const salin = async () => {
+    try {
+      await navigator.clipboard.writeText(konfig);
+      setPesan('Tersalin.');
+    } catch {
+      setPesan('Gagal menyalin; pilih teks di kotak lalu salin manual.');
+    }
+  };
+
+  return (
+    <section className="kartu">
+      <h2>Hubungkan ke Claude</h2>
+      <p className="kosong">
+        Claude bisa membaca makna ayat, keterangan, dan kajian hadits dari komputer ini (baca saja). Tambahkan isi di bawah
+        ke bagian <strong>mcpServers</strong> berkas konfigurasi Claude desktop di komputer ini (
+        <strong>%APPDATA%\Claude\claude_desktop_config.json</strong>), simpan, lalu buka ulang Claude desktop. Saku Hati
+        harus tetap terbuka agar Claude bisa membaca datanya.
+      </p>
+      <textarea className="isian" readOnly rows={10} value={konfig} onFocus={(e) => e.currentTarget.select()} />
+      <button className="tombol sekunder lebar" onClick={salin}>
+        Salin konfigurasi
+      </button>
+      {pesan && <p className="pesan-tandai">{pesan}</p>}
+    </section>
   );
 }
 

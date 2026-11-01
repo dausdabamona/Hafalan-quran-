@@ -170,13 +170,23 @@ export async function sinkronkan(d: SakuDB, kirim: Kirim, kabar?: (pesan: string
   if (halo.id !== pusat.id) throw new Error('HP yang ditemukan bukan HP pasangan.');
   const hasil: HasilSinkron = { dikirim: 0, diterima: 0, dihapus: 0, waktu: new Date().toISOString() };
 
+  // Tabel yang dikenal pusat. Pusat versi lama tidak mengirim daftar tabel dan belum punya tabel setelan (K-73).
+  const tabelPusat = Array.isArray(halo.tabel)
+    ? SEMUA_TABEL.filter((t) => (halo.tabel as string[]).includes(t))
+    : SEMUA_TABEL.filter((t) => !TABEL_BARU_K73.includes(t));
+
   // 1. Dorong perubahan buatan perangkat ini.
+  // K-92: tabel yang belum dikenal pusat (APK belum diperbarui) tidak didorong dan dicatat tertunda;
+  // begitu pusat mengenalnya, tabel itu didorong ulang dari awal agar tidak ada perubahan yang hilang.
   const dorongSejak = (await bacaMeta<number>(d, 'dorongSejak')) ?? 0;
   const dorongSampai = Date.now();
-  for (const tabel of SEMUA_TABEL) {
+  const tertundaLama = (await bacaMeta<string[]>(d, 'dorongTertunda')) ?? [];
+  const tertunda = SEMUA_TABEL.filter((t) => !tabelPusat.includes(t));
+  for (const tabel of tabelPusat) {
+    const sejak = tertundaLama.includes(tabel) ? 0 : dorongSejak;
     let mulai: number | null = 0;
     while (mulai !== null) {
-      const r = await ambilPerubahan(d, tabel, { sejak: dorongSejak, sampai: dorongSampai, mulai, hanyaLokal: true });
+      const r = await ambilPerubahan(d, tabel, { sejak, sampai: dorongSampai, mulai, hanyaLokal: true });
       if (r.item.length) {
         kabar?.(`Mengirim ${tabel}…`);
         await kirim('/dorong', { ...kredensial, tabel, item: r.item });
@@ -186,12 +196,9 @@ export async function sinkronkan(d: SakuDB, kirim: Kirim, kabar?: (pesan: string
     }
   }
   await tulisMeta(d, 'dorongSejak', dorongSampai);
+  await tulisMeta(d, 'dorongTertunda', [...new Set([...tertundaLama.filter((t) => !tabelPusat.includes(t as TabelSinkron)), ...tertunda])]);
 
   // 2. Tarik perubahan dari pusat sampai jam pusat saat /halo.
-  // Pusat versi lama tidak mengirim daftar tabel dan belum punya tabel setelan (K-73).
-  const tabelPusat = Array.isArray(halo.tabel)
-    ? SEMUA_TABEL.filter((t) => (halo.tabel as string[]).includes(t))
-    : SEMUA_TABEL.filter((t) => !TABEL_BARU_K73.includes(t));
   const tarikSejak = (await bacaMeta<number>(d, 'tarikSejak')) ?? 0;
   const tarikSampai = Number(halo.jam);
   for (const tabel of tabelPusat) {

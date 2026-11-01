@@ -220,7 +220,15 @@ Rincian pengolahan data ada di [data/SUMBER.md](../data/SUMBER.md).
 - `desktop/main.js`: pintu lokal 127.0.0.1 (port dipilih sistem) bertoken acak; alamat + token ditulis ke `%APPDATA%\Saku Hati\mcp-sambungan.json` dan dihapus saat EXE ditutup; permintaan diteruskan ke jendela (IndexedDB).
 - `src/mcp/alat.ts` + `alat.test.ts` (6 uji): isi kelima alat; penanda asal dari `asal` mesin sinkron (HP / komputer ini / perangkat lain); setiap jawaban memuat `sinkronHpTerakhir`.
 - Layar Sinkron versi Windows: kartu **Hubungkan ke Claude** berisi konfigurasi siap salin untuk `%APPDATA%\Claude\claude_desktop_config.json`.
-- Belum: alat usulan (tahap b), layar Usulan Claude + bentrok di APK (tahap c).
+
+## Status MCP tahap (b) — alat usulan (1 Nov 2026)
+
+- Tabel `usulanClaude` (Dexie versi 18) **ikut sinkron dan cadangan**; isi sesuai K-92 ditambah data lokasi (surah/ayat/segmen/urutan atau kitab/nomor) untuk menulis baris tujuan saat diterima.
+- Alat `usul_makna`, `usul_keterangan`, `usul_terjemah_hadits`, `usul_catatan_hadits` (hanya menulis ke `usulanClaude`, tabel tujuan tidak disentuh) dan alat baca `daftar_usulan`.
+- Penyesuaian kecil dari K-91/K-92: (1) **potongan waqaf bernomor mulai 1** di semua alat (di database tetap `segmen` mulai 0); (2) usulan baru untuk baris yang sama **menggantikan** usulan yang masih menunggu (status `diganti`); (3) usulan dengan isi kosong atau sama dengan isi yang berlaku ditolak; (4) usulan hadits hanya untuk hadits yang datanya ada di komputer atau sudah punya suntingan/catatan; (5) status **bentrok** dihitung saat ditinjau, tidak disimpan (`ubahMs` baris tujuan ≠ `dasarUbahMs`).
+- Celah sinkron ditutup: tabel yang belum dikenal HP (APK lama) **tidak didorong dan dicatat tertunda** (`dorongTertunda`), lalu didorong ulang dari awal begitu HP mengenalnya — sebelumnya perubahan tabel baru bisa hilang karena penanda dorong sudah maju.
+- Uji: 7 uji usulan + 1 uji sinkron baru.
+- Belum: layar **Usulan Claude** + aturan bentrok di APK (tahap c). Sampai tahap c, usulan tersimpan dan ikut sinkron ke HP tetapi belum tampil.
 
 ## Usulan arsitektur (belum dikunci)
 

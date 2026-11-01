@@ -1,4 +1,4 @@
-// Server MCP Saku Hati (K-89–K-91), tahap (a): baca saja.
+// Server MCP Saku Hati (K-89–K-92): alat baca (tahap a) dan alat usulan (tahap b).
 // Dijalankan Claude desktop sebagai: "Saku Hati.exe" mcp.js dengan ELECTRON_RUN_AS_NODE=1,
 // sehingga tidak perlu memasang Node.js. Berbicara MCP lewat stdio (JSON-RPC, satu pesan per baris)
 // dan meneruskan setiap panggilan alat ke Saku Hati yang sedang terbuka lewat 127.0.0.1 bertoken.
@@ -22,7 +22,10 @@ const PETUNJUK =
   '(database induk) per sinkron terakhir; setiap jawaban menyertakan sinkronHpTerakhir. ' +
   'Penomoran ayat mengikuti Saku Hati: Al-Fatihah ayat 1 = Alhamdulillah (basmalah tidak bernomor). ' +
   'Makna sendiri dan keterangan adalah hasil kajian pribadi Firdaus; sampaikan apa adanya. ' +
-  'Tahap ini baca saja: belum ada alat untuk mengubah data.';
+  'Potongan waqaf bernomor mulai 1 (lihat baca_makna). ' +
+  'Claude tidak pernah mengubah data langsung: alat usul_* hanya menyimpan USULAN yang masuk ke HP saat sinkron ' +
+  'dan berlaku setelah Firdaus menerimanya di layar Usulan Claude. Selalu baca isi sekarang dulu sebelum mengusulkan, ' +
+  'beri catatan singkat alasannya, dan sampaikan kepada Firdaus bahwa itu masih usulan.';
 
 const ALAT = [
   {
@@ -89,6 +92,84 @@ const ALAT = [
     inputSchema: { type: 'object', properties: {} },
     annotations: { title: 'Status sinkron', readOnlyHint: true },
   },
+  {
+    name: 'daftar_usulan',
+    description:
+      'Menampilkan usulan Claude yang sudah dibuat beserta statusnya (menunggu, bentrok, diterima, ditolak, diganti).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', enum: ['menunggu', 'semua'], description: 'Bawaan: menunggu (termasuk bentrok)' },
+        batas: { type: 'integer', minimum: 1, maximum: 100, description: 'Jumlah usulan terbaru (bawaan 30)' },
+      },
+    },
+    annotations: { title: 'Daftar usulan', readOnlyHint: true },
+  },
+  {
+    name: 'usul_makna',
+    description:
+      'Mengusulkan makna baru untuk satu potongan waqaf. Tidak mengubah data; Firdaus meninjau di HP. ' +
+      'Usulan baru untuk potongan yang sama menggantikan usulan sebelumnya yang masih menunggu.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        surah: { type: 'integer', minimum: 1, maximum: 114, description: 'Nomor surah' },
+        ayat: { type: 'integer', minimum: 1, description: 'Nomor ayat (penomoran Saku Hati)' },
+        potongan: { type: 'integer', minimum: 1, description: 'Nomor potongan waqaf, mulai 1 (lihat baca_makna)' },
+        isi: { type: 'string', minLength: 1, maxLength: 4000, description: 'Isi baru yang diusulkan (lengkap, bukan potongan)' },
+        catatan: { type: 'string', maxLength: 1000, description: 'Alasan singkat usulan, ditampilkan ke Firdaus' },
+      },
+      required: ['surah', 'ayat', 'potongan', 'isi'],
+    },
+    annotations: { title: 'Usulkan makna', readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
+    name: 'usul_keterangan',
+    description:
+      'Mengusulkan keterangan pribadi untuk satu ayat (urutan_kata 0 atau kosong) atau untuk satu kata. Tidak mengubah data.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        surah: { type: 'integer', minimum: 1, maximum: 114, description: 'Nomor surah' },
+        ayat: { type: 'integer', minimum: 1, description: 'Nomor ayat (penomoran Saku Hati)' },
+        urutan_kata: { type: 'integer', minimum: 0, description: '0 atau kosong = keterangan ayat; 1.. = kata ke-n' },
+        isi: { type: 'string', minLength: 1, maxLength: 4000, description: 'Isi baru yang diusulkan (lengkap, bukan potongan)' },
+        catatan: { type: 'string', maxLength: 1000, description: 'Alasan singkat usulan, ditampilkan ke Firdaus' },
+      },
+      required: ['surah', 'ayat', 'isi'],
+    },
+    annotations: { title: 'Usulkan keterangan', readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
+    name: 'usul_terjemah_hadits',
+    description: 'Mengusulkan terjemah hadits versi sendiri (seluruh teks terjemah satu hadits). Tidak mengubah data.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        kitab: { type: 'string', description: 'Kode kitab, mis. bukhari, muslim, abudaud, tirmidzi' },
+        nomor: { type: 'integer', minimum: 1, description: 'Nomor hadits di kitab itu' },
+        isi: { type: 'string', minLength: 1, maxLength: 4000, description: 'Isi baru yang diusulkan (lengkap, bukan potongan)' },
+        catatan: { type: 'string', maxLength: 1000, description: 'Alasan singkat usulan, ditampilkan ke Firdaus' },
+      },
+      required: ['kitab', 'nomor', 'isi'],
+    },
+    annotations: { title: 'Usulkan terjemah hadits', readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
+    name: 'usul_catatan_hadits',
+    description: 'Mengusulkan catatan kajian untuk satu hadits (menggantikan seluruh isi catatan). Tidak mengubah data.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        kitab: { type: 'string', description: 'Kode kitab, mis. bukhari, muslim, abudaud, tirmidzi' },
+        nomor: { type: 'integer', minimum: 1, description: 'Nomor hadits di kitab itu' },
+        isi: { type: 'string', minLength: 1, maxLength: 4000, description: 'Isi baru yang diusulkan (lengkap, bukan potongan)' },
+        catatan: { type: 'string', maxLength: 1000, description: 'Alasan singkat usulan, ditampilkan ke Firdaus' },
+      },
+      required: ['kitab', 'nomor', 'isi'],
+    },
+    annotations: { title: 'Usulkan catatan hadits', readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
 ];
 
 const PESAN_TERTUTUP =
@@ -135,7 +216,7 @@ async function tangani(p) {
       return jawab(id, {
         protocolVersion: VERSI_PROTOKOL.includes(minta) ? minta : VERSI_PROTOKOL[0],
         capabilities: { tools: {} },
-        serverInfo: { name: 'saku-hati', title: 'Saku Hati', version: '0.1.0' },
+        serverInfo: { name: 'saku-hati', title: 'Saku Hati', version: '0.2.0' },
         instructions: PETUNJUK,
       });
     }

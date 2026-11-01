@@ -219,4 +219,33 @@ describe('sinkron HP ↔ laptop (K-37)', () => {
     expect(diminta).not.toContain('setelan');
     expect((await laptop.makna.get('1:2:0'))?.isi).toBe('dari HP');
   });
+
+  it('K-92: tabel yang belum dikenal HP tertunda, lalu didorong ulang setelah APK diperbarui', async () => {
+    const { hp, laptop, kirim } = await pasangan();
+    const usulan = {
+      kunci: 'u1',
+      tabel: 'makna' as const,
+      kunciTujuan: '1:2:0',
+      rujukan: 'Al-Fatihah 2 · potongan 0',
+      isiBaru: 'usulan',
+      isiLama: null,
+      isiBawaan: null,
+      dasarUbahMs: 0,
+      dibuat: new Date().toISOString(),
+      status: 'menunggu' as const,
+    };
+    await laptop.usulanClaude.put(usulan);
+    // HP versi lama: belum mengenal tabel usulanClaude.
+    const kirimLama: Kirim = async (jalur, isi) => {
+      const r = await kirim(jalur, isi);
+      if (jalur === '/halo') r.tabel = (r.tabel as string[]).filter((t) => t !== 'usulanClaude');
+      return r;
+    };
+    await sinkronkan(laptop, kirimLama);
+    expect(await hp.usulanClaude.get('u1')).toBeUndefined();
+    await tidur();
+    // HP sudah diperbarui: usulan lama tetap terkirim walau dibuat sebelum sinkron sebelumnya.
+    await sinkronkan(laptop, kirim);
+    expect((await hp.usulanClaude.get('u1'))?.isiBaru).toBe('usulan');
+  });
 });

@@ -1,5 +1,6 @@
 import { cariAyat, cariSurah, segmenAyat } from '../data';
-import type { SakuDB } from '../db';
+import type { SakuDB, TabelUsulan } from '../db';
+import { buatUsulan, daftarUsulan, GalatUsulan } from './usulan';
 import { bacaMeta } from '../sinkron/mesin';
 import type { HasilSinkron, Pusat } from '../sinkron/protokol';
 
@@ -66,7 +67,7 @@ export async function bacaMakna(d: SakuDB, argumen: Record<string, unknown>) {
     potongan: segmenAyat(ayat).map((sg) => {
       const m = peta.get(sg.indeks);
       return {
-        potongan: sg.indeks,
+        potongan: sg.indeks + 1,
         lafaz: sg.kata.map((x) => x.teks).join(' '),
         artiPerKata: sg.kata.map((x) => ({ urutan: x.urutan, kata: x.teks, arti: x.arti })),
         maknaBawaan: sg.maknaBawaan,
@@ -171,7 +172,7 @@ export async function cariKajian(d: SakuDB, argumen: Record<string, unknown>) {
       .map((x) => ({
         jenis: 'makna',
         rujukan: `${x.surah}:${x.ayat}`,
-        potongan: x.segmen,
+        potongan: x.segmen + 1,
         cuplikan: cuplik(x.isi, cari),
         ...penanda(x, k),
       })),
@@ -229,12 +230,75 @@ export async function statusSinkron(d: SakuDB) {
   };
 }
 
+// ---------- Usulan (tahap b, K-91/K-92) ----------
+
+const ALAT_USULAN: Record<string, TabelUsulan> = {
+  usul_makna: 'makna',
+  usul_keterangan: 'keterangan',
+  usul_terjemah_hadits: 'maknaHadits',
+  usul_catatan_hadits: 'catatanHadits',
+};
+
+async function usul(d: SakuDB, jenis: TabelUsulan, argumen: Record<string, unknown>) {
+  const k = await konteks(d);
+  try {
+    const { usulan, diganti } = await buatUsulan(d, jenis, argumen);
+    return {
+      tersimpan: true,
+      idUsulan: usulan.kunci,
+      rujukan: usulan.rujukan,
+      isiLama: usulan.isiLama,
+      isiBawaan: usulan.isiBawaan,
+      isiBaru: usulan.isiBaru,
+      menggantikanUsulanSebelumnya: diganti,
+      catatan:
+        'Ini usulan, belum mengubah data. Usulan masuk ke HP saat sinkron berikutnya dan berlaku setelah Firdaus menerimanya di layar Usulan Claude.',
+      sinkronHpTerakhir: k.sinkronHpTerakhir,
+    };
+  } catch (e) {
+    if (e instanceof GalatUsulan) throw new GalatAlat(e.message);
+    throw e;
+  }
+}
+
+async function lihatUsulan(d: SakuDB, argumen: Record<string, unknown>) {
+  const semua = argumen.status === 'semua';
+  const batas = argumen.batas === undefined ? 30 : Math.min(100, Math.max(1, bilangan(argumen.batas, 'batas')));
+  const k = await konteks(d);
+  const { jumlah, hasil } = await daftarUsulan(d, !semua, batas);
+  return {
+    jumlah,
+    usulan: hasil.map((u) => ({
+      idUsulan: u.kunci,
+      rujukan: u.rujukan,
+      status: u.statusEfektif,
+      isiBaru: u.isiBaru,
+      isiLama: u.isiLama,
+      catatan: u.catatan ?? null,
+      dibuat: u.dibuat,
+      diputuskan: u.diputuskan ?? null,
+    })),
+    sinkronHpTerakhir: k.sinkronHpTerakhir,
+  };
+}
+
 // ---------- Pengarah ----------
 
-export const NAMA_ALAT = ['baca_makna', 'baca_keterangan', 'baca_kajian_hadits', 'cari_kajian', 'status_sinkron'] as const;
+export const NAMA_ALAT = [
+  'baca_makna',
+  'baca_keterangan',
+  'baca_kajian_hadits',
+  'cari_kajian',
+  'status_sinkron',
+  'daftar_usulan',
+  ...Object.keys(ALAT_USULAN),
+] as const;
 
 export async function jalankanAlat(d: SakuDB, nama: string, argumen: Record<string, unknown> = {}) {
+  if (nama in ALAT_USULAN) return usul(d, ALAT_USULAN[nama], argumen);
   switch (nama) {
+    case 'daftar_usulan':
+      return lihatUsulan(d, argumen);
     case 'baca_makna':
       return bacaMakna(d, argumen);
     case 'baca_keterangan':

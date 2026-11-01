@@ -185,6 +185,33 @@ export interface EjaanHadits {
 }
 
 // K-78: indeks pencarian — satu kata → urutan hadits yang memuatnya (urut naik).
+// K-92: usulan suntingan dari Claude (lewat MCP di versi Windows). Ikut sinkron dan cadangan.
+// Claude tidak pernah menulis langsung ke tabel tujuan; usulan ditinjau Firdaus di HP.
+export type TabelUsulan = 'makna' | 'keterangan' | 'maknaHadits' | 'catatanHadits';
+export type StatusUsulan = 'menunggu' | 'diterima' | 'ditolak' | 'diganti';
+
+export interface UsulanClaude {
+  kunci: string; // id acak
+  tabel: TabelUsulan;
+  kunciTujuan: string; // kunci baris di tabel tujuan
+  rujukan: string; // label untuk tampilan, mis. "Al-Baqarah 255 · potongan 2"
+  isiBaru: string;
+  isiLama: string | null; // isi baris tujuan saat usulan dibuat (null = belum ada)
+  isiBawaan: string | null; // makna gabungan arti per kata / terjemah asli, bila ada
+  dasarUbahMs: number; // ubahMs baris tujuan saat usulan dibuat (0 = belum ada) — K-93
+  catatan?: string; // alasan singkat dari Claude
+  dibuat: string; // ISO
+  status: StatusUsulan;
+  diputuskan?: string; // ISO
+  // Data untuk menulis baris tujuan saat diterima (tahap c).
+  surah?: number;
+  ayat?: number;
+  segmen?: number;
+  urutan?: number;
+  kitab?: string;
+  nomor?: number;
+}
+
 export interface HaditsIndeks {
   kata: string;
   urut: Uint32Array;
@@ -237,6 +264,7 @@ export type SakuDB = Dexie & {
   catatanHadits: EntityTable<CatatanHadits, 'kunci'>;
   kaitanAyatHadits: EntityTable<KaitanAyatHadits, 'kunci'>;
   ejaanHadits: EntityTable<EjaanHadits, 'kunci'>;
+  usulanClaude: EntityTable<UsulanClaude, 'kunci'>;
   meta: EntityTable<{ kunci: string; nilai: unknown }, 'kunci'>;
   /** true selama perubahan dari perangkat lain diterapkan (penanda waktu tidak diubah) */
   _terapkan?: boolean;
@@ -423,6 +451,9 @@ function siapkanSkema(db: SakuDB) {
 
   // Versi 17 (K-80): ejaan pilihan terjemah hadits — ikut sinkron.
   db.version(17).stores({ ejaanHadits: 'kunci, terimaMs' });
+
+  // Versi 18 (K-92): usulan suntingan dari Claude — ikut sinkron.
+  db.version(18).stores({ usulanClaude: 'kunci, status, [tabel+kunciTujuan], terimaMs' });
 }
 
 // Penanda sinkron otomatis untuk setiap penulisan lokal (K-37).
@@ -468,6 +499,7 @@ export const TABEL_SINKRON = [
   'catatanHadits',
   'kaitanAyatHadits',
   'ejaanHadits',
+  'usulanClaude',
 ] as const;
 export type TabelSinkron = (typeof TABEL_SINKRON)[number];
 

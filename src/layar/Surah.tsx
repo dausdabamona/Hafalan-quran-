@@ -10,6 +10,7 @@ import {
   Pause,
   Play,
   Scroll,
+  Sparkle,
   Warning,
 } from '@phosphor-icons/react';
 import {
@@ -26,6 +27,7 @@ import {
   type Surah,
 } from '../data';
 import {
+  db,
   ambilHafalan,
   ambilJadwal,
   ambilKeteranganSurah,
@@ -56,6 +58,8 @@ import Kepala from '../komponen/Kepala';
 import TeksAyat from '../komponen/TeksAyat';
 import LembarHadits from '../komponen/LembarHadits';
 import LembarMakna from '../komponen/LembarMakna';
+import KotakUsulan, { useUsulanBaris } from '../komponen/KotakUsulan';
+import { kunciUsulanSurah, terimaUsulan } from '../mcp/usulan';
 import { kelasJenis } from '../komponen/PilihJenisSalah';
 import { haditsSurah } from '../hadits';
 import { gulirKe } from '../komponen/gulir';
@@ -106,18 +110,22 @@ export default function LayarSurah({
   const [pesanTandai, setPesanTandai] = useState('');
   // K-75: hadits terkait ayat (bila data hadits sudah dimuat di perangkat ini).
   const [haditsAyat, setHaditsAyat] = useState<Map<number, string[]>>(new Map());
+  // K-96: penanda "tabel|kunci" makna & keterangan yang punya usulan Claude menunggu.
+  const [usulanAda, setUsulanAda] = useState<Set<string>>(new Set());
 
   const semuaKata = useMemo(() => surah.ayat.flatMap((a) => a.kata.map((k) => ({ ayat: a, kata: k }))), [surah]);
 
   const muat = useCallback(async () => {
-    const [k, m, r, t, h, j] = await Promise.all([
+    const [k, m, r, t, h, j, u] = await Promise.all([
       ambilKeteranganSurah(surah.nomor),
       ambilMaknaSurah(surah.nomor),
       ambilRekamanSurah(surah.nomor),
       ambilTandaSurah(surah.nomor),
       ambilHafalan(),
       ambilJadwal(),
+      kunciUsulanSurah(db, surah.nomor).catch(() => new Set<string>()),
     ]);
+    setUsulanAda(u);
     setKeterangan(k);
     setMakna(m);
     setRekaman(r);
@@ -499,6 +507,11 @@ export default function LayarSurah({
                                             {' '}
                                             <NotePencil weight="duotone" />
                                           </span>
+                                          {usulanAda.has(`makna|${surah.nomor}:${a.ayat}:${s.indeks}`) && (
+                                            <span className="tanda-usulan">
+                                              <Sparkle weight="duotone" /> Usulan Claude
+                                            </span>
+                                          )}
                                         </button>
                                       </li>
                                     );
@@ -508,6 +521,11 @@ export default function LayarSurah({
                               <div className="kaki-ayat">
                                 <button className="tautan" onClick={() => setLembar({ jenis: 'ayat', ayat: a })}>
                                   <NotePencil weight="duotone" /> {ketAyat ? 'Ubah keterangan' : 'Keterangan'}
+                                  {usulanAda.has(`keterangan|${kunciKeterangan(surah.nomor, a.ayat, 0)}`) && (
+                                    <span className="tanda-usulan">
+                                      <Sparkle weight="duotone" /> Usulan Claude
+                                    </span>
+                                  )}
                                 </button>
                                 {haditsAyat.get(a.ayat) && (
                                   <button className="tautan" onClick={() => setLembar({ jenis: 'hadits', ayat: a })}>
@@ -730,10 +748,25 @@ function LembarKeteranganAyat({
   sesudahSimpan: () => Promise<void>;
 }) {
   const [isi, setIsi] = useState(awal);
-  const simpan = async () => {
-    await simpanKeterangan(surah.nomor, ayat.ayat, 0, isi);
+  // K-96: usulan Claude untuk keterangan ayat ini, bila ada.
+  const [dariUsulan, setDariUsulan] = useState(false);
+  const usulan = useUsulanBaris('keterangan', kunciKeterangan(surah.nomor, ayat.ayat, 0));
+  const [pesan, setPesan] = useState('');
+  const selesai = async () => {
     await sesudahSimpan();
     tutup();
+  };
+  const simpan = async () => {
+    try {
+      if (dariUsulan && usulan.data && isi.trim()) {
+        await terimaUsulan(db, usulan.data.u.kunci, { isi, paksa: true });
+      } else {
+        await simpanKeterangan(surah.nomor, ayat.ayat, 0, isi);
+      }
+      await selesai();
+    } catch (e) {
+      setPesan((e as Error).message);
+    }
   };
   return (
     <div className="latar-lembar" onClick={tutup}>
@@ -742,6 +775,19 @@ function LembarKeteranganAyat({
         <p className="lokasi">
           {surah.nama} · ayat {ayat.ayat}
         </p>
+        <KotakUsulan
+          data={usulan.data}
+          salin={(x) => {
+            setIsi(x);
+            setDariUsulan(true);
+          }}
+          sesudahTerima={selesai}
+          sesudahTolak={async () => {
+            setDariUsulan(false);
+            await usulan.muat();
+            await sesudahSimpan();
+          }}
+        />
         <label className="label-catatan" htmlFor="catatan">
           Keterangan ayat
         </label>
@@ -752,6 +798,7 @@ function LembarKeteranganAyat({
           placeholder="Tulis catatan pribadi Anda di sini"
           rows={4}
         />
+        {pesan && <p className="kosong">{pesan}</p>}
         <div className="aksi-lembar">
           <button className="tombol sekunder" onClick={tutup}>
             Tutup

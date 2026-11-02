@@ -5445,6 +5445,36 @@ body {
   vertical-align: -3px;
 }
 
+/* K-96: usulan Claude langsung di ayat */
+.tanda-usulan {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border: 1px solid var(--teal);
+  border-radius: 999px;
+  background: var(--teal-muda);
+  color: var(--teal);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-style: normal;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+.lembar .kotak-usulan {
+  margin: 10px 0 12px;
+}
+.lembar .kotak-usulan .usulan-label svg {
+  vertical-align: -2px;
+}
+.lembar .kotak-usulan .usulan-catatan {
+  margin-bottom: 4px;
+}
+.lembar .kotak-usulan .usulan-tombol {
+  margin-top: 10px;
+}
+
 /* K-94: setelan huruf Latin & Arab */
 .pilih-ukuran {
   display: flex;

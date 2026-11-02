@@ -10,6 +10,8 @@ import {
   terimaSemua,
   terimaUsulan,
   tolakUsulan,
+  kunciUsulanSurah,
+  usulanUntukBaris,
 } from './usulan';
 
 let n = 0;
@@ -189,5 +191,41 @@ describe('keputusan atas usulan Claude (tahap c)', () => {
     expect(await d.catatanHadits.get('muslim:8')).toMatchObject({ kitab: 'muslim', nomor: 8, isi: 'catatan' });
     expect((await d.usulanClaude.get(a.idUsulan))?.status).toBe('diterima');
     expect((await d.usulanClaude.get(b.idUsulan))?.status).toBe('diterima');
+  });
+});
+
+describe('usulan langsung di ayat (K-96)', () => {
+  it('usulanUntukBaris mengembalikan usulan menunggu terbaru, null sesudah diputuskan', async () => {
+    const d = db();
+    expect(await usulanUntukBaris(d, 'makna', '1:1:0')).toBeNull();
+    await jalankanAlat(d, 'usul_makna', { surah: 1, ayat: 1, potongan: 1, isi: 'Versi pertama' });
+    await tidur();
+    await jalankanAlat(d, 'usul_makna', { surah: 1, ayat: 1, potongan: 1, isi: 'Versi kedua' });
+    const h = await usulanUntukBaris(d, 'makna', '1:1:0');
+    expect(h?.u.isiBaru).toBe('Versi kedua');
+    expect(h?.status).toBe('menunggu');
+    await tolakUsulan(d, h!.u.kunci);
+    expect(await usulanUntukBaris(d, 'makna', '1:1:0')).toBeNull();
+  });
+
+  it('usulanUntukBaris menandai bentrok bila makna diubah sesudah usulan dibuat', async () => {
+    const d = db();
+    await jalankanAlat(d, 'usul_makna', { surah: 1, ayat: 1, potongan: 1, isi: 'Usulan' });
+    await tidur();
+    await d.table('makna').put({ kunci: '1:1:0', surah: 1, ayat: 1, segmen: 0, isi: 'Suntingan HP', diubah: '', ubahMs: Date.now() });
+    expect((await usulanUntukBaris(d, 'makna', '1:1:0'))?.status).toBe('bentrok');
+  });
+
+  it('kunciUsulanSurah hanya berisi makna & keterangan surah itu yang menunggu', async () => {
+    const d = db();
+    await jalankanAlat(d, 'usul_makna', { surah: 1, ayat: 1, potongan: 1, isi: 'Makna baru' });
+    await jalankanAlat(d, 'usul_keterangan', { surah: 1, ayat: 2, isi: 'Keterangan baru' });
+    await jalankanAlat(d, 'usul_makna', { surah: 112, ayat: 1, potongan: 1, isi: 'Surah lain' });
+    const set = await kunciUsulanSurah(d, 1);
+    expect([...set].sort()).toEqual(['keterangan|1:2:0', 'makna|1:1:0']);
+    const u = await usulanUntukBaris(d, 'makna', '1:1:0');
+    await terimaUsulan(d, u!.u.kunci, { isi: 'Gabungan sendiri', paksa: true });
+    expect([...(await kunciUsulanSurah(d, 1))]).toEqual(['keterangan|1:2:0']);
+    expect((await barisTujuan(d, 'makna', '1:1:0'))?.isi).toBe('Gabungan sendiri');
   });
 });

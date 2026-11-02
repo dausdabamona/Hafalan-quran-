@@ -259,3 +259,28 @@ export async function kembalikanUsulan(d: SakuDB, kunci: string) {
     await d.usulanClaude.update(u.kunci, { dikembalikan: new Date().toISOString() });
   });
 }
+
+// ---------- K-96: tinjau usulan langsung di ayat ----------
+
+// Usulan menunggu terbaru untuk satu baris tujuan (dipakai lembar makna & keterangan), atau null.
+export async function usulanUntukBaris(d: SakuDB, tabel: TabelUsulan, kunciTujuan: string) {
+  const daftar = await d.usulanClaude
+    .where('[tabel+kunciTujuan]')
+    .equals([tabel, kunciTujuan])
+    .filter((x) => x.status === 'menunggu')
+    .toArray();
+  if (!daftar.length) return null;
+  daftar.sort((a, b) => b.dibuat.localeCompare(a.dibuat));
+  const u = daftar[0];
+  return { u, status: statusEfektif(u, await barisTujuan(d, tabel, kunciTujuan)) };
+}
+
+// Penanda "tabel|kunciTujuan" untuk makna & keterangan satu surah yang punya usulan menunggu.
+export async function kunciUsulanSurah(d: SakuDB, surah: number): Promise<Set<string>> {
+  const daftar = await d.usulanClaude
+    .where('status')
+    .equals('menunggu')
+    .filter((x) => x.surah === surah && (x.tabel === 'makna' || x.tabel === 'keterangan'))
+    .toArray();
+  return new Set(daftar.map((x) => `${x.tabel}|${x.kunciTujuan}`));
+}

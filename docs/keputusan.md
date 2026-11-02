@@ -241,6 +241,12 @@ Rincian pengolahan data ada di [data/SUMBER.md](../data/SUMBER.md).
 - Uji: 7 uji keputusan (terima, tolak, kembalikan, bentrok, terima semua, tabel tujuan) + uji klik di peramban.
 - Belum: tanda "dari usulan Claude" di lembar makna/keterangan (penanda sudah tersimpan, tampilannya menyusul bila diperlukan).
 
+## Status K-96 — tinjau usulan Claude langsung di ayat (3 Nov 2026)
+
+- Layar surah: tanda **Usulan Claude** di bawah makna potongan waqaf dan di tautan Keterangan ayat bila ada usulan menunggu (`kunciUsulanSurah`).
+- Lembar makna (dipakai layar surah, Hafalan baru, Hafal, murotal) dan lembar keterangan ayat: kotak **Usulan Claude** (`komponen/KotakUsulan.tsx`) dengan **Terima / Tolak / Salin ke kolom**; bentrok: **Pakai usulan Claude / Pakai versi HP**. Simpan sesudah "Salin ke kolom" = usulan diterima dengan isi gabungan (`terimaUsulan` dengan `isi`).
+- Uji: 3 uji baru (`usulanUntukBaris`, bentrok, `kunciUsulanSurah`) + uji klik di peramban (Terima makna; Salin ke kolom + Simpan keterangan).
+
 ## Usulan arsitektur (belum dikunci)
 
 | Lapisan | Usulan | Alasan |

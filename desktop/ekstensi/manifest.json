@@ -1,0 +1,83 @@
+{
+  "manifest_version": "0.3",
+  "name": "saku-hati",
+  "display_name": "Saku Hati",
+  "version": "0.1.0",
+  "description": "Membaca makna ayat, keterangan, dan kajian hadits dari Saku Hati di komputer ini, serta mengirim usulan suntingan.",
+  "long_description": "Ekstensi pribadi untuk Saku Hati (aplikasi hafalan Al-Qur'an). Claude dapat membaca makna per potongan waqaf, keterangan, dan kajian hadits, lalu mengirim usulan suntingan yang ditinjau di layar Usulan Claude di HP. Claude tidak pernah mengubah data langsung. Saku Hati untuk Windows harus terbuka di komputer yang sama.",
+  "author": {
+    "name": "Firdaus Dabamona"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dausdabamona/Hafalan-quran-"
+  },
+  "icon": "icon.png",
+  "server": {
+    "type": "node",
+    "entry_point": "server/mcp.js",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/server/mcp.js"
+      ],
+      "env": {}
+    }
+  },
+  "tools": [
+    {
+      "name": "baca_makna",
+      "description": "Membaca makna satu ayat per potongan waqaf: lafaz, arti per kata, makna bawaan (gabungan arti per kata), dan makna yang disusun sendiri oleh Firdaus beserta waktu ubah dan asalnya."
+    },
+    {
+      "name": "baca_keterangan",
+      "description": "Membaca keterangan pribadi Firdaus untuk satu ayat dan untuk kata-kata di ayat itu."
+    },
+    {
+      "name": "baca_kajian_hadits",
+      "description": "Membaca satu hadits: teks Arab, terjemah asli, terjemah yang disunting sendiri, catatan kajian, ayat terkait (manual dan dari data), serta padanan antarkitab."
+    },
+    {
+      "name": "cari_kajian",
+      "description": "Mencari kata di seluruh hasil kajian pribadi: makna ayat sendiri, keterangan ayat/kata, terjemah hadits sendiri, dan catatan hadits. Tidak mencari teks terjemah asli."
+    },
+    {
+      "name": "status_sinkron",
+      "description": "Menampilkan kapan data terakhir disinkronkan dari HP dan jumlah catatan kajian di komputer ini."
+    },
+    {
+      "name": "daftar_usulan",
+      "description": "Menampilkan usulan Claude yang sudah dibuat beserta statusnya (menunggu, bentrok, diterima, ditolak, diganti)."
+    },
+    {
+      "name": "usul_makna",
+      "description": "Mengusulkan makna baru untuk satu potongan waqaf. Tidak mengubah data; Firdaus meninjau di HP. Usulan baru untuk potongan yang sama menggantikan usulan sebelumnya yang masih menunggu."
+    },
+    {
+      "name": "usul_keterangan",
+      "description": "Mengusulkan keterangan pribadi untuk satu ayat (urutan_kata 0 atau kosong) atau untuk satu kata. Tidak mengubah data."
+    },
+    {
+      "name": "usul_terjemah_hadits",
+      "description": "Mengusulkan terjemah hadits versi sendiri (seluruh teks terjemah satu hadits). Tidak mengubah data."
+    },
+    {
+      "name": "usul_catatan_hadits",
+      "description": "Mengusulkan catatan kajian untuk satu hadits (menggantikan seluruh isi catatan). Tidak mengubah data."
+    }
+  ],
+  "keywords": [
+    "quran",
+    "hafalan",
+    "saku-hati"
+  ],
+  "license": "UNLICENSED",
+  "compatibility": {
+    "platforms": [
+      "win32"
+    ],
+    "runtimes": {
+      "node": ">=18.0.0"
+    }
+  }
+}

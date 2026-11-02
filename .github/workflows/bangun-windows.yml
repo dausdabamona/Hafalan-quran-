@@ -65,14 +65,26 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: npm run bangun
 
+      - name: Kemas ekstensi Claude (K-95)
+        shell: bash
+        run: |
+          rm -rf bangun-mcpb
+          mkdir -p bangun-mcpb/server
+          cp desktop/ekstensi/manifest.json bangun-mcpb/
+          cp desktop/mcp.js bangun-mcpb/server/
+          cp aset/ikon-512.png bangun-mcpb/icon.png
+          node -e "const fs=require('fs'),f='bangun-mcpb/manifest.json',m=JSON.parse(fs.readFileSync(f,'utf8'));m.version='0.1.${{ github.run_number }}';fs.writeFileSync(f,JSON.stringify(m,null,2))"
+          npx --yes @anthropic-ai/mcpb@2.1.2 validate bangun-mcpb/manifest.json
+          npx --yes @anthropic-ai/mcpb@2.1.2 pack bangun-mcpb desktop/keluaran/saku-hati.mcpb
+
       - name: Terbitkan ke GitHub Releases
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete windows-terbaru --yes --cleanup-tag || true
-          gh release create windows-terbaru desktop/keluaran/saku-hati-setup.exe \
+          gh release create windows-terbaru desktop/keluaran/saku-hati-setup.exe desktop/keluaran/saku-hati.mcpb \
             --target "$GITHUB_SHA" \
             --title "Saku Hati Windows 0.1.${{ github.run_number }}" \
-            --notes "Penginstal Windows dari commit ${GITHUB_SHA::7}. Unduh saku-hati-setup.exe lalu jalankan. Bila muncul 'Windows protected your PC', klik More info → Run anyway." \
+            --notes "Penginstal Windows dari commit ${GITHUB_SHA::7}. Unduh saku-hati-setup.exe lalu jalankan. Bila muncul 'Windows protected your PC', klik More info → Run anyway. Ekstensi Claude: unduh saku-hati.mcpb lalu klik dua kali → Install di Claude desktop." \
             --latest=false

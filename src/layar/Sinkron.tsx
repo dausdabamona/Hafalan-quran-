@@ -324,7 +324,8 @@ function KartuClaude() {
   const [pesan, setPesan] = useState('');
 
   useEffect(() => {
-    const jembatan = (window as unknown as { sakuHatiDesktop?: { konfigMcp?: () => Promise<unknown> } }).sakuHatiDesktop;
+    const jembatan = (window as unknown as { sakuHatiDesktop?: { konfigMcp?: () => Promise<unknown> } })
+      .sakuHatiDesktop;
     jembatan
       ?.konfigMcp?.()
       .then((k) => setKonfig(JSON.stringify(k, null, 2)))
@@ -346,10 +347,18 @@ function KartuClaude() {
     <section className="kartu">
       <h2>Hubungkan ke Claude</h2>
       <p className="kosong">
-        Claude bisa membaca makna ayat, keterangan, dan kajian hadits dari komputer ini (baca saja). Tambahkan isi di bawah
-        ke bagian <strong>mcpServers</strong> berkas konfigurasi Claude desktop di komputer ini (
-        <strong>%APPDATA%\Claude\claude_desktop_config.json</strong>), simpan, lalu buka ulang Claude desktop. Saku Hati
-        harus tetap terbuka agar Claude bisa membaca datanya.
+        Claude bisa membaca makna ayat, keterangan, dan kajian hadits dari komputer ini, lalu mengirim usulan suntingan.
+      </p>
+      <p className="kosong">
+        <strong>Cara termudah (K-95):</strong> unduh <strong>saku-hati.mcpb</strong> dari rilis Saku Hati Windows di
+        GitHub (github.com/dausdabamona/Hafalan-quran-/releases/tag/windows-terbaru), lalu klik dua kali berkas itu dan
+        pilih <strong>Install</strong> di Claude desktop. Saku Hati harus tetap terbuka agar Claude bisa membaca
+        datanya.
+      </p>
+      <p className="kosong">
+        Cara manual (pilih salah satu, jangan keduanya): tambahkan isi di bawah ke bagian <strong>mcpServers</strong>{' '}
+        berkas konfigurasi Claude desktop di komputer ini (<strong>%APPDATA%\Claude\claude_desktop_config.json</strong>
+        ), simpan, lalu buka ulang Claude desktop. Saku Hati harus tetap terbuka agar Claude bisa membaca datanya.
       </p>
       <textarea className="isian" readOnly rows={10} value={konfig} onFocus={(e) => e.currentTarget.select()} />
       <button className="tombol sekunder lebar" onClick={salin}>

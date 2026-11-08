@@ -56,6 +56,7 @@ import { hashPotongan, pergi } from '../navigasi';
 import { hashMurotal } from '../murotal';
 import Kepala from '../komponen/Kepala';
 import TeksAyat from '../komponen/TeksAyat';
+import MushafBaca from '../komponen/MushafBaca';
 import LembarHadits from '../komponen/LembarHadits';
 import LembarMakna from '../komponen/LembarMakna';
 import KotakUsulan, { useUsulanBaris } from '../komponen/KotakUsulan';
@@ -69,6 +70,15 @@ import { usePemutar } from './Murotal';
 
 export function tanggalPendek(iso: string): string {
   return new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// K-98 (A): mode tampilan mushaf, disimpan per perangkat.
+function bacaModeBaca(): boolean {
+  try {
+    return localStorage.getItem('modeMushaf') === 'baca';
+  } catch {
+    return false;
+  }
 }
 
 function bacaTampilMakna(): boolean {
@@ -105,6 +115,7 @@ export default function LayarSurah({
   const [lembar, setLembar] = useState<Lembar | null>(null);
   const [tampilMakna, setTampilMakna] = useState(bacaTampilMakna);
   const [modeTandai, setModeTandai] = useState(!!tandaiAwal);
+  const [modeBaca, setModeBaca] = useState(() => !tandaiAwal && bacaModeBaca());
   const [dari, setDari] = useState('');
   const [sampai, setSampai] = useState('');
   const [pesanTandai, setPesanTandai] = useState('');
@@ -196,6 +207,17 @@ export default function LayarSurah({
       }
       return !v;
     });
+  };
+
+  const gantiMode = (baca: boolean, keAyat?: number) => {
+    setModeBaca(baca);
+    try {
+      localStorage.setItem('modeMushaf', baca ? 'baca' : 'kajian');
+    } catch {
+      // abaikan
+    }
+    if (keAyat) setTimeout(() => document.getElementById(`ayat-${keAyat}`)?.scrollIntoView({ block: 'start' }), 120);
+    else window.scrollTo(0, 0);
   };
 
   const basmalah = surah.ayat[0] ? teksBasmalah(surah.ayat[0]) : null;
@@ -339,240 +361,275 @@ export default function LayarSurah({
         }
       />
 
-      <div className={'bilah-tandai' + (modeTandai ? ' buka' : '')}>
-        {modeTandai ? (
-          <>
-            <p>
-              Ketuk <strong>kotak di atas ayat</strong> yang sudah Anda hafal, atau tandai sekaligus satu rentang. Ayat
-              yang ditandai masuk Ulang hafalan per rukuk; yang direkam hanya ayat yang hafal. Ayat{' '}
-              <em>dari Hafalan baru</em> yang ternyata belum melekat bisa diketuk untuk dikembalikan ke belum hafal.
-            </p>
-            <div className="isi-rentang">
-              <span>Ayat</span>
-              <input
-                inputMode="numeric"
-                value={dari}
-                onChange={(e) => setDari(e.target.value.replace(/\D/g, ''))}
-                aria-label="Dari ayat"
-                placeholder="dari"
-              />
-              <span>–</span>
-              <input
-                inputMode="numeric"
-                value={sampai}
-                onChange={(e) => setSampai(e.target.value.replace(/\D/g, ''))}
-                aria-label="Sampai ayat"
-                placeholder="sampai"
-              />
-              <button className="tombol kecil utama" onClick={tandaiRentang}>
-                Tandai
-              </button>
-            </div>
-            {pesanTandai && <p className="pesan-tandai">{pesanTandai}</p>}
-            <button
-              className="tombol sekunder lebar"
-              onClick={() => {
-                setModeTandai(false);
-                setPesanTandai('');
-              }}
-            >
-              Selesai menandai
-            </button>
-          </>
-        ) : (
-          <button className="tautan" onClick={() => setModeTandai(true)}>
-            <CheckSquare weight="duotone" /> Tandai ayat yang sudah hafal (
-            {[...hafalSet].filter((k) => k.startsWith(`${surah.nomor}:`)).length} dari {surah.jumlahAyat} hafal)
+      {/* K-98 (A): sakelar mode di bawah kepala agar judul surah tetap lega. */}
+      <div className="bilah-mode">
+        <div className="pilih-mode" role="group" aria-label="Mode tampilan">
+          <button className={'chip' + (!modeBaca ? ' aktif' : '')} onClick={() => gantiMode(false)}>
+            Kajian
           </button>
-        )}
+          <button className={'chip' + (modeBaca ? ' aktif' : '')} onClick={() => gantiMode(true)}>
+            Baca
+          </button>
+        </div>
       </div>
 
-      {basmalah && (
-        <p className="basmalah" lang="ar" dir="rtl">
-          {basmalah}
-        </p>
-      )}
-
-      {daftarRukuk.map((r, iRukuk) => {
-        const j = jadwal.get(r.nomor);
-        const rentang = j ? rentangMurojaah(j, hafalan) : null;
-        return (
-          <section key={r.nomor} className="rukuk">
-            <div className="kepala-rukuk">
-              <span>
-                {daftarRukuk.length > 1 ? `Rukuk ${iRukuk + 1} · ` : ''}ayat {r.ayatAwal}–{r.ayatAkhir} · Juz{' '}
-                {juzAyat(r.surah, r.ayatAwal)}
-              </span>
-              <div className="aksi-rukuk">
+      {modeBaca ? (
+        <MushafBaca
+          surah={surah}
+          basmalah={basmalah}
+          makna={makna}
+          keterangan={keterangan}
+          hafalSet={hafalSet}
+          tampilMakna={tampilMakna}
+          ayatTuju={ayatTuju}
+          keKajian={(n) => gantiMode(false, n)}
+        />
+      ) : (
+        <>
+          <div className={'bilah-tandai' + (modeTandai ? ' buka' : '')}>
+            {modeTandai ? (
+              <>
+                <p>
+                  Ketuk <strong>kotak di atas ayat</strong> yang sudah Anda hafal, atau tandai sekaligus satu rentang.
+                  Ayat yang ditandai masuk Ulang hafalan per rukuk; yang direkam hanya ayat yang hafal. Ayat{' '}
+                  <em>dari Hafalan baru</em> yang ternyata belum melekat bisa diketuk untuk dikembalikan ke belum hafal.
+                </p>
+                <div className="isi-rentang">
+                  <span>Ayat</span>
+                  <input
+                    inputMode="numeric"
+                    value={dari}
+                    onChange={(e) => setDari(e.target.value.replace(/\D/g, ''))}
+                    aria-label="Dari ayat"
+                    placeholder="dari"
+                  />
+                  <span>–</span>
+                  <input
+                    inputMode="numeric"
+                    value={sampai}
+                    onChange={(e) => setSampai(e.target.value.replace(/\D/g, ''))}
+                    aria-label="Sampai ayat"
+                    placeholder="sampai"
+                  />
+                  <button className="tombol kecil utama" onClick={tandaiRentang}>
+                    Tandai
+                  </button>
+                </div>
+                {pesanTandai && <p className="pesan-tandai">{pesanTandai}</p>}
                 <button
-                  className="tautan kecil"
-                  onClick={() =>
-                    pergi(hashMurotal({ jenis: 'ayat', surah: r.surah, ayatAwal: r.ayatAwal, ayatAkhir: r.ayatAkhir }))
-                  }
+                  className="tombol sekunder lebar"
+                  onClick={() => {
+                    setModeTandai(false);
+                    setPesanTandai('');
+                  }}
                 >
-                  <Headphones weight="duotone" /> Murotal
+                  Selesai menandai
                 </button>
-                {j && !j.lengkap && (
-                  <button className="tautan kecil" onClick={() => tandaiLalu(r.nomor, false)}>
-                    Tandai hafal semua
-                  </button>
-                )}
-                {j && adaTandaLama(r.nomor, hafalan) && (
-                  <button className="tautan kecil" onClick={() => batalTanda(r.nomor)}>
-                    Batal tanda
-                  </button>
-                )}
-                {rentang ? (
-                  <button className="tombol kecil utama" onClick={() => pergi(hashPotongan('rekam', rentang, r.nomor))}>
-                    <Microphone weight="duotone" /> Murojaah rukuk
-                  </button>
-                ) : (
-                  <button className="tombol kecil sekunder" onClick={() => tandaiLalu(r.nomor, true)}>
-                    <Microphone weight="duotone" /> Murojaah rukuk
-                  </button>
-                )}
-              </div>
-            </div>
+              </>
+            ) : (
+              <button className="tautan" onClick={() => setModeTandai(true)}>
+                <CheckSquare weight="duotone" /> Tandai ayat yang sudah hafal (
+                {[...hafalSet].filter((k) => k.startsWith(`${surah.nomor}:`)).length} dari {surah.jumlahAyat} hafal)
+              </button>
+            )}
+          </div>
 
-            {potongan
-              .filter((p) => p.ayatAwal >= r.ayatAwal && p.ayatAkhir <= r.ayatAkhir)
-              .map((p) => {
-                const daftarAyat = ayatPotongan(surah, p);
-                const terekam = daftarAyat.every((a) => rekaman.has(kunciAyat(surah.nomor, a.ayat)));
-                return (
-                  <div key={p.ayatAwal} className="potongan">
-                    <div className="kepala-potongan">
-                      <span className="label-potongan">Potongan {labelPotongan(p)}</span>
-                      <div className="aksi-potongan">
-                        <button className="tombol kecil sekunder" onClick={() => pergi(hashPotongan('rekam', p))}>
-                          <Microphone weight="duotone" /> Rekam
-                        </button>
-                        <button
-                          className="tombol kecil sekunder"
-                          onClick={() => pergi(hashPotongan('koreksi', p))}
-                          disabled={!terekam}
-                        >
-                          <Check weight="duotone" /> Koreksi
-                        </button>
-                      </div>
-                    </div>
-                    <ol className="daftar-ayat">
-                      {daftarAyat.map((a) => {
-                        const ketAyat = keterangan.get(kunciKeterangan(surah.nomor, a.ayat, 0));
-                        const rek = rekaman.get(kunciAyat(surah.nomor, a.ayat));
-                        const tertukar = tanda.tertukar.get(kunciAyat(surah.nomor, a.ayat));
-                        return (
-                          <li key={a.ayat} id={`ayat-${a.ayat}`}>
-                            {modeTandai && (
-                              <button
-                                className={
-                                  'tandai-ayat tandai ' +
-                                  (lamaSet.has(a.ayat)
-                                    ? 'semua'
-                                    : hafalSet.has(`${surah.nomor}:${a.ayat}`)
-                                      ? 'semua baru'
-                                      : 'belum')
-                                }
-                                onClick={() => ubahAyat(a.ayat)}
-                              >
-                                <span className="kotak" aria-hidden="true">
-                                  {hafalSet.has(`${surah.nomor}:${a.ayat}`) ? '✓' : ''}
-                                </span>
-                                Ayat {a.ayat}
-                                {lamaSet.has(a.ayat)
-                                  ? ' · hafalan lama'
-                                  : hafalSet.has(`${surah.nomor}:${a.ayat}`)
-                                    ? ' · dari Hafalan baru'
-                                    : ''}
-                              </button>
-                            )}
-                            <div className={'ayat' + (ayatDiputar === a.ayat ? ' diputar' : '')}>
-                              <p className="label-ayat kicker">
-                                Ayat {a.ayat}
-                                {rek ? ' · terekam' : ''}
-                              </p>
-                              <TeksAyat ayat={a} kelasKata={kelasKata(a)} ketukKata={(k) => bukaKata(a, k)} />
-                              {tampilMakna && (
-                                <ol className="daftar-makna">
-                                  {segmenAyat(a).map((s) => {
-                                    const m = makna.get(`${surah.nomor}:${a.ayat}:${s.indeks}`);
-                                    return (
-                                      <li key={s.indeks}>
-                                        <button
-                                          className={'makna' + (m ? ' diedit' : '')}
-                                          onClick={() => setLembar({ jenis: 'makna', ayat: a, segmen: s })}
-                                        >
-                                          {m?.isi ?? s.maknaBawaan}
-                                          <span className="pena">
-                                            {' '}
-                                            <NotePencil weight="duotone" />
-                                          </span>
-                                          {usulanAda.has(`makna|${surah.nomor}:${a.ayat}:${s.indeks}`) && (
-                                            <span className="tanda-usulan">
-                                              <Sparkle weight="duotone" /> Usulan Claude
-                                            </span>
-                                          )}
-                                        </button>
-                                      </li>
-                                    );
-                                  })}
-                                </ol>
-                              )}
-                              <div className="kaki-ayat">
-                                <button className="tautan" onClick={() => setLembar({ jenis: 'ayat', ayat: a })}>
-                                  <NotePencil weight="duotone" /> {ketAyat ? 'Ubah keterangan' : 'Keterangan'}
-                                  {usulanAda.has(`keterangan|${kunciKeterangan(surah.nomor, a.ayat, 0)}`) && (
-                                    <span className="tanda-usulan">
-                                      <Sparkle weight="duotone" /> Usulan Claude
-                                    </span>
-                                  )}
-                                </button>
-                                {haditsAyat.get(a.ayat) && (
-                                  <button className="tautan" onClick={() => setLembar({ jenis: 'hadits', ayat: a })}>
-                                    <Scroll weight="duotone" /> {haditsAyat.get(a.ayat)!.length} hadits
-                                  </button>
-                                )}
-                                {rek && (
-                                  <button
-                                    className={'tombol sekunder kecil' + (ayatDiputar === a.ayat ? ' aktif' : '')}
-                                    onClick={() => putarDariSini(a.ayat, rek.audio)}
-                                  >
-                                    {ayatDiputar === a.ayat && pemutar?.main ? (
-                                      <>
-                                        <Pause weight="duotone" /> Jeda
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Play weight="duotone" /> Putar dari sini
-                                      </>
-                                    )}
-                                  </button>
-                                )}
-                              </div>
-                              {ketAyat && <p className="catatan-ayat">{ketAyat.isi}</p>}
-                            </div>
-                            {tertukar && (
-                              <div className="sambungan-bertanda">
-                                <span>
-                                  <Warning weight="duotone" /> Sambungan ke ayat {tertukar.ayatAsal + 1} pernah tertukar{' '}
-                                  {tertukar.jumlah}× (terbaca{' '}
-                                  {tertukar.ayatKeliru ? `ayat ${tertukar.ayatKeliru}` : 'ayat lain'})
-                                </span>
-                                <button className="tautan kecil" onClick={() => hapusTertukar(tertukar)}>
-                                  Hapus tanda
-                                </button>
-                              </div>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ol>
+          {basmalah && (
+            <p className="basmalah" lang="ar" dir="rtl">
+              {basmalah}
+            </p>
+          )}
+
+          {daftarRukuk.map((r, iRukuk) => {
+            const j = jadwal.get(r.nomor);
+            const rentang = j ? rentangMurojaah(j, hafalan) : null;
+            return (
+              <section key={r.nomor} className="rukuk">
+                <div className="kepala-rukuk">
+                  <span>
+                    {daftarRukuk.length > 1 ? `Rukuk ${iRukuk + 1} · ` : ''}ayat {r.ayatAwal}–{r.ayatAkhir} · Juz{' '}
+                    {juzAyat(r.surah, r.ayatAwal)}
+                  </span>
+                  <div className="aksi-rukuk">
+                    <button
+                      className="tautan kecil"
+                      onClick={() =>
+                        pergi(
+                          hashMurotal({ jenis: 'ayat', surah: r.surah, ayatAwal: r.ayatAwal, ayatAkhir: r.ayatAkhir }),
+                        )
+                      }
+                    >
+                      <Headphones weight="duotone" /> Murotal
+                    </button>
+                    {j && !j.lengkap && (
+                      <button className="tautan kecil" onClick={() => tandaiLalu(r.nomor, false)}>
+                        Tandai hafal semua
+                      </button>
+                    )}
+                    {j && adaTandaLama(r.nomor, hafalan) && (
+                      <button className="tautan kecil" onClick={() => batalTanda(r.nomor)}>
+                        Batal tanda
+                      </button>
+                    )}
+                    {rentang ? (
+                      <button
+                        className="tombol kecil utama"
+                        onClick={() => pergi(hashPotongan('rekam', rentang, r.nomor))}
+                      >
+                        <Microphone weight="duotone" /> Murojaah rukuk
+                      </button>
+                    ) : (
+                      <button className="tombol kecil sekunder" onClick={() => tandaiLalu(r.nomor, true)}>
+                        <Microphone weight="duotone" /> Murojaah rukuk
+                      </button>
+                    )}
                   </div>
-                );
-              })}
-          </section>
-        );
-      })}
+                </div>
+
+                {potongan
+                  .filter((p) => p.ayatAwal >= r.ayatAwal && p.ayatAkhir <= r.ayatAkhir)
+                  .map((p) => {
+                    const daftarAyat = ayatPotongan(surah, p);
+                    const terekam = daftarAyat.every((a) => rekaman.has(kunciAyat(surah.nomor, a.ayat)));
+                    return (
+                      <div key={p.ayatAwal} className="potongan">
+                        <div className="kepala-potongan">
+                          <span className="label-potongan">Potongan {labelPotongan(p)}</span>
+                          <div className="aksi-potongan">
+                            <button className="tombol kecil sekunder" onClick={() => pergi(hashPotongan('rekam', p))}>
+                              <Microphone weight="duotone" /> Rekam
+                            </button>
+                            <button
+                              className="tombol kecil sekunder"
+                              onClick={() => pergi(hashPotongan('koreksi', p))}
+                              disabled={!terekam}
+                            >
+                              <Check weight="duotone" /> Koreksi
+                            </button>
+                          </div>
+                        </div>
+                        <ol className="daftar-ayat">
+                          {daftarAyat.map((a) => {
+                            const ketAyat = keterangan.get(kunciKeterangan(surah.nomor, a.ayat, 0));
+                            const rek = rekaman.get(kunciAyat(surah.nomor, a.ayat));
+                            const tertukar = tanda.tertukar.get(kunciAyat(surah.nomor, a.ayat));
+                            return (
+                              <li key={a.ayat} id={`ayat-${a.ayat}`}>
+                                {modeTandai && (
+                                  <button
+                                    className={
+                                      'tandai-ayat tandai ' +
+                                      (lamaSet.has(a.ayat)
+                                        ? 'semua'
+                                        : hafalSet.has(`${surah.nomor}:${a.ayat}`)
+                                          ? 'semua baru'
+                                          : 'belum')
+                                    }
+                                    onClick={() => ubahAyat(a.ayat)}
+                                  >
+                                    <span className="kotak" aria-hidden="true">
+                                      {hafalSet.has(`${surah.nomor}:${a.ayat}`) ? '✓' : ''}
+                                    </span>
+                                    Ayat {a.ayat}
+                                    {lamaSet.has(a.ayat)
+                                      ? ' · hafalan lama'
+                                      : hafalSet.has(`${surah.nomor}:${a.ayat}`)
+                                        ? ' · dari Hafalan baru'
+                                        : ''}
+                                  </button>
+                                )}
+                                <div className={'ayat' + (ayatDiputar === a.ayat ? ' diputar' : '')}>
+                                  <p className="label-ayat kicker">
+                                    Ayat {a.ayat}
+                                    {rek ? ' · terekam' : ''}
+                                  </p>
+                                  <TeksAyat ayat={a} kelasKata={kelasKata(a)} ketukKata={(k) => bukaKata(a, k)} />
+                                  {tampilMakna && (
+                                    <ol className="daftar-makna">
+                                      {segmenAyat(a).map((s) => {
+                                        const m = makna.get(`${surah.nomor}:${a.ayat}:${s.indeks}`);
+                                        return (
+                                          <li key={s.indeks}>
+                                            <button
+                                              className={'makna' + (m ? ' diedit' : '')}
+                                              onClick={() => setLembar({ jenis: 'makna', ayat: a, segmen: s })}
+                                            >
+                                              {m?.isi ?? s.maknaBawaan}
+                                              <span className="pena">
+                                                {' '}
+                                                <NotePencil weight="duotone" />
+                                              </span>
+                                              {usulanAda.has(`makna|${surah.nomor}:${a.ayat}:${s.indeks}`) && (
+                                                <span className="tanda-usulan">
+                                                  <Sparkle weight="duotone" /> Usulan Claude
+                                                </span>
+                                              )}
+                                            </button>
+                                          </li>
+                                        );
+                                      })}
+                                    </ol>
+                                  )}
+                                  <div className="kaki-ayat">
+                                    <button className="tautan" onClick={() => setLembar({ jenis: 'ayat', ayat: a })}>
+                                      <NotePencil weight="duotone" /> {ketAyat ? 'Ubah keterangan' : 'Keterangan'}
+                                      {usulanAda.has(`keterangan|${kunciKeterangan(surah.nomor, a.ayat, 0)}`) && (
+                                        <span className="tanda-usulan">
+                                          <Sparkle weight="duotone" /> Usulan Claude
+                                        </span>
+                                      )}
+                                    </button>
+                                    {haditsAyat.get(a.ayat) && (
+                                      <button
+                                        className="tautan"
+                                        onClick={() => setLembar({ jenis: 'hadits', ayat: a })}
+                                      >
+                                        <Scroll weight="duotone" /> {haditsAyat.get(a.ayat)!.length} hadits
+                                      </button>
+                                    )}
+                                    {rek && (
+                                      <button
+                                        className={'tombol sekunder kecil' + (ayatDiputar === a.ayat ? ' aktif' : '')}
+                                        onClick={() => putarDariSini(a.ayat, rek.audio)}
+                                      >
+                                        {ayatDiputar === a.ayat && pemutar?.main ? (
+                                          <>
+                                            <Pause weight="duotone" /> Jeda
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Play weight="duotone" /> Putar dari sini
+                                          </>
+                                        )}
+                                      </button>
+                                    )}
+                                  </div>
+                                  {ketAyat && <p className="catatan-ayat">{ketAyat.isi}</p>}
+                                </div>
+                                {tertukar && (
+                                  <div className="sambungan-bertanda">
+                                    <span>
+                                      <Warning weight="duotone" /> Sambungan ke ayat {tertukar.ayatAsal + 1} pernah
+                                      tertukar {tertukar.jumlah}× (terbaca{' '}
+                                      {tertukar.ayatKeliru ? `ayat ${tertukar.ayatKeliru}` : 'ayat lain'})
+                                    </span>
+                                    <button className="tautan kecil" onClick={() => hapusTertukar(tertukar)}>
+                                      Hapus tanda
+                                    </button>
+                                  </div>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ol>
+                      </div>
+                    );
+                  })}
+              </section>
+            );
+          })}
+        </>
+      )}
 
       {lembar?.jenis === 'kata' && (
         <LembarKata

@@ -5700,3 +5700,103 @@ body {
 .peta-alamat:not([open]) summary::after {
   content: ' ▸';
 }
+
+/* K-98 (A): mushaf mode Baca */
+.bilah-mode {
+  padding: 4px 16px 0;
+}
+.pilih-mode {
+  display: flex;
+  gap: 6px;
+}
+.pilih-mode .chip {
+  flex: 1;
+  justify-content: center;
+}
+.mushaf-baca {
+  padding: 0 16px 120px;
+}
+.bilah-baca {
+  padding: 6px 0 4px;
+  font-size: 14px;
+}
+.batas-baca {
+  margin: 18px 0 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--garis);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  text-align: center;
+}
+.teks-baca {
+  margin: 0;
+  font-family: var(--font-arab);
+  font-size: var(--ukuran-arab, 34px);
+  line-height: 2.1;
+  text-align: right;
+}
+.teks-baca.mengalir {
+  text-align: right;
+}
+.ayat-baca {
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.ayat-baca {
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 2px 0;
+  scroll-margin: 120px;
+}
+.ayat-baca.hafal {
+  color: var(--teal);
+}
+.ayat-baca.dipilih {
+  background: color-mix(in srgb, var(--teal) 16%, transparent);
+}
+.nomor-baca {
+  color: var(--color-accent-700);
+  font-size: 0.8em;
+  white-space: nowrap;
+}
+.blok-baca {
+  padding: 4px 0 10px;
+  border-bottom: 1px dashed var(--garis);
+  scroll-margin: 120px;
+}
+.makna-baca {
+  margin: 2px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+.makna-baca .no {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--color-isi-tua);
+  color: #fff;
+  margin-right: 4px;
+}
+.judul-baca {
+  margin: 0 0 6px;
+  font-weight: 700;
+  color: var(--color-accent-700);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.ket-baca {
+  margin: 8px 0 0;
+  font-size: 14px;
+  white-space: pre-wrap;
+}
+.lembar-baca .teks-baca {
+  font-size: calc(var(--ukuran-arab, 34px) * 0.9);
+}

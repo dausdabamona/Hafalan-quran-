@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { BookOpen, MapTrifold } from '@phosphor-icons/react';
-import { ambilAlamatSurah, kunciAlamat } from '../alamat';
-import { angkaArab, juzAyat, rukukSurah, segmenAyat, susunToken, type Ayat, type Surah } from '../data';
-import { kunciKeterangan, type AlamatAyat, type Keterangan, type Makna } from '../db';
+import { kunciAlamat } from '../alamat';
+import { angkaArab, juzAyat, rukukSurah, segmenAyat, susunToken, teksBasmalah, type Ayat, type Surah } from '../data';
+import { db, kunciKeterangan, type AlamatAyat, type Keterangan, type Makna } from '../db';
 import { pergi } from '../navigasi';
 
 // K-98 (A): mushaf mode Baca — teks Arab mengalir seperti mushaf, tanpa arti per kata dan tombol.
 // Ketuk ayat untuk lembar kecil: judul alamat, makna, keterangan, dan pindah ke mode Kajian.
+// Tambahan 8 Nov: menerima beberapa bagian lintas surah (Baca per juz).
 
 const KUNCI_HAFAL = 'bacaWarnaHafal';
 
@@ -32,37 +33,56 @@ export function maknaAyat(surah: number, a: Ayat, makna: Map<string, Makna>): st
     .join(' · ');
 }
 
+export interface BagianBaca {
+  surah: Surah;
+  ayatAwal: number;
+  ayatAkhir: number;
+}
+
+export function idBaca(surah: number, ayat: number): string {
+  return `baca-${surah}-${ayat}`;
+}
+
 export default function MushafBaca({
-  surah,
-  basmalah,
+  bagian,
   makna,
   keterangan,
   hafalSet,
   tampilMakna,
+  kepalaSurah = false,
   ayatTuju,
   keKajian,
+  children,
 }: {
-  surah: Surah;
-  basmalah: string | null;
+  bagian: BagianBaca[];
   makna: Map<string, Makna>;
   keterangan: Map<string, Keterangan>;
   hafalSet: Set<string>;
   tampilMakna: boolean;
-  ayatTuju?: number;
-  keKajian: (ayat: number) => void;
+  kepalaSurah?: boolean; // tampilkan kepala tiap surah (Baca per juz)
+  ayatTuju?: { surah: number; ayat: number };
+  keKajian: (surah: number, ayat: number) => void;
+  children?: ReactNode; // navigasi di bawah bacaan
 }) {
   const [alamat, setAlamat] = useState<Map<string, AlamatAyat>>(new Map());
-  const [dipilih, setDipilih] = useState<Ayat | null>(null);
+  const [dipilih, setDipilih] = useState<{ surah: Surah; ayat: Ayat } | null>(null);
   const [warnaHafal, setWarnaHafal] = useState(bacaWarnaHafal);
-  const daftarRukuk = useMemo(() => rukukSurah(surah.nomor), [surah.nomor]);
+  const nomorSurah = useMemo(() => bagian.map((b) => b.surah.nomor), [bagian]);
 
   useEffect(() => {
-    ambilAlamatSurah(surah.nomor).then(setAlamat);
-  }, [surah.nomor]);
+    db.alamatAyat
+      .where('surah')
+      .anyOf(nomorSurah)
+      .toArray()
+      .then((x) => setAlamat(new Map(x.map((a) => [a.kunci, a]))));
+  }, [nomorSurah]);
 
   useEffect(() => {
     if (!ayatTuju) return;
-    const t = setTimeout(() => document.getElementById(`baca-${ayatTuju}`)?.scrollIntoView({ block: 'center' }), 80);
+    const t = setTimeout(
+      () => document.getElementById(idBaca(ayatTuju.surah, ayatTuju.ayat))?.scrollIntoView({ block: 'center' }),
+      80,
+    );
     return () => clearTimeout(t);
   }, [ayatTuju]);
 
@@ -76,17 +96,18 @@ export default function MushafBaca({
       return !v;
     });
 
-  const kelasAyat = (a: Ayat) =>
+  const kelasAyat = (s: number, a: Ayat) =>
     'ayat-baca' +
-    (warnaHafal && hafalSet.has(`${surah.nomor}:${a.ayat}`) ? ' hafal' : '') +
-    (dipilih?.ayat === a.ayat ? ' dipilih' : '');
+    (warnaHafal && hafalSet.has(`${s}:${a.ayat}`) ? ' hafal' : '') +
+    (dipilih?.surah.nomor === s && dipilih.ayat.ayat === a.ayat ? ' dipilih' : '');
 
   const penanda = (a: Ayat) => <span className="nomor-baca"> ﴿{angkaArab(a.ayat)}﴾ </span>;
 
-  const judul = dipilih ? alamat.get(kunciAlamat(surah.nomor, dipilih.ayat, 'judul'))?.isi : undefined;
-  const ket = dipilih ? keterangan.get(kunciKeterangan(surah.nomor, dipilih.ayat, 0))?.isi : undefined;
+  const sDipilih = dipilih?.surah.nomor ?? 0;
+  const judul = dipilih ? alamat.get(kunciAlamat(sDipilih, dipilih.ayat.ayat, 'judul'))?.isi : undefined;
+  const ket = dipilih ? keterangan.get(kunciKeterangan(sDipilih, dipilih.ayat.ayat, 0))?.isi : undefined;
   const rukukDipilih = dipilih
-    ? daftarRukuk.find((r) => r.ayatAwal <= dipilih.ayat && r.ayatAkhir >= dipilih.ayat)
+    ? rukukSurah(sDipilih).find((r) => r.ayatAwal <= dipilih.ayat.ayat && r.ayatAkhir >= dipilih.ayat.ayat)
     : undefined;
 
   return (
@@ -98,55 +119,83 @@ export default function MushafBaca({
         </label>
       </div>
 
-      {basmalah && (
-        <p className="basmalah" lang="ar" dir="rtl">
-          {basmalah}
-        </p>
-      )}
-
-      {daftarRukuk.map((r, i) => {
-        const ayat = surah.ayat.filter((a) => a.ayat >= r.ayatAwal && a.ayat <= r.ayatAkhir);
+      {bagian.map(({ surah, ayatAwal, ayatAkhir }) => {
+        const s = surah.nomor;
+        const basmalah = ayatAwal === 1 && surah.ayat[0] ? teksBasmalah(surah.ayat[0]) : null;
+        const semuaRukuk = rukukSurah(s);
+        const rukuk = semuaRukuk.filter((r) => r.ayatAkhir >= ayatAwal && r.ayatAwal <= ayatAkhir);
         return (
-          <section key={r.nomor} className="rukuk-baca">
-            {(daftarRukuk.length > 1 || i === 0) && (
-              <p className="batas-baca">
-                {daftarRukuk.length > 1 ? `Rukuk ${i + 1} · ` : ''}Juz {juzAyat(r.surah, r.ayatAwal)}
+          <section key={s} className="surah-baca">
+            {kepalaSurah && (
+              <header className="kepala-surah-baca">
+                <span className="nama">
+                  {s}. {surah.nama}
+                </span>
+                <span className="arti-surah-baca">
+                  {surah.arti}
+                  {ayatAwal > 1 ? ` · lanjutan dari ayat ${ayatAwal}` : ` · ${surah.jumlahAyat} ayat`}
+                </span>
+              </header>
+            )}
+            {basmalah && (
+              <p className="basmalah" lang="ar" dir="rtl">
+                {basmalah}
               </p>
             )}
-            {tampilMakna ? (
-              ayat.map((a) => (
-                <div key={a.ayat} id={`baca-${a.ayat}`} className="blok-baca">
-                  <p className="arab teks-baca" dir="rtl" lang="ar">
-                    <span className={kelasAyat(a)} onClick={() => setDipilih(a)}>
-                      {teksAyat(a)}
-                      {penanda(a)}
-                    </span>
+            {rukuk.map((r) => {
+              const awal = Math.max(r.ayatAwal, ayatAwal);
+              const akhir = Math.min(r.ayatAkhir, ayatAkhir);
+              const ayat = surah.ayat.filter((a) => a.ayat >= awal && a.ayat <= akhir);
+              const ke = semuaRukuk.indexOf(r) + 1;
+              return (
+                <section key={r.nomor} className="rukuk-baca">
+                  <p className="batas-baca">
+                    {semuaRukuk.length > 1 ? `Rukuk ${ke} · ` : ''}Juz {juzAyat(s, awal)}
                   </p>
-                  <p className="makna-baca">
-                    <span className="no">{a.ayat}</span> {maknaAyat(surah.nomor, a, makna)}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <p className="arab teks-baca mengalir" dir="rtl" lang="ar">
-                {ayat.map((a) => (
-                  <span key={a.ayat} id={`baca-${a.ayat}`} className={kelasAyat(a)} onClick={() => setDipilih(a)}>
-                    {teksAyat(a)}
-                    {penanda(a)}
-                  </span>
-                ))}
-              </p>
-            )}
+                  {tampilMakna ? (
+                    ayat.map((a) => (
+                      <div key={a.ayat} id={idBaca(s, a.ayat)} className="blok-baca">
+                        <p className="arab teks-baca" dir="rtl" lang="ar">
+                          <span className={kelasAyat(s, a)} onClick={() => setDipilih({ surah, ayat: a })}>
+                            {teksAyat(a)}
+                            {penanda(a)}
+                          </span>
+                        </p>
+                        <p className="makna-baca">
+                          <span className="no">{a.ayat}</span> {maknaAyat(s, a, makna)}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="arab teks-baca mengalir" dir="rtl" lang="ar">
+                      {ayat.map((a) => (
+                        <span
+                          key={a.ayat}
+                          id={idBaca(s, a.ayat)}
+                          className={kelasAyat(s, a)}
+                          onClick={() => setDipilih({ surah, ayat: a })}
+                        >
+                          {teksAyat(a)}
+                          {penanda(a)}
+                        </span>
+                      ))}
+                    </p>
+                  )}
+                </section>
+              );
+            })}
           </section>
         );
       })}
+
+      {children}
 
       {dipilih && (
         <div className="latar-lembar" onClick={() => setDipilih(null)}>
           <div className="lembar lembar-baca" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
             <div className="pegangan" />
             <p className="lokasi">
-              {surah.nama} · ayat {dipilih.ayat}
+              {dipilih.surah.nama} · ayat {dipilih.ayat.ayat}
             </p>
             {judul && (
               <p className="judul-baca">
@@ -154,10 +203,10 @@ export default function MushafBaca({
               </p>
             )}
             <p className="arab teks-baca" dir="rtl" lang="ar">
-              {teksAyat(dipilih)}
-              {penanda(dipilih)}
+              {teksAyat(dipilih.ayat)}
+              {penanda(dipilih.ayat)}
             </p>
-            <p className="makna-baca">{maknaAyat(surah.nomor, dipilih, makna)}</p>
+            <p className="makna-baca">{maknaAyat(sDipilih, dipilih.ayat, makna)}</p>
             {ket && <p className="ket-baca">{ket}</p>}
             <div className="aksi-lembar">
               {rukukDipilih && (
@@ -168,9 +217,9 @@ export default function MushafBaca({
               <button
                 className="tombol utama"
                 onClick={() => {
-                  const n = dipilih.ayat;
+                  const { surah, ayat } = dipilih;
                   setDipilih(null);
-                  keKajian(n);
+                  keKajian(surah.nomor, ayat.ayat);
                 }}
               >
                 <BookOpen weight="duotone" /> Buka di mode Kajian

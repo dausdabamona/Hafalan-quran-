@@ -5863,3 +5863,53 @@ body {
   margin-left: auto;
   margin-right: 8px;
 }
+
+/* K-98 tambahan: Baca per juz */
+button.judul-juz.buka-juz {
+  display: flex;
+  width: calc(100% - 32px);
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.baca-juz {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+  color: var(--teal);
+}
+.kepala-surah-baca {
+  margin: 22px 0 4px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--color-isi-tua);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.kepala-surah-baca .nama {
+  font-weight: 700;
+  font-size: 17px;
+}
+.kepala-surah-baca .arti-surah-baca {
+  font-size: 13px;
+  opacity: 0.85;
+}
+.nav-baca {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 24px;
+}
+.nav-baca.nav-juz {
+  flex-direction: row;
+  justify-content: space-between;
+}

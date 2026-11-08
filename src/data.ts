@@ -177,6 +177,28 @@ export function rukukAyat(surah: number, ayat: number): Rukuk | undefined {
   return daftarRukuk.find((r) => r.surah === surah && r.ayatAwal <= ayat && ayat <= r.ayatAkhir);
 }
 
+// K-98: rentang ayat satu juz lintas surah, untuk Baca per juz.
+export interface BagianJuz {
+  surah: number;
+  ayatAwal: number;
+  ayatAkhir: number;
+}
+
+export function rentangJuz(nomor: number): BagianJuz[] {
+  const awal = daftarJuz.find((j) => j.nomor === nomor);
+  if (!awal) return [];
+  const berikut = daftarJuz.find((j) => j.nomor === nomor + 1);
+  const hasil: BagianJuz[] = [];
+  const surahAkhir = berikut ? berikut.surah : daftarSurah.length;
+  for (let s = awal.surah; s <= surahAkhir; s++) {
+    const surah = daftarSurah[s - 1];
+    const a = s === awal.surah ? awal.ayat : 1;
+    const b = berikut && s === berikut.surah ? berikut.ayat - 1 : surah.jumlahAyat;
+    if (b >= a) hasil.push({ surah: s, ayatAwal: a, ayatAkhir: b });
+  }
+  return hasil;
+}
+
 export function juzAyat(surah: number, ayat: number): number {
   let juz = 1;
   for (const j of daftarJuz) {
@@ -239,7 +261,11 @@ export function segmenAyat(ayat: Ayat): Segmen[] {
     if (!hasil[t.segmen]) hasil[t.segmen] = { indeks: t.segmen, kata: [], maknaBawaan: '' };
     hasil[t.segmen].kata.push(t.kata);
   }
-  for (const s of hasil) s.maknaBawaan = s.kata.map((k) => k.arti).filter(Boolean).join(' ');
+  for (const s of hasil)
+    s.maknaBawaan = s.kata
+      .map((k) => k.arti)
+      .filter(Boolean)
+      .join(' ');
   return hasil;
 }
 

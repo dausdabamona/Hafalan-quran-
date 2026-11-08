@@ -136,10 +136,14 @@ export default function LayarDaftar() {
                     {j.ayat > 1 ? ` · mulai ${s.nama} ayat ${j.ayat}` : ''}
                   </button>
                 ) : (
-                  <p key={j.nomor} className="judul-juz">
-                    Juz {j.nomor}
-                    {j.ayat > 1 ? ` · mulai ${s.nama} ayat ${j.ayat}` : ''}
-                  </p>
+                  // K-98: judul juz membuka Baca per juz (bersambung lintas surah).
+                  <button key={j.nomor} className="judul-juz buka-juz" onClick={() => pergi(`#/juz/${j.nomor}`)}>
+                    <span>
+                      Juz {j.nomor}
+                      {j.ayat > 1 ? ` · mulai ${s.nama} ayat ${j.ayat}` : ''}
+                    </span>
+                    <span className="baca-juz">Baca juz ›</span>
+                  </button>
                 );
               })}
               <button

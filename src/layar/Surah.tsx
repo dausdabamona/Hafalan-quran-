@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ArrowRight,
   CaretLeft,
   CaretRight,
   Check,
@@ -15,6 +16,7 @@ import {
 } from '@phosphor-icons/react';
 import {
   ayatPotongan,
+  cariSurah,
   juzAyat,
   labelPotongan,
   potonganSurah,
@@ -221,6 +223,7 @@ export default function LayarSurah({
   };
 
   const basmalah = surah.ayat[0] ? teksBasmalah(surah.ayat[0]) : null;
+  const bagianBaca = [{ surah, ayatAwal: 1, ayatAkhir: surah.jumlahAyat }];
 
   // K-30: status hafal per ayat untuk mode Tandai hafal.
   const hafalSet = useMemo(() => ayatHafal(hafalan), [hafalan]);
@@ -375,15 +378,26 @@ export default function LayarSurah({
 
       {modeBaca ? (
         <MushafBaca
-          surah={surah}
-          basmalah={basmalah}
+          bagian={bagianBaca}
           makna={makna}
           keterangan={keterangan}
           hafalSet={hafalSet}
           tampilMakna={tampilMakna}
-          ayatTuju={ayatTuju}
-          keKajian={(n) => gantiMode(false, n)}
-        />
+          ayatTuju={ayatTuju ? { surah: surah.nomor, ayat: ayatTuju } : undefined}
+          keKajian={(_s, n) => gantiMode(false, n)}
+        >
+          {/* K-98: bacaan bersambung — surah berikutnya dan Baca per juz. */}
+          <div className="nav-baca">
+            {surah.nomor < 114 && (
+              <button className="tombol utama lebar" onClick={() => pergi(`#/surah/${surah.nomor + 1}`)}>
+                Surah berikutnya: {cariSurah(surah.nomor + 1)!.nama} <ArrowRight weight="bold" />
+              </button>
+            )}
+            <button className="tombol sekunder lebar" onClick={() => pergi(`#/juz/${juzAyat(surah.nomor, 1)}`)}>
+              Baca per juz: Juz {juzAyat(surah.nomor, 1)}
+            </button>
+          </div>
+        </MushafBaca>
       ) : (
         <>
           <div className={'bilah-tandai' + (modeTandai ? ' buka' : '')}>

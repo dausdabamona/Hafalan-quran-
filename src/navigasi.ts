@@ -22,6 +22,7 @@ export type Layar =
   | { nama: 'usulan-claude' }
   | { nama: 'daftar-alamat' }
   | { nama: 'cari'; q?: string }
+  | { nama: 'juz'; nomor: number }
   | { nama: 'alamat'; rukuk: number }
   | { nama: 'cadangan' }
   | { nama: 'data-hadits' }
@@ -76,6 +77,9 @@ export function bacaHash(): Layar {
   if (h === '#/pengingat') return { nama: 'pengingat' };
   if (h === '#/sinkron') return { nama: 'sinkron' };
   if (h === '#/usulan-claude') return { nama: 'usulan-claude' };
+  // K-98: Baca per juz — #/juz/N
+  m = /^#\/juz\/(\d+)$/.exec(h);
+  if (m && Number(m[1]) >= 1 && Number(m[1]) <= 30) return { nama: 'juz', nomor: Number(m[1]) };
   // K-98 (B): pencarian umum — #/cari, #/cari?q=...
   if (h === '#/cari') return { nama: 'cari' };
   if (h.startsWith('#/cari?'))

@@ -10,7 +10,7 @@ export const LAYAR_BERTAB: NamaLayar[] = ['hari-ini', 'daftar', 'rukuk', 'pilih-
 
 const TAB: { judul: string; hash: string; ikon: typeof House; aktif: NamaLayar[] }[] = [
   { judul: 'Hari ini', hash: '#/', ikon: House, aktif: ['hari-ini'] },
-  { judul: 'Mushaf', hash: '#/semua', ikon: BookOpen, aktif: ['daftar', 'rukuk'] },
+  { judul: 'Mushaf', hash: '#/semua', ikon: BookOpen, aktif: ['daftar', 'rukuk', 'juz'] },
   { judul: 'Kemajuan', hash: '#/kemajuan', ikon: ChartBar, aktif: ['kemajuan'] },
   { judul: 'Murotal', hash: '#/murotal', ikon: Headphones, aktif: ['pilih-murotal'] },
   {

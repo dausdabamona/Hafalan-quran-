@@ -59,11 +59,29 @@ jobs:
         working-directory: desktop
         run: npm install --no-audit --no-fund
 
+      # Unduhan alat electron-builder (NSIS, winCodeSign) dari GitHub kadang gagal sesaat (502/504):
+      # disimpan di cache dan dicoba ulang sampai 3 kali.
+      - name: Cache unduhan electron-builder
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\electron-builder\Cache
+            ~\AppData\Local\electron\Cache
+          key: electron-builder-${{ runner.os }}-${{ hashFiles('desktop/package-lock.json') }}
+          restore-keys: electron-builder-${{ runner.os }}-
+
       - name: Bangun penginstal
         working-directory: desktop
+        shell: bash
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-        run: npm run bangun
+        run: |
+          for i in 1 2 3; do
+            npm run bangun && exit 0
+            echo "Percobaan $i gagal, ulang 30 detik lagi…"
+            sleep 30
+          done
+          exit 1
 
       - name: Kemas ekstensi Claude (K-95)
         shell: bash

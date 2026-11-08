@@ -1,5 +1,14 @@
 import { cariAyat, cariSurah, segmenAyat } from '../data';
-import { catatHapus, idAcak, type SakuDB, type StatusUsulan, type TabelUsulan, type UsulanClaude } from '../db';
+import { MAKS_JEMBATAN, MAKS_JUDUL } from '../alamat';
+import {
+  catatHapus,
+  idAcak,
+  type JenisAlamat,
+  type SakuDB,
+  type StatusUsulan,
+  type TabelUsulan,
+  type UsulanClaude,
+} from '../db';
 
 // K-92/K-93: pembuatan usulan Claude dan penentuan status efektifnya.
 // Dipakai alat MCP (tahap b) dan layar Usulan Claude di HP (tahap c).
@@ -48,7 +57,8 @@ interface Sasaran {
   kunciTujuan: string;
   rujukan: string;
   isiBawaan: string | null;
-  lokasi: Pick<UsulanClaude, 'surah' | 'ayat' | 'segmen' | 'urutan' | 'kitab' | 'nomor'>;
+  lokasi: Pick<UsulanClaude, 'surah' | 'ayat' | 'segmen' | 'urutan' | 'kitab' | 'nomor' | 'jenisAlamat'>;
+  maksIsi?: number;
 }
 
 function ayatSah(surahArg: unknown, ayatArg: unknown) {
@@ -68,7 +78,9 @@ export function sasaranMakna(a: Record<string, unknown>): Sasaran {
   const daftar = segmenAyat(ayat);
   const sg = daftar[potongan - 1];
   if (!sg) {
-    throw new GalatUsulan(`${s.nama} ${nomorAyat} punya ${daftar.length} potongan waqaf (1–${daftar.length}). Lihat baca_makna.`);
+    throw new GalatUsulan(
+      `${s.nama} ${nomorAyat} punya ${daftar.length} potongan waqaf (1–${daftar.length}). Lihat baca_makna.`,
+    );
   }
   return {
     tabel: 'makna',
@@ -84,14 +96,42 @@ export function sasaranKeterangan(a: Record<string, unknown>): Sasaran {
   const urutan = a.urutan_kata === undefined || a.urutan_kata === null ? 0 : bilangan(a.urutan_kata, 'urutan_kata');
   const kata = urutan > 0 ? ayat.kata.find((k) => k.urutan === urutan) : undefined;
   if (urutan < 0 || (urutan > 0 && !kata)) {
-    throw new GalatUsulan(`${s.nama} ${nomorAyat} punya ${ayat.kata.length} kata (urutan_kata 1–${ayat.kata.length}; 0 = ayat).`);
+    throw new GalatUsulan(
+      `${s.nama} ${nomorAyat} punya ${ayat.kata.length} kata (urutan_kata 1–${ayat.kata.length}; 0 = ayat).`,
+    );
   }
   return {
     tabel: 'keterangan',
     kunciTujuan: `${surah}:${nomorAyat}:${urutan}`,
-    rujukan: kata ? `${s.nama} ${nomorAyat} · kata ${urutan} (${kata.teks})` : `${s.nama} ${nomorAyat} · keterangan ayat`,
+    rujukan: kata
+      ? `${s.nama} ${nomorAyat} · kata ${urutan} (${kata.teks})`
+      : `${s.nama} ${nomorAyat} · keterangan ayat`,
     isiBawaan: null,
     lokasi: { surah, ayat: nomorAyat, urutan },
+  };
+}
+
+// K-97: judul ayat atau jembatan dari ayat ini ke ayat berikutnya (ayat terakhir surah → surah berikutnya).
+export function sasaranAlamat(a: Record<string, unknown>): Sasaran {
+  const { s, surah, nomorAyat } = ayatSah(a.surah, a.ayat);
+  const jenis = a.jenis_alamat as JenisAlamat;
+  if (jenis !== 'judul' && jenis !== 'jembatan') throw new GalatUsulan('jenis_alamat harus judul atau jembatan.');
+  let rujukan = `${s.nama} ${nomorAyat} · judul ayat`;
+  if (jenis === 'jembatan') {
+    const akhir = nomorAyat === s.jumlahAyat;
+    const berikut = akhir ? cariSurah(surah + 1) : undefined;
+    if (akhir && !berikut) throw new GalatUsulan("Ayat terakhir Al-Qur'an tidak punya jembatan.");
+    rujukan = akhir
+      ? `${s.nama} ${nomorAyat} → surah ${berikut!.nama} · jembatan`
+      : `${s.nama} ${nomorAyat} → ${nomorAyat + 1} · jembatan`;
+  }
+  return {
+    tabel: 'alamatAyat',
+    kunciTujuan: `${surah}:${nomorAyat}:${jenis}`,
+    rujukan,
+    isiBawaan: null,
+    lokasi: { surah, ayat: nomorAyat, jenisAlamat: jenis },
+    maksIsi: jenis === 'judul' ? MAKS_JUDUL : MAKS_JEMBATAN,
   };
 }
 
@@ -118,6 +158,7 @@ async function sasaranHadits(d: SakuDB, a: Record<string, unknown>, tabel: 'makn
 export async function sasaranUsulan(d: SakuDB, jenis: TabelUsulan, a: Record<string, unknown>): Promise<Sasaran> {
   if (jenis === 'makna') return sasaranMakna(a);
   if (jenis === 'keterangan') return sasaranKeterangan(a);
+  if (jenis === 'alamatAyat') return sasaranAlamat(a);
   return sasaranHadits(d, a, jenis);
 }
 
@@ -125,6 +166,8 @@ export async function sasaranUsulan(d: SakuDB, jenis: TabelUsulan, a: Record<str
 export async function buatUsulan(d: SakuDB, jenis: TabelUsulan, a: Record<string, unknown>) {
   const { isiBersih, catatanBersih } = bersihkan(a.isi, a.catatan);
   const sasaran = await sasaranUsulan(d, jenis, a);
+  if (sasaran.maksIsi && isiBersih.length > sasaran.maksIsi)
+    throw new GalatUsulan(`Isi terlalu panjang untuk ${sasaran.rujukan} (maksimal ${sasaran.maksIsi} huruf).`);
   const baris = await barisTujuan(d, sasaran.tabel, sasaran.kunciTujuan);
   const isiSekarang = baris?.isi ?? sasaran.isiBawaan ?? '';
   if (isiSekarang.trim() === isiBersih) throw new GalatUsulan('Usulan sama dengan isi yang berlaku sekarang.');
@@ -188,6 +231,16 @@ async function tulisTujuan(d: SakuDB, u: UsulanClaude, isi: string | null, dariU
   const tanda = dariUsulan ? { dariUsulan } : {};
   if (u.tabel === 'makna') {
     await tabel.put({ kunci: u.kunciTujuan, surah: u.surah, ayat: u.ayat, segmen: u.segmen, isi, diubah, ...tanda });
+  } else if (u.tabel === 'alamatAyat') {
+    await tabel.put({
+      kunci: u.kunciTujuan,
+      surah: u.surah,
+      ayat: u.ayat,
+      jenis: u.jenisAlamat,
+      isi,
+      diubah,
+      ...tanda,
+    });
   } else if (u.tabel === 'keterangan') {
     await tabel.put({ kunci: u.kunciTujuan, surah: u.surah, ayat: u.ayat, urutan: u.urutan, isi, diubah, ...tanda });
   } else {
@@ -205,24 +258,28 @@ async function ambilMenunggu(d: SakuDB, kunci: string): Promise<UsulanClaude> {
 // Terima usulan. `isi` diisi bila Firdaus menyunting gabungan atau memilih usulan saat bentrok.
 // Tanpa `paksa`, usulan yang bentrok ditolak agar versi HP tidak tertimpa diam-diam (K-93).
 export async function terimaUsulan(d: SakuDB, kunci: string, opsi: { isi?: string; paksa?: boolean } = {}) {
-  await d.transaction('rw', [d.usulanClaude, d.table('makna'), d.table('keterangan'), d.maknaHadits, d.catatanHadits, d.hapus], async () => {
-    const u = await ambilMenunggu(d, kunci);
-    const baris = await barisTujuan(d, u.tabel, u.kunciTujuan);
-    if (statusEfektif(u, baris) === 'bentrok' && !opsi.paksa) {
-      throw new GalatUsulan('Catatan ini sudah diubah sesudah usulan dibuat. Pilih versi yang dipakai.');
-    }
-    const isi = (opsi.isi ?? u.isiBaru).trim();
-    if (!isi) throw new GalatUsulan('Isi tidak boleh kosong.');
-    const kini = new Date().toISOString();
-    await tulisTujuan(d, u, isi, kini);
-    // Isi lama yang sebenarnya ditimpa disimpan agar "Kembalikan" memulihkan versi yang tepat.
-    await d.usulanClaude.update(u.kunci, {
-      status: 'diterima',
-      diputuskan: kini,
-      isiDiterima: isi,
-      isiLama: baris?.isi ?? null,
-    });
-  });
+  await d.transaction(
+    'rw',
+    [d.usulanClaude, d.table('makna'), d.table('keterangan'), d.maknaHadits, d.catatanHadits, d.alamatAyat, d.hapus],
+    async () => {
+      const u = await ambilMenunggu(d, kunci);
+      const baris = await barisTujuan(d, u.tabel, u.kunciTujuan);
+      if (statusEfektif(u, baris) === 'bentrok' && !opsi.paksa) {
+        throw new GalatUsulan('Catatan ini sudah diubah sesudah usulan dibuat. Pilih versi yang dipakai.');
+      }
+      const isi = (opsi.isi ?? u.isiBaru).trim();
+      if (!isi) throw new GalatUsulan('Isi tidak boleh kosong.');
+      const kini = new Date().toISOString();
+      await tulisTujuan(d, u, isi, kini);
+      // Isi lama yang sebenarnya ditimpa disimpan agar "Kembalikan" memulihkan versi yang tepat.
+      await d.usulanClaude.update(u.kunci, {
+        status: 'diterima',
+        diputuskan: kini,
+        isiDiterima: isi,
+        isiLama: baris?.isi ?? null,
+      });
+    },
+  );
 }
 
 export async function tolakUsulan(d: SakuDB, kunci: string) {
@@ -248,16 +305,22 @@ export async function terimaSemua(d: SakuDB) {
 
 // Mengembalikan suntingan yang diterima ke isi lama — hanya bila catatan itu belum diubah lagi.
 export async function kembalikanUsulan(d: SakuDB, kunci: string) {
-  await d.transaction('rw', [d.usulanClaude, d.table('makna'), d.table('keterangan'), d.maknaHadits, d.catatanHadits, d.hapus], async () => {
-    const u = await d.usulanClaude.get(kunci);
-    if (!u || u.status !== 'diterima' || u.dikembalikan) throw new GalatUsulan('Usulan ini tidak bisa dikembalikan.');
-    const baris = await barisTujuan(d, u.tabel, u.kunciTujuan);
-    if ((baris?.isi ?? null) !== (u.isiDiterima ?? u.isiBaru)) {
-      throw new GalatUsulan('Catatan ini sudah diubah lagi sesudah usulan diterima, jadi tidak dikembalikan otomatis.');
-    }
-    await tulisTujuan(d, u, u.isiLama);
-    await d.usulanClaude.update(u.kunci, { dikembalikan: new Date().toISOString() });
-  });
+  await d.transaction(
+    'rw',
+    [d.usulanClaude, d.table('makna'), d.table('keterangan'), d.maknaHadits, d.catatanHadits, d.alamatAyat, d.hapus],
+    async () => {
+      const u = await d.usulanClaude.get(kunci);
+      if (!u || u.status !== 'diterima' || u.dikembalikan) throw new GalatUsulan('Usulan ini tidak bisa dikembalikan.');
+      const baris = await barisTujuan(d, u.tabel, u.kunciTujuan);
+      if ((baris?.isi ?? null) !== (u.isiDiterima ?? u.isiBaru)) {
+        throw new GalatUsulan(
+          'Catatan ini sudah diubah lagi sesudah usulan diterima, jadi tidak dikembalikan otomatis.',
+        );
+      }
+      await tulisTujuan(d, u, u.isiLama);
+      await d.usulanClaude.update(u.kunci, { dikembalikan: new Date().toISOString() });
+    },
+  );
 }
 
 // ---------- K-96: tinjau usulan langsung di ayat ----------

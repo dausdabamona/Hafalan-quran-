@@ -50,6 +50,10 @@
       "description": "Menampilkan usulan Claude yang sudah dibuat beserta statusnya (menunggu, bentrok, diterima, ditolak, diganti)."
     },
     {
+      "name": "baca_alamat",
+      "description": "Membaca Tata Alamat (K-97) satu surah atau rentang ayat (maks. 60 ayat): teks ayat, makna, judul ayat buatan Firdaus (2–5 kata makna) dan jembatan ke ayat berikutnya, beserta waktu ubah dan asalnya."
+    },
+    {
       "name": "usul_makna",
       "description": "Mengusulkan makna baru untuk satu potongan waqaf. Tidak mengubah data; Firdaus meninjau di HP. Usulan baru untuk potongan yang sama menggantikan usulan sebelumnya yang masih menunggu."
     },
@@ -64,6 +68,14 @@
     {
       "name": "usul_catatan_hadits",
       "description": "Mengusulkan catatan kajian untuk satu hadits (menggantikan seluruh isi catatan). Tidak mengubah data."
+    },
+    {
+      "name": "usul_judul_ayat",
+      "description": "Mengusulkan judul ayat (alamat makna, 2–5 kata, maks. 80 huruf) untuk satu ayat. Firdaus menulis judul sendiri lebih dulu; usulkan hanya untuk judul yang kosong atau bila diminta. Tidak mengubah data; ditinjau di HP."
+    },
+    {
+      "name": "usul_jembatan",
+      "description": "Mengusulkan jembatan: satu kalimat (maks. 300 huruf) yang menjelaskan mengapa ayat berikutnya datang sesudah ayat ini (ayat terakhir surah → surah berikutnya). Tidak mengubah data; ditinjau di HP."
     }
   ],
   "keywords": [

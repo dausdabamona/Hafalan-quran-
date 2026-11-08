@@ -20,7 +20,16 @@ import { idAcak } from '../db';
 export const VERSI_PROTOKOL = 1;
 
 // Tabel yang ditambahkan sesudah pusat mulai mengirim daftar tabelnya di /halo.
-const TABEL_BARU_K73: string[] = ['setelan', 'maknaHadits', 'haditsSimpan', 'catatanHadits', 'kaitanAyatHadits', 'ejaanHadits'];
+const TABEL_BARU_K73: string[] = [
+  'setelan',
+  'maknaHadits',
+  'haditsSimpan',
+  'catatanHadits',
+  'kaitanAyatHadits',
+  'ejaanHadits',
+  'usulanClaude',
+  'alamatAyat',
+];
 export const PORT_BAWAAN = 47310;
 
 export interface Anggota {
@@ -196,7 +205,9 @@ export async function sinkronkan(d: SakuDB, kirim: Kirim, kabar?: (pesan: string
     }
   }
   await tulisMeta(d, 'dorongSejak', dorongSampai);
-  await tulisMeta(d, 'dorongTertunda', [...new Set([...tertundaLama.filter((t) => !tabelPusat.includes(t as TabelSinkron)), ...tertunda])]);
+  await tulisMeta(d, 'dorongTertunda', [
+    ...new Set([...tertundaLama.filter((t) => !tabelPusat.includes(t as TabelSinkron)), ...tertunda]),
+  ]);
 
   // 2. Tarik perubahan dari pusat sampai jam pusat saat /halo.
   const tarikSejak = (await bacaMeta<number>(d, 'tarikSejak')) ?? 0;

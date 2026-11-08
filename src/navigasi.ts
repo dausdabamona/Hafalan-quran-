@@ -20,6 +20,8 @@ export type Layar =
   | { nama: 'pengingat' }
   | { nama: 'sinkron' }
   | { nama: 'usulan-claude' }
+  | { nama: 'daftar-alamat' }
+  | { nama: 'alamat'; rukuk: number }
   | { nama: 'cadangan' }
   | { nama: 'data-hadits' }
   | { nama: 'kitab-hadits'; cari?: string; kitab?: string }
@@ -73,6 +75,13 @@ export function bacaHash(): Layar {
   if (h === '#/pengingat') return { nama: 'pengingat' };
   if (h === '#/sinkron') return { nama: 'sinkron' };
   if (h === '#/usulan-claude') return { nama: 'usulan-claude' };
+  // K-97: Tata Alamat — #/alamat (daftar rukuk Juz 30), #/alamat/r<n> (satu rukuk).
+  if (h === '#/alamat') return { nama: 'daftar-alamat' };
+  m = /^#\/alamat\/r(\d+)$/.exec(h);
+  if (m) {
+    const n = Number(m[1]);
+    if (n >= 1 && n <= 556) return { nama: 'alamat', rukuk: n };
+  }
   if (h === '#/cadangan') return { nama: 'cadangan' };
   if (h === '#/data-hadits') return { nama: 'data-hadits' };
   // K-76: hadits lengkap — #/hadits, #/hadits/bukhari, #/hadits/bukhari/g2, #/hadits/bukhari/740

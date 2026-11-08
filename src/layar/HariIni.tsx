@@ -14,6 +14,7 @@ import {
   SunHorizon,
   Translate,
   Wrench,
+  MapTrifold,
 } from '@phosphor-icons/react';
 import {
   angkaArab,
@@ -214,6 +215,13 @@ export default function LayarHariIni() {
       ikon: <Translate size={30} weight="duotone" className="ikon" />,
       buka: () => pergi('#/tebak-arti'),
       mati: jumlahHafal < 1,
+    },
+    {
+      judul: 'Tata Alamat',
+      pendek: 'Tata alamat',
+      isi: 'Judul makna untuk tiap ayat dan jembatan antar-ayat, agar lanjutan ayat dan nomornya jelas.',
+      ikon: <MapTrifold size={30} weight="duotone" className="ikon" />,
+      buka: () => pergi('#/alamat'),
     },
     {
       judul: 'Murotal',

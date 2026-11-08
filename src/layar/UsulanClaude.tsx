@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowSquareOut, Sparkle } from '@phosphor-icons/react';
 import Kepala from '../komponen/Kepala';
+import { rukukAyat } from '../data';
 import { db, type UsulanClaude } from '../db';
 import {
   barisTujuan,
@@ -27,6 +28,7 @@ const LABEL_JENIS: Record<UsulanClaude['tabel'], string> = {
   keterangan: 'Keterangan',
   maknaHadits: 'Terjemah hadits',
   catatanHadits: 'Catatan hadits',
+  alamatAyat: 'Tata Alamat',
 };
 
 function waktu(iso?: string) {
@@ -35,6 +37,11 @@ function waktu(iso?: string) {
 }
 
 function hashTujuan(u: UsulanClaude): string | null {
+  // K-97: usulan judul/jembatan dibuka di layar Tata Alamat rukuknya.
+  if (u.tabel === 'alamatAyat' && u.surah && u.ayat) {
+    const r = rukukAyat(u.surah, u.ayat);
+    if (r) return `#/alamat/r${r.nomor}`;
+  }
   if (u.surah && u.ayat) return `#/surah/${u.surah}/${u.ayat}`;
   if (u.kitab && u.nomor) return `#/hadits/${u.kitab}/${u.nomor}`;
   return null;
@@ -104,7 +111,9 @@ export default function LayarUsulanClaude() {
             >
               Terima semua ({bisaSemua})
             </button>
-            {bentrok > 0 && <p className="kosong">{bentrok} usulan bentrok dilewati dan perlu dipilih satu per satu.</p>}
+            {bentrok > 0 && (
+              <p className="kosong">{bentrok} usulan bentrok dilewati dan perlu dipilih satu per satu.</p>
+            )}
           </section>
         )
       )}
@@ -122,8 +131,8 @@ export default function LayarUsulanClaude() {
                 <span className="usulan-riwayat-isi">
                   <strong>{u.rujukan}</strong>
                   <span className="kosong">
-                    {u.status === 'diterima' ? (u.dikembalikan ? 'diterima lalu dikembalikan' : 'diterima') : 'ditolak'} ·{' '}
-                    {waktu(u.dikembalikan ?? u.diputuskan)}
+                    {u.status === 'diterima' ? (u.dikembalikan ? 'diterima lalu dikembalikan' : 'diterima') : 'ditolak'}{' '}
+                    · {waktu(u.dikembalikan ?? u.diputuskan)}
                   </span>
                 </span>
                 {u.status === 'diterima' && !u.dikembalikan && (
@@ -205,7 +214,9 @@ function KartuUsulan({
             <button
               className="tombol utama"
               disabled={!sunting.trim()}
-              onClick={() => jalankan(() => terimaUsulan(db, u.kunci, { isi: sunting, paksa: true }), 'Suntingan dipakai.')}
+              onClick={() =>
+                jalankan(() => terimaUsulan(db, u.kunci, { isi: sunting, paksa: true }), 'Suntingan dipakai.')
+              }
             >
               Simpan
             </button>
@@ -216,7 +227,10 @@ function KartuUsulan({
         </>
       ) : isBentrok ? (
         <div className="usulan-tombol">
-          <button className="tombol sekunder" onClick={() => jalankan(() => tolakUsulan(db, u.kunci), 'Versi HP tetap dipakai.')}>
+          <button
+            className="tombol sekunder"
+            onClick={() => jalankan(() => tolakUsulan(db, u.kunci), 'Versi HP tetap dipakai.')}
+          >
             Pakai versi HP
           </button>
           <button
@@ -231,10 +245,16 @@ function KartuUsulan({
         </div>
       ) : (
         <div className="usulan-tombol">
-          <button className="tombol utama" onClick={() => jalankan(() => terimaUsulan(db, u.kunci), 'Usulan diterima.')}>
+          <button
+            className="tombol utama"
+            onClick={() => jalankan(() => terimaUsulan(db, u.kunci), 'Usulan diterima.')}
+          >
             Terima
           </button>
-          <button className="tombol sekunder" onClick={() => jalankan(() => tolakUsulan(db, u.kunci), 'Usulan ditolak.')}>
+          <button
+            className="tombol sekunder"
+            onClick={() => jalankan(() => tolakUsulan(db, u.kunci), 'Usulan ditolak.')}
+          >
             Tolak
           </button>
           <button className="tautan" onClick={() => setSunting(u.isiBaru)}>

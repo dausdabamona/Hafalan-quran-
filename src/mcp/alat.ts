@@ -1,4 +1,5 @@
-import { cariAyat, cariSurah, segmenAyat } from '../data';
+import { cariAyat, cariSurah, rukukAyat, segmenAyat } from '../data';
+import { labelJembatan } from '../alamat';
 import type { SakuDB, TabelUsulan } from '../db';
 import { buatUsulan, daftarUsulan, GalatUsulan } from './usulan';
 import { bacaMeta } from '../sinkron/mesin';
@@ -75,6 +76,59 @@ export async function bacaMakna(d: SakuDB, argumen: Record<string, unknown>) {
         ...(m ? penanda(m, k) : {}),
       };
     }),
+    sinkronHpTerakhir: k.sinkronHpTerakhir,
+  };
+}
+
+// ---------- baca_alamat (K-97) ----------
+
+const MAKS_AYAT_ALAMAT = 60;
+
+export async function bacaAlamat(d: SakuDB, argumen: Record<string, unknown>) {
+  const surah = bilangan(argumen.surah, 'surah');
+  const s = cariSurah(surah);
+  if (!s) throw new GalatAlat(`Surah ${surah} tidak ada (1–114).`);
+  const awal =
+    argumen.ayat_awal === undefined || argumen.ayat_awal === null ? 1 : bilangan(argumen.ayat_awal, 'ayat_awal');
+  const akhirMinta =
+    argumen.ayat_akhir === undefined || argumen.ayat_akhir === null
+      ? s.jumlahAyat
+      : bilangan(argumen.ayat_akhir, 'ayat_akhir');
+  if (awal < 1 || awal > s.jumlahAyat || akhirMinta < awal)
+    throw new GalatAlat(`Rentang ayat tidak sah. Surah ${s.nama} punya ${s.jumlahAyat} ayat.`);
+  const akhir = Math.min(akhirMinta, s.jumlahAyat, awal + MAKS_AYAT_ALAMAT - 1);
+  const k = await konteks(d);
+  const [alamat, makna] = await Promise.all([
+    d.alamatAyat.where('surah').equals(surah).toArray(),
+    d.makna.where('surah').equals(surah).toArray(),
+  ]);
+  const petaAlamat = new Map(alamat.map((x) => [x.kunci, x]));
+  const petaMakna = new Map(makna.map((x) => [x.kunci, x.isi]));
+  const ayat = [];
+  for (let n = awal; n <= akhir; n++) {
+    const a = cariAyat(surah, n)!;
+    const judul = petaAlamat.get(`${surah}:${n}:judul`);
+    const jembatan = petaAlamat.get(`${surah}:${n}:jembatan`);
+    ayat.push({
+      ayat: n,
+      rukuk: rukukAyat(surah, n)?.nomor ?? null,
+      teksAyat: a.teks,
+      makna: segmenAyat(a)
+        .map((g) => petaMakna.get(`${surah}:${n}:${g.indeks}`) || g.maknaBawaan)
+        .filter(Boolean)
+        .join(' · '),
+      judul: judul ? { isi: judul.isi, ...penanda(judul, k) } : null,
+      jembatanMenuju: labelJembatan(surah, n),
+      jembatan: jembatan ? { isi: jembatan.isi, ...penanda(jembatan, k) } : null,
+    });
+  }
+  return {
+    surah: { nomor: s.nomor, nama: s.nama, arti: s.arti, jumlahAyat: s.jumlahAyat },
+    rentang: { awal, akhir, dipotong: akhir < akhirMinta },
+    ayat,
+    catatan:
+      'Judul ayat 2–5 kata = alamat makna (nomor ↔ isi); jembatan = satu kalimat alasan ayat berikutnya datang. ' +
+      'Judul dan jembatan ditulis Firdaus sendiri lebih dulu; usulkan hanya untuk yang kosong atau bila diminta.',
     sinkronHpTerakhir: k.sinkronHpTerakhir,
   };
 }
@@ -291,12 +345,20 @@ export const NAMA_ALAT = [
   'cari_kajian',
   'status_sinkron',
   'daftar_usulan',
+  'baca_alamat',
   ...Object.keys(ALAT_USULAN),
+  'usul_judul_ayat',
+  'usul_jembatan',
 ] as const;
 
 export async function jalankanAlat(d: SakuDB, nama: string, argumen: Record<string, unknown> = {}) {
   if (nama in ALAT_USULAN) return usul(d, ALAT_USULAN[nama], argumen);
+  // K-97: judul ayat & jembatan memakai tabel tujuan yang sama, dibedakan jenisnya.
+  if (nama === 'usul_judul_ayat') return usul(d, 'alamatAyat', { ...argumen, jenis_alamat: 'judul' });
+  if (nama === 'usul_jembatan') return usul(d, 'alamatAyat', { ...argumen, jenis_alamat: 'jembatan' });
   switch (nama) {
+    case 'baca_alamat':
+      return bacaAlamat(d, argumen);
     case 'daftar_usulan':
       return lihatUsulan(d, argumen);
     case 'baca_makna':

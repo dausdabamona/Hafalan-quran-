@@ -10,6 +10,7 @@ import LayarDaftar from './layar/Daftar';
 import LayarSurah from './layar/Surah';
 import LayarRekam from './layar/Rekam';
 import LayarHafal from './layar/Hafal';
+import { LayarDaftarAlamat, LayarTataAlamat } from './layar/Alamat';
 import LayarKoreksi from './layar/Koreksi';
 import LayarTentang from './layar/Tentang';
 import LayarHariIni from './layar/HariIni';
@@ -156,6 +157,8 @@ export default function App() {
         {layar.nama === 'pengingat' && <LayarPengingat />}
         {layar.nama === 'sinkron' && <LayarSinkron />}
         {layar.nama === 'usulan-claude' && <LayarUsulanClaude />}
+        {layar.nama === 'daftar-alamat' && <LayarDaftarAlamat />}
+        {layar.nama === 'alamat' && <LayarTataAlamat key={layar.rukuk} rukuk={layar.rukuk} />}
         {layar.nama === 'cadangan' && <LayarCadangan />}
         {layar.nama === 'data-hadits' && <LayarDataHadits />}
         {layar.nama === 'kitab-hadits' && <LayarKitabHadits cariAwal={layar.cari} kitabAwal={layar.kitab} />}

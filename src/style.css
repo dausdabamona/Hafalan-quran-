@@ -5501,3 +5501,202 @@ body {
   line-height: 1.9;
   text-align: right;
 }
+
+/* K-97: Tata Alamat */
+.alamat-pengantar p {
+  margin: 0 0 6px;
+  line-height: 1.5;
+}
+.alamat-ringkas {
+  font-weight: 700;
+  color: var(--color-accent-700);
+}
+.daftar-alamat {
+  list-style: none;
+  margin: 0 12px 120px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.daftar-alamat button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--garis);
+  border-radius: 12px;
+  background: var(--kartu);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.daftar-alamat button.tertata {
+  border-color: var(--teal);
+  border-width: 2px;
+}
+.daftar-alamat .nama {
+  font-weight: 600;
+}
+.daftar-alamat .rentang {
+  font-weight: 400;
+  opacity: 0.75;
+}
+.daftar-alamat .hitung {
+  font-size: 13px;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+.peta-alamat ol {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.peta-alamat a {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  color: inherit;
+  text-decoration: none;
+  line-height: 1.4;
+}
+.peta-alamat .no,
+.nomor-alamat {
+  flex: 0 0 auto;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--color-isi-tua);
+  color: #fff;
+}
+.peta-alamat .kosong {
+  opacity: 0.55;
+  font-style: italic;
+}
+.isi-alamat {
+  display: flex;
+  flex-direction: column;
+}
+.kartu-alamat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  scroll-margin-top: 90px;
+}
+.kepala-alamat {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.nomor-alamat {
+  min-width: 36px;
+  height: 36px;
+  font-size: 16px;
+}
+.teks-alamat {
+  flex: 1;
+  margin: 0;
+  font-family: var(--font-arab);
+  font-size: calc(var(--ukuran-arab, 34px) * 0.8);
+  line-height: 1.9;
+  text-align: right;
+}
+.arti-alamat {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+.kolom-alamat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.kolom-alamat > span {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-accent-700);
+}
+.kolom-alamat input,
+.kolom-alamat textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--garis);
+  border-radius: 10px;
+  background: var(--color-kartu, var(--kartu));
+  color: inherit;
+  font: inherit;
+  font-size: 16px;
+}
+.kolom-alamat input {
+  font-weight: 600;
+}
+.jembatan-alamat {
+  margin: -4px 24px 0;
+  padding: 8px 12px 10px;
+  border-left: 3px dashed var(--teal);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.usulan-alamat {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px dashed var(--color-accent-700);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.usulan-alamat p {
+  margin: 0;
+}
+.usulan-alamat .catatan {
+  font-size: 13px;
+  opacity: 0.8;
+}
+.usulan-alamat .aksi {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.aksi-alamat {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 120px;
+}
+.aksi-alamat .keterangan-kecil,
+.pesan-alamat {
+  margin: 0;
+}
+.pesan-alamat {
+  font-size: 14px;
+  white-space: pre-wrap;
+}
+.nav-alamat {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.peta-alamat summary {
+  cursor: pointer;
+  list-style: none;
+}
+.peta-alamat summary::after {
+  content: ' ▾';
+}
+.peta-alamat:not([open]) summary::after {
+  content: ' ▸';
+}

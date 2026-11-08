@@ -25,7 +25,9 @@ const PETUNJUK =
   'Potongan waqaf bernomor mulai 1 (lihat baca_makna). ' +
   'Claude tidak pernah mengubah data langsung: alat usul_* hanya menyimpan USULAN yang masuk ke HP saat sinkron ' +
   'dan berlaku setelah Firdaus menerimanya di layar Usulan Claude. Selalu baca isi sekarang dulu sebelum mengusulkan, ' +
-  'beri catatan singkat alasannya, dan sampaikan kepada Firdaus bahwa itu masih usulan.';
+  'beri catatan singkat alasannya, dan sampaikan kepada Firdaus bahwa itu masih usulan. ' +
+  'Tata Alamat (baca_alamat, usul_judul_ayat, usul_jembatan): Firdaus menulis judul ayat dan jembatan sendiri lebih dulu ' +
+  'karena menulisnya ikut menguatkan hafalan; usulkan hanya untuk yang kosong atau bila diminta, singkat dan bermakna.';
 
 const ALAT = [
   {
@@ -106,6 +108,22 @@ const ALAT = [
     annotations: { title: 'Daftar usulan', readOnlyHint: true },
   },
   {
+    name: 'baca_alamat',
+    description:
+      'Membaca Tata Alamat (K-97) satu surah atau rentang ayat (maks. 60 ayat): teks ayat, makna, judul ayat buatan Firdaus ' +
+      '(2–5 kata makna) dan jembatan ke ayat berikutnya, beserta waktu ubah dan asalnya.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        surah: { type: 'integer', minimum: 1, maximum: 114, description: 'Nomor surah' },
+        ayat_awal: { type: 'integer', minimum: 1, description: 'Ayat awal (bawaan 1)' },
+        ayat_akhir: { type: 'integer', minimum: 1, description: 'Ayat akhir (bawaan akhir surah)' },
+      },
+      required: ['surah'],
+    },
+    annotations: { title: 'Baca Tata Alamat', readOnlyHint: true },
+  },
+  {
     name: 'usul_makna',
     description:
       'Mengusulkan makna baru untuk satu potongan waqaf. Tidak mengubah data; Firdaus meninjau di HP. ' +
@@ -169,6 +187,40 @@ const ALAT = [
       required: ['kitab', 'nomor', 'isi'],
     },
     annotations: { title: 'Usulkan catatan hadits', readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
+    name: 'usul_judul_ayat',
+    description:
+      'Mengusulkan judul ayat (alamat makna, 2–5 kata, maks. 80 huruf) untuk satu ayat. Firdaus menulis judul sendiri lebih ' +
+      'dulu; usulkan hanya untuk judul yang kosong atau bila diminta. Tidak mengubah data; ditinjau di HP.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        surah: { type: 'integer', minimum: 1, maximum: 114, description: 'Nomor surah' },
+        ayat: { type: 'integer', minimum: 1, description: 'Nomor ayat (penomoran Saku Hati)' },
+        isi: { type: 'string', minLength: 1, maxLength: 80, description: 'Judul 2–5 kata, bahasa sederhana' },
+        catatan: { type: 'string', maxLength: 1000, description: 'Alasan singkat usulan, ditampilkan ke Firdaus' },
+      },
+      required: ['surah', 'ayat', 'isi'],
+    },
+    annotations: { title: 'Usulkan judul ayat', readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  },
+  {
+    name: 'usul_jembatan',
+    description:
+      'Mengusulkan jembatan: satu kalimat (maks. 300 huruf) yang menjelaskan mengapa ayat berikutnya datang sesudah ayat ini ' +
+      '(ayat terakhir surah → surah berikutnya). Tidak mengubah data; ditinjau di HP.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        surah: { type: 'integer', minimum: 1, maximum: 114, description: 'Nomor surah' },
+        ayat: { type: 'integer', minimum: 1, description: 'Ayat asal jembatan (jembatan menuju ayat sesudahnya)' },
+        isi: { type: 'string', minLength: 1, maxLength: 300, description: 'Satu kalimat jembatan' },
+        catatan: { type: 'string', maxLength: 1000, description: 'Alasan singkat usulan, ditampilkan ke Firdaus' },
+      },
+      required: ['surah', 'ayat', 'isi'],
+    },
+    annotations: { title: 'Usulkan jembatan', readOnlyHint: false, destructiveHint: false, idempotentHint: false },
   },
 ];
 

@@ -184,10 +184,23 @@ export interface EjaanHadits {
   diubah: string;
 }
 
+// K-97: Tata Alamat — judul ayat (2–5 kata makna) dan jembatan ke ayat berikutnya. Ikut sinkron.
+export type JenisAlamat = 'judul' | 'jembatan';
+
+export interface AlamatAyat {
+  kunci: string; // "surah:ayat:jenis"
+  surah: number;
+  ayat: number;
+  jenis: JenisAlamat;
+  isi: string;
+  diubah: string;
+  dariUsulan?: string; // isi berasal dari usulan Claude (K-92)
+}
+
 // K-78: indeks pencarian — satu kata → urutan hadits yang memuatnya (urut naik).
 // K-92: usulan suntingan dari Claude (lewat MCP di versi Windows). Ikut sinkron dan cadangan.
 // Claude tidak pernah menulis langsung ke tabel tujuan; usulan ditinjau Firdaus di HP.
-export type TabelUsulan = 'makna' | 'keterangan' | 'maknaHadits' | 'catatanHadits';
+export type TabelUsulan = 'makna' | 'keterangan' | 'maknaHadits' | 'catatanHadits' | 'alamatAyat';
 export type StatusUsulan = 'menunggu' | 'diterima' | 'ditolak' | 'diganti';
 
 export interface UsulanClaude {
@@ -212,6 +225,7 @@ export interface UsulanClaude {
   urutan?: number;
   kitab?: string;
   nomor?: number;
+  jenisAlamat?: JenisAlamat; // K-97
 }
 
 export interface HaditsIndeks {
@@ -267,6 +281,7 @@ export type SakuDB = Dexie & {
   kaitanAyatHadits: EntityTable<KaitanAyatHadits, 'kunci'>;
   ejaanHadits: EntityTable<EjaanHadits, 'kunci'>;
   usulanClaude: EntityTable<UsulanClaude, 'kunci'>;
+  alamatAyat: EntityTable<AlamatAyat, 'kunci'>;
   meta: EntityTable<{ kunci: string; nilai: unknown }, 'kunci'>;
   /** true selama perubahan dari perangkat lain diterapkan (penanda waktu tidak diubah) */
   _terapkan?: boolean;
@@ -456,6 +471,9 @@ function siapkanSkema(db: SakuDB) {
 
   // Versi 18 (K-92): usulan suntingan dari Claude — ikut sinkron.
   db.version(18).stores({ usulanClaude: 'kunci, status, [tabel+kunciTujuan], terimaMs' });
+
+  // Versi 19 (K-97): Tata Alamat — judul ayat dan jembatan, ikut sinkron.
+  db.version(19).stores({ alamatAyat: 'kunci, surah, terimaMs' });
 }
 
 // Penanda sinkron otomatis untuk setiap penulisan lokal (K-37).
@@ -502,6 +520,7 @@ export const TABEL_SINKRON = [
   'kaitanAyatHadits',
   'ejaanHadits',
   'usulanClaude',
+  'alamatAyat',
 ] as const;
 export type TabelSinkron = (typeof TABEL_SINKRON)[number];
 

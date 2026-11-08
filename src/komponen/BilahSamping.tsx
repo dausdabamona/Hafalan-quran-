@@ -13,6 +13,7 @@ import {
   Newspaper,
   Translate,
   MapTrifold,
+  MagnifyingGlass,
 } from '@phosphor-icons/react';
 import type { Layar } from '../navigasi';
 import { pergi } from '../navigasi';
@@ -42,6 +43,7 @@ export default function BilahSamping({ layar }: { layar: NamaLayar }) {
     { judul: 'Murotal', hash: '#/murotal', ikon: ikon(Headphones), aktif: ['pilih-murotal', 'murotal'] },
     { judul: 'Sambung ayat', hash: '#/sambung', ikon: ikon(Link), aktif: ['sambung'] },
     { judul: 'Tebak dari arti', hash: '#/tebak-arti', ikon: ikon(Translate), aktif: ['tebak-arti'] },
+    { judul: 'Cari', hash: '#/cari', ikon: ikon(MagnifyingGlass), aktif: ['cari'] },
     { judul: 'Tata Alamat', hash: '#/alamat', ikon: ikon(MapTrifold), aktif: ['daftar-alamat', 'alamat'] },
     ...(pengingatTersedia()
       ? [{ judul: 'Pengingat ayat', hash: '#/pengingat', ikon: ikon(BellRinging), aktif: ['pengingat'] as NamaLayar[] }]

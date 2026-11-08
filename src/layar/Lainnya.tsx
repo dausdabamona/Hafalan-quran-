@@ -15,6 +15,7 @@ import {
   Sparkle,
   Translate,
   MapTrifold,
+  MagnifyingGlass,
 } from '@phosphor-icons/react';
 import Kepala from '../komponen/Kepala';
 import { ambilSyaratMantap, simpanSyaratMantap } from '../db';
@@ -35,6 +36,7 @@ export default function LayarLainnya({
   const item = [
     { judul: 'Sambung ayat', isi: 'Lanjutkan ayat sesudahnya', ikon: Link, hash: '#/sambung' },
     { judul: 'Tebak dari arti', isi: 'Tebak ayat dari maknanya', ikon: Translate, hash: '#/tebak-arti' },
+    { judul: 'Cari', isi: "Kata di Al-Qur'an & Hadits", ikon: MagnifyingGlass, hash: '#/cari' },
     // K-97: alamat makna untuk hafalan lama.
     { judul: 'Tata Alamat', isi: 'Judul ayat & jembatan, Juz 30', ikon: MapTrifold, hash: '#/alamat' },
     { judul: 'Rukuk yang dihafal', isi: 'Murojaah di luar jadwal', ikon: ListChecks, hash: '#/rukuk' },

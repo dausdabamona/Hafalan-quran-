@@ -5800,3 +5800,66 @@ body {
 .lembar-baca .teks-baca {
   font-size: calc(var(--ukuran-arab, 34px) * 0.9);
 }
+
+/* K-98 (B): pencarian umum */
+.pintu-cari {
+  margin: 4px 16px 8px;
+  width: calc(100% - 32px);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  opacity: 0.85;
+}
+.kotak-cari-umum {
+  padding-bottom: 4px;
+}
+.petunjuk-cari ul {
+  margin: 4px 0 8px;
+  padding-left: 18px;
+  line-height: 1.6;
+}
+.petunjuk-cari p {
+  margin: 0;
+}
+.bagian-cari {
+  padding: 4px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bagian-cari .kicker {
+  margin: 10px 4px 2px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.bagian-cari-hadits {
+  padding-bottom: 120px;
+}
+.daftar-lompat {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.daftar-lompat button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid var(--garis);
+  border-radius: 12px;
+  background: var(--kartu);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pahlawan-cari {
+  margin-left: auto;
+  margin-right: 8px;
+}

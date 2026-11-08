@@ -191,7 +191,7 @@ export function LayarKitabHadits({ cariAwal = '', kitabAwal }: { cariAwal?: stri
 
 const PER_HASIL = 30;
 
-function HasilCariHadits({ teks, kitab, info }: { teks: string; kitab: string | null; info: InfoDataHadits }) {
+export function HasilCariHadits({ teks, kitab, info }: { teks: string; kitab: string | null; info: InfoDataHadits }) {
   const eja = useEjaan();
   const [hasil, setHasil] = useState<HasilCari | null>(null);
   const [hadits, setHadits] = useState<Hadits[]>([]);

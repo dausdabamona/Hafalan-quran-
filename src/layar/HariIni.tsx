@@ -15,6 +15,7 @@ import {
   Translate,
   Wrench,
   MapTrifold,
+  MagnifyingGlass,
 } from '@phosphor-icons/react';
 import {
   angkaArab,
@@ -326,6 +327,14 @@ export default function LayarHariIni() {
             </span>
             <h1>Assalamu'alaikum</h1>
           </div>
+          {/* K-98 (B): pencarian umum. */}
+          <button
+            className="tombol-ikon pahlawan-cari"
+            onClick={() => pergi('#/cari')}
+            aria-label="Cari di Al-Qur'an dan Hadits"
+          >
+            <MagnifyingGlass size={20} weight="bold" />
+          </button>
           <span className="pil-rentetan" title="Hari berturut-turut ada murojaah atau koreksi">
             <Flame size={18} weight="fill" /> {rentetan} hari
           </span>

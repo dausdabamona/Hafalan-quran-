@@ -21,6 +21,7 @@ export type Layar =
   | { nama: 'sinkron' }
   | { nama: 'usulan-claude' }
   | { nama: 'daftar-alamat' }
+  | { nama: 'cari'; q?: string }
   | { nama: 'alamat'; rukuk: number }
   | { nama: 'cadangan' }
   | { nama: 'data-hadits' }
@@ -75,6 +76,10 @@ export function bacaHash(): Layar {
   if (h === '#/pengingat') return { nama: 'pengingat' };
   if (h === '#/sinkron') return { nama: 'sinkron' };
   if (h === '#/usulan-claude') return { nama: 'usulan-claude' };
+  // K-98 (B): pencarian umum — #/cari, #/cari?q=...
+  if (h === '#/cari') return { nama: 'cari' };
+  if (h.startsWith('#/cari?'))
+    return { nama: 'cari', q: new URLSearchParams(h.slice('#/cari?'.length)).get('q') ?? '' };
   // K-97: Tata Alamat — #/alamat (daftar rukuk Juz 30), #/alamat/r<n> (satu rukuk).
   if (h === '#/alamat') return { nama: 'daftar-alamat' };
   m = /^#\/alamat\/r(\d+)$/.exec(h);

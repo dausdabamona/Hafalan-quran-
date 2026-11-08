@@ -1,3 +1,4 @@
+import { MagnifyingGlass } from '@phosphor-icons/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { daftarJuz, daftarRukuk, daftarSurah, juzAyat } from '../data';
 import { ambilHafalan, batalkanHafalanLama, tandaiHafalanLama } from '../db';
@@ -95,6 +96,11 @@ export default function LayarDaftar() {
           </button>
         }
       />
+      {/* K-98 (B): pintu ke pencarian umum. */}
+      <button className="kolom-cari pintu-cari" onClick={() => pergi('#/cari')}>
+        <MagnifyingGlass size={20} weight="bold" aria-hidden="true" />
+        <span>Cari kata di Al-Qur'an & Hadits…</span>
+      </button>
       {modeTandai && (
         <div className="petunjuk-tandai">
           <p>
